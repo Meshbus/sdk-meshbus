@@ -1,0 +1,12 @@
+menu "Device Drivers"
+
+rsource "adc/Kconfig"
+rsource "charger/Kconfig"
+rsource "ethernet/Kconfig"
+rsource "sensor/Kconfig"
+rsource "gnss/Kconfig"
+rsource "input/Kconfig"
+rsource "led/Kconfig"
+rsource "mfd/Kconfig"
+
+endmenu

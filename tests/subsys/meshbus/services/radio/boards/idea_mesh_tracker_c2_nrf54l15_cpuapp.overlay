@@ -1,0 +1,29 @@
+/* Dedicated validation-device layout. See README.rst before flashing. */
+
+/delete-node/ &storage_partition;
+
+/ {
+	chosen {
+		meshbus,radio = &sx1262;
+	};
+};
+
+&slot1_partition {
+	reg = <0x0c2000 0x0a2000>;
+};
+
+&cpuapp_rram {
+	partitions {
+		storage_partition: partition@164000 {
+			compatible = "zephyr,mapped-partition";
+			label = "meshbus-radio-test-storage";
+			reg = <0x164000 0x010000>;
+		};
+
+		product_storage_partition: partition@174000 {
+			compatible = "zephyr,mapped-partition";
+			label = "product-storage-preserved";
+			reg = <0x174000 0x009000>;
+		};
+	};
+};

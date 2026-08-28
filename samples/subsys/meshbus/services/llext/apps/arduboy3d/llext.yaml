@@ -1,0 +1,6 @@
+id: arduboy3d
+type: app
+name: Catacombs 3D
+version: 1.0.0-fobe.1
+entry-point: arduboy3d_app_main
+stack-size: 4096

@@ -1,0 +1,55 @@
+tests:
+  subsys.meshbus.performance.settings.zms_blob.cached:
+    tags:
+      - meshbus
+      - settings
+      - zms
+      - performance
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86
+    extra_conf_files:
+      - cached.conf
+  subsys.meshbus.performance.settings.zms_blob.release_uncached:
+    tags:
+      - meshbus
+      - settings
+      - zms
+      - performance
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86
+    extra_conf_files:
+      - release-uncached.conf
+  subsys.meshbus.performance.settings.zms_blob.cached.c2_build:
+    tags:
+      - meshbus
+      - settings
+      - zms
+      - performance
+      - build_only
+    build_only: true
+    platform_allow:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp
+    integration_platforms:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp
+    extra_conf_files:
+      - cached.conf
+  subsys.meshbus.performance.settings.zms_blob.release_uncached.c2_build:
+    tags:
+      - meshbus
+      - settings
+      - zms
+      - performance
+      - build_only
+    build_only: true
+    platform_allow:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp
+    integration_platforms:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp
+    extra_conf_files:
+      - release-uncached.conf

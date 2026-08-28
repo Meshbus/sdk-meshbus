@@ -1,0 +1,14 @@
+sample:
+  name: Meshbus indicator service
+  description: Starts Meshbus indicator for board shell, LED, and buzzer manual validation
+common:
+  tags:
+    - meshbus
+    - indicator
+  harness: keyboard
+tests:
+  sample.subsys.meshbus.services.indicator:
+    platform_allow:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp
+    integration_platforms:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp

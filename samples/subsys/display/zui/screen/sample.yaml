@@ -1,0 +1,10 @@
+sample:
+  description: ZUI screen lifecycle and forwarding sample
+  name: zui screen sample
+common:
+  tags: zui screen
+  build_only: true
+tests:
+  sample.zui.screen:
+    integration_platforms:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp

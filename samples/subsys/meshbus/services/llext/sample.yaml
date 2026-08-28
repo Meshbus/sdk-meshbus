@@ -1,0 +1,18 @@
+sample:
+  name: Meshbus LLEXT service
+  description: Starts Meshbus LLEXT boot service manager for board shell and upload validation
+common:
+  tags:
+    - meshbus
+    - llext
+  harness: console
+  harness_config:
+    type: one_line
+    regex:
+      - "Meshbus LLEXT boot service sample started"
+tests:
+  sample.subsys.meshbus.services.llext:
+    platform_allow:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp
+    integration_platforms:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp

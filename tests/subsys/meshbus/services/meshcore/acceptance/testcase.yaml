@@ -1,0 +1,11 @@
+tests:
+  subsys.meshbus.meshcore.integration.request_acceptance:
+    tags:
+      - meshbus
+      - meshcore
+      - integration
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86

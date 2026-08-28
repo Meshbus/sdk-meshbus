@@ -1,0 +1,10 @@
+sample:
+  name: ZUI component sample
+tests:
+  sample.subsys.zui.component:
+    build_only: true
+    platform_allow:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp
+    tags:
+      - zui
+      - component

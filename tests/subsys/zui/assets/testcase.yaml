@@ -1,0 +1,6 @@
+tests:
+  zui.assets:
+    platform_allow: qemu_x86
+    tags:
+      - zui
+      - assets

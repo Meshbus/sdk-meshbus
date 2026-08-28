@@ -1,0 +1,11 @@
+tests:
+  lib.meshcore.advert_data.tdd:
+    tags:
+      - meshcore
+      - advert_data
+      - ztest
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86

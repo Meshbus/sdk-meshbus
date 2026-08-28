@@ -1,0 +1,5 @@
+description: Fake direct heading sensor for Meshbus GNSS heading tests
+
+compatible: fobe,compass-heading-sensor
+
+include: sensor-device.yaml

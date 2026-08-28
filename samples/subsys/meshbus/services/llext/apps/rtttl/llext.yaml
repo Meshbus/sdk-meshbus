@@ -1,0 +1,6 @@
+id: rtttl
+type: app
+name: RTTTL
+version: 1.0.0
+entry-point: rtttl_app_main
+stack-size: 4096

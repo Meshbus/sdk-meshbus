@@ -1,0 +1,6 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+# Module Kconfig files are included via modules.cmake and MODULE_EXT_ROOT mechanism
+# for modules that use kconfig-ext: True (like detools).
+# Only add rsource entries here for modules that have their own Kconfig within sdk-meshbus.

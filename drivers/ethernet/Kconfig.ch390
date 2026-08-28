@@ -1,0 +1,52 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig ETH_CH390
+	bool "WCH CH390 Ethernet Controller"
+	depends on NETWORKING
+	depends on NET_L2_ETHERNET
+	depends on SPI
+	depends on GPIO
+	depends on DT_HAS_WCH_CH390_ENABLED
+	select NET_CHECKSUM_OFFLOAD_SUPPORTED if NET_L2_ETHERNET
+	help
+	  WCH CH390D/H Ethernet controller with SPI interface.
+
+config ETH_CH390_RX_THREAD_STACK_SIZE
+	int "Stack size for CH390 RX worker"
+	depends on ETH_CH390
+	default 8192
+	help
+	  Stack size for the internal worker thread that drains RX packets
+	  after a CH390 interrupt.
+
+config ETH_CH390_RX_THREAD_PRIO
+	int "Priority for CH390 RX worker"
+	depends on ETH_CH390
+	default 2
+	help
+	  Cooperative priority for the internal worker thread that drains
+	  RX packets after a CH390 interrupt.
+
+config ETH_CH390_TIMEOUT
+	int "CH390 network buffer timeout"
+	depends on ETH_CH390
+	default 100
+	help
+	  Maximum amount of time in milliseconds that the driver will wait
+	  for a network buffer before dropping an Ethernet frame.
+
+config ETH_CH390_FLOW_CONTROL
+	bool "Enable pause-based flow control policy"
+	depends on ETH_CH390
+	default y
+	help
+	  Enable pause advertisement and runtime flow-control policy updates
+	  based on link negotiation state.
+
+config ETH_CH390_ALLMULTI_DEFAULT
+	bool "Enable ALLMULTI by default"
+	depends on ETH_CH390
+	default n
+	help
+	  Accept all multicast traffic by default at driver startup.

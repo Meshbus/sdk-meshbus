@@ -1,0 +1,48 @@
+description: EC Sense ES4-AG1 electrochemical VOC sensor
+
+compatible: "ecsense,es4-ag1"
+
+include:
+  - sensor-device.yaml
+
+properties:
+
+  io-channels:
+    type: phandle-array
+    required: true
+    description: ADC channel connected to the TIA/amplifier voltage output.
+
+  zero-offset-microvolt:
+    type: int
+    default: 0
+    description: |
+      Initial sensor zero offset in microvolts. This baseline is subtracted
+      from each averaged sample before VOC conversion. This can be negative
+      when the ADC channel is differential and clean-air baseline is below
+      the ADC zero point.
+
+  transimpedance-ohms:
+    type: int
+    required: true
+    description: |
+      Effective transimpedance (ohms) of the analog front-end.
+
+  sensitivity-nanoamp-per-ppm:
+    type: int
+    default: 55
+    description: |
+      Sensor sensitivity in nanoamps per ppm. Default is ES4-AG1-200 VOC
+      sensitivity calibrated with C4H8.
+
+  inverted-polarity:
+    type: boolean
+    description: |
+      Set this when the analog front-end is inverted and sensor concentration
+      increase makes ADC voltage decrease. In this mode the driver uses
+      (zero-offset - sample) for VOC conversion.
+
+  averaging-samples:
+    type: int
+    default: 16
+    description: |
+      Number of ADC samples averaged per fetch.

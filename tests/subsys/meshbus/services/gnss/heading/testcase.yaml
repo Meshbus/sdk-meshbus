@@ -1,0 +1,33 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+tests:
+  subsys.meshbus.gnss.heading.composite_contract:
+    tags:
+      - meshbus
+      - compass
+      - contract
+      - ztest
+    extra_configs:
+      - CONFIG_COMPASS_COMPOSITE=y
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86
+  subsys.meshbus.gnss.heading.direct_provider_contract:
+    tags:
+      - meshbus
+      - compass
+      - contract
+      - ztest
+    extra_configs:
+      - CONFIG_COMPASS_COMPOSITE=n
+      - CONFIG_GNSS_EMUL=n
+    extra_args:
+      - DTC_OVERLAY_FILE=boards/qemu_x86_direct.overlay
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86

@@ -1,0 +1,9 @@
+board:
+  name: devkit_nrf54l15
+  full_name: FoBE DevKit nRF54L15
+  vendor: fobe
+  socs:
+  - name: nrf54l15
+    variants:
+    - name: xip
+      cpucluster: cpuflpr

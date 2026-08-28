@@ -1,0 +1,305 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig ZUI
+	bool "ZUI UI framework"
+	depends on DISPLAY && U8G2
+	select U8G2_FONT_U8G2_FONT_HELVB08_TR
+	select U8G2_FONT_U8G2_FONT_HAXRCORP4089_TR
+	select U8G2_FONT_U8G2_FONT_PROFONT11_MR
+	select U8G2_FONT_U8G2_FONT_PROFONT22_TN
+	help
+	  Enable ZUI, a compact UI framework for Zephyr display and
+	  input environments.
+	  Requires Zephyr's display subsystem and the embedded U8G2 subsystem.
+
+if ZUI
+
+module = ZUI
+module-str = zui
+module-help = Sets log level for ZUI support
+source "subsys/logging/Kconfig.template.log_config"
+
+config LLEXT_EXPORT_SYMBOL_GROUP_ZUI
+	bool "Export ZUI symbols for LLEXT"
+	depends on ZUI && LLEXT
+	default y
+	help
+	  Export ZUI public API symbols to the LLEXT symbol table so
+	  extensions can resolve zui_* APIs at runtime.
+
+config ZUI_DISPLAY_WIDTH
+	int "Display width"
+	default 128
+	help
+	  Width of the display in pixels.
+
+config ZUI_DISPLAY_HEIGHT
+	int "Display height"
+	default 64
+	help
+	  Height of the display in pixels.
+
+config ZUI_HAND_ORIENTATION
+	bool "Left-handed orientation"
+	default n
+	help
+	  Enable left-handed screen orientation (flip display).
+
+config ZUI_TEXT_UTF8
+	bool "Enable UTF-8 text layout"
+	default n
+	help
+	  Make ZUI text fitting and wrapping respect UTF-8 character
+	  boundaries. Enable this for language packs or fonts that render
+	  non-ASCII text.
+
+config ZUI_FONT_CJK_WQY12_GB2312
+	bool "Use WQY12 GB2312 for primary text fonts"
+	default n
+	select ZUI_TEXT_UTF8
+	select U8G2_FONT_U8G2_FONT_WQY12_T_GB2312
+	help
+	  Use the WQY12 GB2312 bitmap font for ZUI primary and secondary
+	  text rendering. This enables CJK-capable UTF-8 UI text at a
+	  significant flash cost.
+
+config ZUI_INPUT_QUEUE_SIZE
+	int "Input event queue size"
+	default 8
+	range 4 32
+	help
+	  Maximum number of input events that can be queued.
+
+config ZUI_SCREEN_TICK_CATCH_UP_MAX
+	int "Maximum screen tick catch-up count"
+	default 2
+	range 1 16
+	help
+	  Maximum number of missed screen ticks dispatched during one host poll.
+	  Extra elapsed ticks are skipped so busy screens cannot monopolize the UI
+	  thread while trying to catch up.
+
+config ZUI_SCREEN_TICK_PERF_LOG
+	bool "Log screen tick timing statistics"
+	depends on LOG
+	default n
+	help
+	  Log low-rate timing statistics for ZUI screen ticks. This is intended
+	  for diagnosing frame-rate issues on hardware and stays disabled by
+	  default because it adds timing reads to the UI hot path.
+
+config ZUI_SCREEN_TICK_PERF_LOG_INTERVAL_MS
+	int "Screen tick timing log interval (ms)"
+	depends on ZUI_SCREEN_TICK_PERF_LOG
+	default 1000
+	range 250 60000
+	help
+	  Interval used when printing aggregated screen tick timing statistics.
+
+config ZUI_TEXT_EDITOR_KEYPAD_MULTI_TAP
+	bool "Enable text editor 12-key multi-tap input"
+	default n
+	help
+	  Enable hardware 12-key phone-style multi-tap input modes in the text
+	  editor. Boards without a phone keypad should leave this disabled so
+	  keypad events can fall back to navigation.
+
+config ZUI_KEYPAD_MULTI_TAP_TIMEOUT_MS
+	int "12-key keypad multi-tap timeout (ms)"
+	default 900
+	range 100 5000
+	depends on ZUI_TEXT_EDITOR_KEYPAD_MULTI_TAP || ZUI_TEXT_EDITOR_PREDICTIVE
+	help
+	  Timeout used by text editor phone-key multi-tap and T9 punctuation
+	  input before the next press appends a new character instead of
+	  cycling the last one.
+
+config ZUI_TEXT_EDITOR_PREDICTIVE
+	bool "Enable text editor 12-key predictive input"
+	default n
+	help
+	  Enable the text editor's T9-style predictive mode for 12-key keypads.
+	  If no predictive dictionary source is configured, the engine builds
+	  with an empty dictionary and returns no candidates.
+
+config ZUI_TEXT_EDITOR_PREDICTIVE_DICT_SIZE
+	int "Predictive dictionary flash budget"
+	default 65536
+	range 64 262144
+	depends on ZUI_TEXT_EDITOR_PREDICTIVE
+	help
+	  Approximate byte budget used by the build-time predictive dictionary
+	  generator when selecting words from the configured source list.
+
+config ZUI_TEXT_EDITOR_PREDICTIVE_BUILTIN_ENGLISH_DICT
+	bool "Build built-in English predictive dictionary"
+	default y
+	depends on ZUI_TEXT_EDITOR_PREDICTIVE
+	help
+	  Build the SDK-provided English word-frequency dictionary when no
+	  explicit dictionary source is configured. The bundled list is a full
+	  compatible source table derived from an ISC-licensed SUBTLEX
+	  word-frequency dataset; DICT_SIZE controls the generated flash data.
+
+config ZUI_TEXT_EDITOR_PREDICTIVE_MAX_CANDIDATES
+	int "Predictive candidates per key sequence"
+	default 8
+	range 1 16
+	depends on ZUI_TEXT_EDITOR_PREDICTIVE
+	help
+	  Maximum number of candidates kept for each 12-key sequence.
+
+config ZUI_TEXT_EDITOR_PREDICTIVE_MAX_SEQUENCE_LEN
+	int "Predictive maximum word length"
+	default 10
+	range 1 10
+	depends on ZUI_TEXT_EDITOR_PREDICTIVE
+	help
+	  Maximum word/key-sequence length accepted by the predictive dictionary.
+	  The compact runtime encoding stores up to 10 keys.
+
+config ZUI_TEXT_EDITOR_PREDICTIVE_DICT_SOURCE
+	string "Predictive dictionary source word-frequency file"
+	default ""
+	depends on ZUI_TEXT_EDITOR_PREDICTIVE
+	help
+	  Path to a word-frequency file consumed by the build-time generator.
+	  Relative paths are resolved from the application source directory.
+	  Leave empty to use the built-in English dictionary when enabled, or
+	  an empty dictionary otherwise.
+
+config ZUI_TEXT_EDITOR_PREDICTIVE_SOURCE_LICENSE
+	string "Predictive dictionary source license note"
+	default ""
+	depends on ZUI_TEXT_EDITOR_PREDICTIVE
+	help
+	  Human-readable license note embedded in the generated dictionary
+	  source. Use only clearly compatible word sources.
+
+config ZUI_ROUTER_EVENT_QUEUE_SIZE
+	int "ZUI router event queue size"
+	default 16
+	range 4 32
+	help
+	  Maximum number of input/custom events that can be queued for routing.
+	  This value is used as the capacity for both the input queue and the
+	  custom-event queue.
+
+config ZUI_ROUTER_MAX_SCREENS
+	int "ZUI router max registered screens"
+	default 16
+	range 1 64
+	help
+	  Maximum number of screens that can be registered in a router.
+
+config ZUI_TOAST_MAX_SLOTS
+	int "Maximum active toast slots"
+	default 1
+	range 1 4
+	help
+	  Maximum number of toast notifications that can be animated or visible at
+	  the same time. Keep this at 1 for the lowest RAM use; increase it only if
+	  the application needs overlapping toast notifications.
+
+config ZUI_HEAP_SIZE
+	int "ZUI heap size (bytes)"
+	default 16384
+	range 4096 131072
+	help
+	  Size of the dedicated heap for ZUI dynamic memory allocations.
+
+config ZUI_USE_SYSTEM_HEAP
+	bool "Use Zephyr system heap for ZUI allocations"
+	default n
+	help
+	  If enabled, ZUI's allocation APIs (zui_malloc/zui_free/zui_realloc/zui_calloc)
+	  will use Zephyr's system heap (k_malloc/k_free/k_realloc) instead of the
+	  dedicated ZUI sys_heap.
+
+	  When enabled, CONFIG_ZUI_HEAP_SIZE is effectively ignored.
+
+config ZUI_COMPRESS_ICONS
+	bool "Enable icon compression"
+	default y
+	depends on ZUI_COMMON_ICONS
+	select HEATSHRINK
+	help
+	  Enable heatshrink compression for icon data to reduce flash usage.
+
+config ZUI_COMMON_ICONS
+	bool "Build and expose built-in icon assets"
+	default n
+	help
+	  If enabled, the built-in icon/animation assets (zui_common_icons.c)
+	  will be compiled into the ZUI library.
+
+	  To use the built-in symbol names (I_* / A_*), include:
+	    #include <zephyr/zui/zui_common_icons.h>
+
+config ZUI_ASSET_NAMES
+	bool "Keep human-readable built-in asset names"
+	default y
+	depends on ZUI_COMMON_ICONS
+	help
+	  Keep the built-in asset name strings used by zui_asset_pack_icon_name().
+	  Disable this to save ROM when asset names are only needed for diagnostics
+	  or samples.
+
+config ZUI_ICON_DECODE_BUFFER_SIZE
+	int "Icon decode buffer size"
+	default 1024
+	range 256 4096
+	depends on ZUI_COMPRESS_ICONS
+	help
+	  Size of the buffer used for decompressing icons.
+
+config ZUI_STORAGE_MOUNT_POINT
+	string "Storage mount point path"
+	default "/root"
+	help
+	  Default filesystem mount point path used by ZUI file picker components.
+
+config ZUI_FILE_PICKER_MAX_ENTRIES
+	int "File picker cached entry count"
+	default 16
+	range 4 64
+	help
+	  Maximum number of entries cached by each file picker instance. Lower
+	  values reduce per-instance RAM usage and directory load stack usage.
+
+config ZUI_FILE_PICKER_PATH_SIZE
+	int "File picker path buffer size"
+	default 128
+	range 32 512
+	help
+	  Bytes reserved for each normalized path stored by the file picker.
+	  Increase this when the target filesystem uses deeper paths.
+
+config ZUI_FILE_PICKER_NAME_SIZE
+	int "File picker display name buffer size"
+	default 48
+	range 16 128
+	help
+	  Bytes reserved for each entry display name after probing and optional
+	  extension stripping.
+
+config ZUI_FILE_PICKER_VISIBLE_ITEMS
+	int "File picker visible window items"
+	default 5
+	range 3 5
+	help
+	  Number of visible rows rendered by file picker-style UIs.
+
+config ZUI_SHELL
+	bool "Enable ZUI Shell module"
+	default n
+	depends on SHELL
+	help
+	  Enable ZUI diagnostic shell commands:
+	  - zui dump: dump the last framebuffer in SSD1306 page format.
+	  - zui key: inject navigation input into the default ZUI host.
+	  - zui key emul: continuously inject navigation input from keyboard
+	    bytes (W/A/S/D/E/Q, R exits).
+
+endif # ZUI

@@ -1,0 +1,30 @@
+# ADS1110 ADC configuration options
+
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+config ADC_ADS1110
+	bool "Texas Instruments ADS1110 ADC driver"
+	depends on DT_HAS_TI_ADS1110_ENABLED
+	default y
+	select I2C
+	select ADC_CONFIGURABLE_INPUTS
+	help
+	  Enable the driver implementation for the ADS1110
+
+if ADC_ADS1110
+
+config ADC_ADS1110_ACQUISITION_THREAD_STACK_SIZE
+	int "ADS1110 acquisition thread stack size"
+	default 768
+	help
+	  Stack size for the ADS1110 acquisition thread used to wait for
+	  single-shot conversion completion.
+
+config ADC_ADS1110_ACQUISITION_THREAD_PRIORITY
+	int "ADS1110 acquisition thread priority"
+	default 0
+	help
+	  Priority for the ADS1110 acquisition thread.
+
+endif # ADC_ADS1110

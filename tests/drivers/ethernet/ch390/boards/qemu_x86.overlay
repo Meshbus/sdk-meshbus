@@ -1,0 +1,36 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+/ {
+	test_gpio: gpio {
+		compatible = "zephyr,gpio-emul";
+		ngpios = <2>;
+		rising-edge;
+		status = "okay";
+		#gpio-cells = <2>;
+		gpio-controller;
+	};
+
+	test_spi: spi@100 {
+		compatible = "zephyr,spi-emul-controller";
+		reg = <0x100 4>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "okay";
+
+		ch390: ethernet@0 {
+			compatible = "wch,ch390";
+			reg = <0>;
+			spi-max-frequency = <1000000>;
+			int-gpios = <&test_gpio 0 GPIO_ACTIVE_HIGH>;
+			reset-gpios = <&test_gpio 1 GPIO_ACTIVE_LOW>;
+			local-mac-address = [02 00 00 00 00 01];
+			status = "okay";
+		};
+	};
+};

@@ -1,0 +1,13 @@
+# IDEA MESH TRACKER C1 board configuration
+
+# Copyright (c) 2025 Chiho Sin
+# SPDX-License-Identifier: Apache-2.0
+
+if BOARD_IDEA_MESH_TRACKER_C1
+
+config HW_STACK_PROTECTION
+	default ARCH_HAS_STACK_PROTECTION
+
+source "boards/common/usb/Kconfig.cdc_acm_serial.defconfig"
+
+endif # BOARD_IDEA_MESH_TRACKER_C1

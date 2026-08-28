@@ -1,0 +1,11 @@
+tests:
+  lib.meshcore.cayenne_lpp_compat.tdd:
+    tags:
+      - meshcore
+      - cayenne_lpp_compat
+      - ztest
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86

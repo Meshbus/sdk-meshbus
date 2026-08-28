@@ -1,0 +1,429 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+
+#include <string.h>
+
+#include <zephyr/kernel.h>
+#include <zephyr/meshbus/message.h>
+#include <zephyr/meshbus/time.h>
+#include <zephyr/sys/util.h>
+#include <zephyr/zbus/zbus.h>
+
+#include "messages_cache.h"
+
+BUILD_ASSERT(CONFIG_MESHBUS_DESKTOP_MESSAGE_CACHE_COUNT > 0U,
+	     "CONFIG_MESHBUS_DESKTOP_MESSAGE_CACHE_COUNT must be > 0");
+BUILD_ASSERT(CONFIG_MESHBUS_DESKTOP_MESSAGE_CACHE_COUNT <= CONFIG_MESHBUS_MESSAGE_MAX_STORE_COUNT,
+	     "Desktop message cache cannot exceed the Meshbus message store");
+
+struct desktop_messages_cache {
+	uint32_t count;
+	uint32_t update_seq;
+	uint64_t last_timestamp_ms;
+	struct desktop_messages_cache_entry entries[CONFIG_MESHBUS_DESKTOP_MESSAGE_CACHE_COUNT];
+};
+
+static struct desktop_messages_cache g_messages_cache;
+static K_MUTEX_DEFINE(g_messages_cache_mutex);
+
+static void messages_cache_key_clear(struct desktop_messages_cache_key *key)
+{
+	if (key == NULL) {
+		return;
+	}
+
+	memset(key, 0, sizeof(*key));
+}
+
+bool desktop_messages_cache_key_is_valid(const struct desktop_messages_cache_key *key)
+{
+	return key != NULL && key->timestamp != 0U;
+}
+
+static size_t messages_cache_payload_len(const meshbus_message_content *message)
+{
+	if (message == NULL) {
+		return 0U;
+	}
+
+	return MIN((size_t)message->payload.size, (size_t)sizeof(message->payload.bytes));
+}
+
+static size_t messages_cache_sender_len(const meshbus_message_content *message)
+{
+	if (message == NULL) {
+		return 0U;
+	}
+
+	return strnlen(message->sender_name, sizeof(message->sender_name));
+}
+
+static bool messages_cache_is_received(const meshbus_message_content *message)
+{
+	if (message == NULL) {
+		return false;
+	}
+
+	return message->type == meshbus_MessageContent_MessageType_RECEIVE_NODE ||
+	       message->type == meshbus_MessageContent_MessageType_RECEIVE_CHANNEL;
+}
+
+static uint64_t messages_cache_timestamp_reserve_locked(bool *realtime_out)
+{
+	uint64_t timestamp_ms;
+	bool realtime = meshbus_time_realtime_is_valid();
+
+	if (meshbus_time_timestamp_ms_get(&timestamp_ms) != 0 || timestamp_ms == 0U) {
+		timestamp_ms = (uint64_t)k_uptime_get();
+		if (timestamp_ms == 0U) {
+			timestamp_ms = 1U;
+		}
+		realtime = false;
+	}
+
+	if (timestamp_ms <= g_messages_cache.last_timestamp_ms) {
+		timestamp_ms = g_messages_cache.last_timestamp_ms + 1U;
+	}
+	g_messages_cache.last_timestamp_ms = timestamp_ms;
+
+	if (realtime_out != NULL) {
+		*realtime_out = realtime;
+	}
+
+	return timestamp_ms;
+}
+
+bool desktop_messages_cache_key_equal(const struct desktop_messages_cache_key *a,
+				   const struct desktop_messages_cache_key *b)
+{
+	if (!desktop_messages_cache_key_is_valid(a) || !desktop_messages_cache_key_is_valid(b)) {
+		return false;
+	}
+	if (a->type != b->type || a->route != b->route ||
+	    a->timestamp != b->timestamp || a->payload_len != b->payload_len) {
+		return false;
+	}
+	if (memcmp(a->target, b->target, sizeof(a->target)) != 0) {
+		return false;
+	}
+	if (memcmp(a->payload, b->payload, a->payload_len) != 0) {
+		return false;
+	}
+
+	return strcmp(a->sender_name, b->sender_name) == 0;
+}
+
+static bool messages_cache_key_from_message(const meshbus_message_content *message,
+					    struct desktop_messages_cache_key *key)
+{
+	size_t payload_len;
+
+	if (message == NULL || key == NULL) {
+		return false;
+	}
+	if (message->timestamp == 0U || message->target.size != MESHBUS_MESSAGE_TARGET_PREFIX_BYTES) {
+		messages_cache_key_clear(key);
+		return false;
+	}
+
+	payload_len = messages_cache_payload_len(message);
+	if (payload_len == 0U || payload_len > sizeof(key->payload)) {
+		messages_cache_key_clear(key);
+		return false;
+	}
+
+	memset(key, 0, sizeof(*key));
+	key->type = message->type;
+	key->route = message->route;
+	key->timestamp = message->timestamp;
+	key->payload_len = (uint16_t)payload_len;
+	memcpy(key->target, message->target.bytes, sizeof(key->target));
+	memcpy(key->payload, message->payload.bytes, payload_len);
+	memcpy(key->sender_name, message->sender_name,
+	       MIN(sizeof(key->sender_name) - 1U, messages_cache_sender_len(message)));
+	key->sender_name[sizeof(key->sender_name) - 1U] = '\0';
+
+	return true;
+}
+
+static bool messages_cache_entry_equal(const struct desktop_messages_cache_entry *entry,
+					 const struct desktop_messages_cache_key *key)
+{
+	if (entry == NULL || key == NULL) {
+		return false;
+	}
+
+	return desktop_messages_cache_key_equal(&entry->key, key);
+}
+
+static bool messages_cache_find_entry_locked(const struct desktop_messages_cache_key *key,
+					       const struct desktop_messages_cache_entry **entry_out,
+					       uint32_t *index_out)
+{
+	if (!desktop_messages_cache_key_is_valid(key)) {
+		return false;
+	}
+
+	for (uint32_t i = 0U; i < g_messages_cache.count; i++) {
+		if (!messages_cache_entry_equal(&g_messages_cache.entries[i], key)) {
+			continue;
+		}
+		if (entry_out != NULL) {
+			*entry_out = &g_messages_cache.entries[i];
+		}
+		if (index_out != NULL) {
+			*index_out = i;
+		}
+		return true;
+	}
+
+	return false;
+}
+
+static bool messages_cache_from_response_event(
+	const struct meshbus_message_response_event *event, meshbus_message_content *message,
+	bool *timestamp_realtime_out)
+{
+	if (event == NULL || message == NULL) {
+		return false;
+	}
+	if (event->type != meshbus_MessageContent_MessageType_RECEIVE_NODE &&
+	    event->type != meshbus_MessageContent_MessageType_RECEIVE_CHANNEL) {
+		return false;
+	}
+	if (event->route != meshbus_MessageContent_MessageRoute_ROUTE_UNSPECIFIED &&
+	    event->route != meshbus_MessageContent_MessageRoute_ROUTE_FLOOD &&
+	    event->route != meshbus_MessageContent_MessageRoute_ROUTE_DIRECT) {
+		return false;
+	}
+	if (event->payload_len == 0U || event->payload_len > CONFIG_MESHBUS_MESSAGE_TX_MAX_LEN) {
+		return false;
+	}
+	if (event->sender_name[0] == '\0') {
+		return false;
+	}
+	if (memchr(event->payload, 0, event->payload_len) != NULL) {
+		return false;
+	}
+
+	*message = (meshbus_message_content)meshbus_MessageContent_init_zero;
+	message->type = event->type;
+	message->route = event->route;
+	message->target.size = MESHBUS_MESSAGE_TARGET_PREFIX_BYTES;
+	memcpy(message->target.bytes, event->target, sizeof(event->target));
+	message->payload.size = event->payload_len;
+	memcpy(message->payload.bytes, event->payload, event->payload_len);
+	(void)snprintk(message->sender_name, sizeof(message->sender_name), "%s",
+		       event->sender_name);
+	message->timestamp = messages_cache_timestamp_reserve_locked(timestamp_realtime_out);
+	message->sender_timestamp = event->sender_timestamp;
+	message->has_rx_snr = event->has_rx_snr;
+	if (event->has_rx_snr) {
+		message->rx_snr = event->rx_snr;
+	}
+
+	return true;
+}
+
+static void messages_cache_append_response_locked(
+	const struct meshbus_message_response_event *event)
+{
+	meshbus_message_content message = meshbus_MessageContent_init_zero;
+	struct desktop_messages_cache_key key = {0};
+	uint32_t index = 0U;
+	bool timestamp_realtime = false;
+
+	if (!messages_cache_from_response_event(event, &message, &timestamp_realtime)) {
+		return;
+	}
+	if (!messages_cache_key_from_message(&message, &key)) {
+		return;
+	}
+
+	if (messages_cache_find_entry_locked(&key, NULL, &index)) {
+		bool unread = g_messages_cache.entries[index].unread;
+
+		g_messages_cache.entries[index].key = key;
+		g_messages_cache.entries[index].message = message;
+		g_messages_cache.entries[index].unread = unread;
+		g_messages_cache.entries[index].timestamp_realtime = timestamp_realtime;
+		g_messages_cache.update_seq++;
+		return;
+	}
+
+	if (g_messages_cache.count == ARRAY_SIZE(g_messages_cache.entries)) {
+		memmove(&g_messages_cache.entries[0], &g_messages_cache.entries[1],
+			sizeof(g_messages_cache.entries[0]) *
+				(ARRAY_SIZE(g_messages_cache.entries) - 1U));
+		g_messages_cache.count--;
+	}
+
+	g_messages_cache.entries[g_messages_cache.count].key = key;
+	g_messages_cache.entries[g_messages_cache.count].message = message;
+	g_messages_cache.entries[g_messages_cache.count].unread = true;
+	g_messages_cache.entries[g_messages_cache.count].timestamp_realtime = timestamp_realtime;
+	g_messages_cache.count++;
+	g_messages_cache.update_seq++;
+}
+
+static bool messages_cache_get_by_filter_locked(
+	uint32_t newest_position, bool unread_only,
+	const struct desktop_messages_cache_entry **entry_out, uint32_t *position_out)
+{
+	uint32_t match_pos = 0U;
+
+	for (uint32_t i = g_messages_cache.count; i > 0U; i--) {
+		const struct desktop_messages_cache_entry *entry = &g_messages_cache.entries[i - 1U];
+
+		if (!messages_cache_is_received(&entry->message)) {
+			continue;
+		}
+		if (unread_only && !entry->unread) {
+			continue;
+		}
+		if (match_pos == newest_position) {
+			if (entry_out != NULL) {
+				*entry_out = entry;
+			}
+			if (position_out != NULL) {
+				*position_out = match_pos;
+			}
+			return true;
+		}
+		match_pos++;
+	}
+
+	return false;
+}
+
+uint32_t desktop_messages_cache_received_count(void)
+{
+	uint32_t count = 0U;
+
+	k_mutex_lock(&g_messages_cache_mutex, K_FOREVER);
+	for (uint32_t i = 0U; i < g_messages_cache.count; i++) {
+		count += messages_cache_is_received(&g_messages_cache.entries[i].message) ? 1U : 0U;
+	}
+	k_mutex_unlock(&g_messages_cache_mutex);
+
+	return count;
+}
+
+uint32_t desktop_messages_cache_unread_received_count(void)
+{
+	uint32_t count = 0U;
+
+	k_mutex_lock(&g_messages_cache_mutex, K_FOREVER);
+	for (uint32_t i = 0U; i < g_messages_cache.count; i++) {
+		if (!g_messages_cache.entries[i].unread) {
+			continue;
+		}
+		count += messages_cache_is_received(&g_messages_cache.entries[i].message) ? 1U : 0U;
+	}
+	k_mutex_unlock(&g_messages_cache_mutex);
+
+	return count;
+}
+
+bool desktop_messages_cache_copy_received(uint32_t newest_position,
+					  struct desktop_messages_cache_entry *entry_out)
+{
+	const struct desktop_messages_cache_entry *entry = NULL;
+	bool found;
+
+	if (entry_out == NULL) {
+		return false;
+	}
+
+	k_mutex_lock(&g_messages_cache_mutex, K_FOREVER);
+	found = messages_cache_get_by_filter_locked(newest_position, false, &entry, NULL);
+	if (found && entry != NULL) {
+		*entry_out = *entry;
+	} else {
+		memset(entry_out, 0, sizeof(*entry_out));
+	}
+	k_mutex_unlock(&g_messages_cache_mutex);
+
+	return found;
+}
+
+bool desktop_messages_cache_copy_unread_received(
+	uint32_t newest_position, struct desktop_messages_cache_entry *entry_out)
+{
+	const struct desktop_messages_cache_entry *entry = NULL;
+	bool found;
+
+	if (entry_out == NULL) {
+		return false;
+	}
+
+	k_mutex_lock(&g_messages_cache_mutex, K_FOREVER);
+	found = messages_cache_get_by_filter_locked(newest_position, true, &entry, NULL);
+	if (found && entry != NULL) {
+		*entry_out = *entry;
+	} else {
+		memset(entry_out, 0, sizeof(*entry_out));
+	}
+	k_mutex_unlock(&g_messages_cache_mutex);
+
+	return found;
+}
+
+uint32_t desktop_messages_cache_update_seq(void)
+{
+	uint32_t update_seq;
+
+	k_mutex_lock(&g_messages_cache_mutex, K_FOREVER);
+	update_seq = g_messages_cache.update_seq;
+	k_mutex_unlock(&g_messages_cache_mutex);
+
+	return update_seq;
+}
+
+void desktop_messages_cache_mark_read(const struct desktop_messages_cache_key *key)
+{
+	uint32_t index = 0U;
+
+	k_mutex_lock(&g_messages_cache_mutex, K_FOREVER);
+	if (messages_cache_find_entry_locked(key, NULL, &index)) {
+		if (g_messages_cache.entries[index].unread) {
+			g_messages_cache.entries[index].unread = false;
+			g_messages_cache.update_seq++;
+		}
+	}
+	k_mutex_unlock(&g_messages_cache_mutex);
+}
+
+void desktop_messages_cache_mark_unread(const struct desktop_messages_cache_key *key)
+{
+	uint32_t index = 0U;
+
+	k_mutex_lock(&g_messages_cache_mutex, K_FOREVER);
+	if (messages_cache_find_entry_locked(key, NULL, &index)) {
+		if (!g_messages_cache.entries[index].unread) {
+			g_messages_cache.entries[index].unread = true;
+			g_messages_cache.update_seq++;
+		}
+	}
+	k_mutex_unlock(&g_messages_cache_mutex);
+}
+
+static void messages_response_listener_cb(const struct zbus_channel *chan)
+{
+	const struct meshbus_message_response_event *msg;
+
+	if (chan != &meshbus_message_response_chan) {
+		return;
+	}
+
+	msg = zbus_chan_const_msg(chan);
+	if (msg == NULL) {
+		return;
+	}
+
+	k_mutex_lock(&g_messages_cache_mutex, K_FOREVER);
+	messages_cache_append_response_locked(msg);
+	k_mutex_unlock(&g_messages_cache_mutex);
+}
+
+ZBUS_LISTENER_DEFINE(desktop_messages_cache_response_listener, messages_response_listener_cb);
+ZBUS_CHAN_ADD_OBS(meshbus_message_response_chan, desktop_messages_cache_response_listener, 2);

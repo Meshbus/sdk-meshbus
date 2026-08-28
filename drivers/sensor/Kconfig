@@ -1,0 +1,10 @@
+if SENSOR
+
+rsource "analog_light/Kconfig"
+rsource "composite/Kconfig"
+rsource "ecsense/Kconfig"
+rsource "ion/Kconfig"
+rsource "qst/Kconfig"
+rsource "st/lsm6ds3_family/Kconfig"
+
+endif # SENSOR

@@ -1,0 +1,18 @@
+tests:
+  subsys.meshbus.fs.service_dut.c2:
+    tags:
+      - meshbus
+      - fs
+      - littlefs
+      - service_dut
+    harness: ztest
+    harness_config:
+      fixture:
+        - c2
+        - test-filesystem
+    expect_reboot: true
+    timeout: 30
+    platform_allow:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp
+    integration_platforms:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp

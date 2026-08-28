@@ -1,0 +1,13 @@
+sample:
+  name: Meshbus contact service
+  description: Starts Meshbus contact and logs request/response channels for board shell manual validation
+common:
+  tags:
+    - meshbus
+    - contact
+  harness: keyboard
+tests:
+  sample.subsys.meshbus.services.contact:
+    integration_platforms:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp
+      - tracker_t1000_e

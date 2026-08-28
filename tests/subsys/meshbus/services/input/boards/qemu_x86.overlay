@@ -1,0 +1,10 @@
+/ {
+	chosen {
+		meshbus,input-buttons = &meshbus_test_input;
+	};
+
+	meshbus_test_input: meshbus-test-input {
+		compatible = "fobe,meshbus-input-test";
+		status = "okay";
+	};
+};

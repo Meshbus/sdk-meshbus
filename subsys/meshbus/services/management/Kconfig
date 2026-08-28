@@ -1,0 +1,158 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig MESHBUS_MANAGEMENT
+	bool "Meshbus management service [EXPERIMENTAL]"
+	default n
+	depends on MESHBUS
+	depends on MCUMGR
+	depends on SETTINGS
+	depends on MESHBUS_MESHCORE
+	depends on MESHBUS_MESHCORE_RUNTIME || ZTEST
+	select ENTROPY_GENERATOR
+	select EXPERIMENTAL
+	select MCUMGR_MGMT_NOTIFICATION_HOOKS
+	select MCUMGR_SMP_COMMAND_STATUS_HOOKS
+	select PSA_CRYPTO
+	select MBEDTLS_PSA_CRYPTO_C
+	select PSA_WANT_ALG_CCM
+	select PSA_WANT_ALG_SHA_256
+	select PSA_WANT_KEY_TYPE_AES
+	help
+	  Enable authenticated SMP-over-LoRa remote management.
+
+	  Product exchanges use Contact-targeted MeshCore anonymous encrypted
+	  datagrams as the bearer backend. The management envelope remains
+	  independent of the MeshCore application protocol, Bluetooth, and
+	  Companion protocol.
+
+if MESHBUS_MANAGEMENT
+
+module = MESHBUS_MANAGEMENT
+module-str = meshbus_management
+module-dep = MESHBUS
+module-help = Sets log level for Meshbus management service
+source "subsys/logging/Kconfig.template.log_config"
+
+config MESHBUS_MANAGEMENT_OPERATOR
+	bool "Management remote operator support"
+	default y
+	depends on MESHBUS_CONTACT
+	help
+	  Enable initiating authenticated remote SMP exchanges toward managed
+	  Contact targets.
+
+config MESHBUS_MANAGEMENT_ENDPOINT
+	bool "Management endpoint responder support"
+	default y
+	help
+	  Enable accepting authenticated remote SMP requests from management
+	  operators. The endpoint remains unavailable until a management secret is
+	  provisioned through a trusted local path.
+
+config MESHBUS_MANAGEMENT_ANON_FRAME_MAX_LEN
+	int "Maximum anonymous management frame length"
+	default 136
+	range 40 136
+	help
+	  Maximum encrypted management frame length sent over MeshCore anonymous
+	  data. The default uses the complete MeshCore anonymous-data payload so a
+	  608-byte SMP packet needs no more than six authenticated fragments.
+
+config MESHBUS_MANAGEMENT_MAX_FRAGMENTS
+	int "Maximum management fragments per SMP packet"
+	default 6
+	range 1 8
+	help
+	  Maximum number of authenticated DATA fragments accepted for one
+	  reassembled SMP packet. Request and response fragments use authenticated
+	  stop-and-wait acknowledgement, so only one fragment is queued at a time.
+
+config MESHBUS_MANAGEMENT_COMMAND_RETRY_COUNT
+	int "Remote SMP whole-command retry count"
+	default 1
+	range 0 3
+	help
+	  Number of times an operator retransmits every DATA_REQUEST fragment with
+	  the same sequence after a response timeout. The endpoint retains partial
+	  reassembly state and caches the last completed response so retries do not
+	  execute a state-changing SMP command twice.
+
+config MESHBUS_MANAGEMENT_SMP_TIMEOUT_MS
+	int "Remote SMP command timeout in milliseconds"
+	default 60000
+	range 1000 300000
+	help
+	  Time an operator waits for progress after sending a DATA_REQUEST fragment.
+	  When this expires, the complete command is retried according to
+	  MESHBUS_MANAGEMENT_COMMAND_RETRY_COUNT. Keep this comfortably above the
+	  worst-case LoRa airtime and peer processing latency.
+
+config MESHBUS_MANAGEMENT_MGMT_RESULT_CACHE_SIZE
+	int "MCUmgr remote-result cache entries"
+	default 2
+	range 1 16
+	help
+	  Number of completed remote SMP responses retained for tag-based MCUmgr
+	  polling. Cache slots are reused when all entries are occupied.
+
+config MESHBUS_MANAGEMENT_REQUEST_FRAGMENT_DELAY_MS
+	int "Delay between remote management request fragments"
+	default 50
+	range 1 1000
+	help
+	  Delay between encrypted DATA_REQUEST fragments sent over MeshCore
+	  anonymous data. This lets the MeshCore request worker drain one large
+	  bearer item before management queues the next request fragment.
+
+config MESHBUS_MANAGEMENT_RESPONSE_FRAGMENT_DELAY_MS
+	int "Delay between remote management response fragments"
+	default 50
+	range 1 1000
+	help
+	  Delay between encrypted DATA_RESPONSE fragments sent over MeshCore
+	  anonymous data. This lets the MeshCore request worker drain one large
+	  bearer item before management queues the next response fragment.
+
+config MESHBUS_MANAGEMENT_REPLY_DELAY_MS
+	int "Radio turn-around delay for management replies"
+	default 300
+	range 0 2000
+	help
+	  Delay SESSION_CHALLENGE, fragment acknowledgements, session rejects,
+	  and DATA_RESPONSE frames after an incoming LoRa packet. The peer needs
+	  time to leave transmit mode and resume receive mode before a direct
+	  reply is placed on air.
+
+config MESHBUS_MANAGEMENT_SESSION_TIMEOUT_MS
+	int "Management session timeout in milliseconds"
+	default 300000
+	range 10000 3600000
+	help
+	  Time after the last authenticated DATA fragment before the transient
+	  session is discarded.
+
+config MESHBUS_MANAGEMENT_SESSION_INIT_COOLDOWN_MS
+	int "Unauthenticated SESSION_INIT cooldown in milliseconds"
+	default 1000
+	range 0 60000
+	help
+	  Minimum time between accepted unauthenticated SESSION_INIT frames. Set to
+	  0 only in tightly controlled test builds.
+
+config MESHBUS_MANAGEMENT_INIT_PRIORITY
+	int "Management service init priority"
+	default 96
+	help
+	  Init priority for remote management. The default runs after the MeshCore
+	  runtime default, so the MeshCore-derived local target ID is available.
+
+config MESHBUS_MANAGEMENT_SHELL
+	bool "Management shell commands"
+	depends on MESHBUS_SHELL
+	depends on MESHBUS_MANAGEMENT_OPERATOR
+	default y
+	help
+	  Enable shell commands for local management diagnostics.
+
+endif # MESHBUS_MANAGEMENT

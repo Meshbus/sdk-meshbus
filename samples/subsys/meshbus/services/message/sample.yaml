@@ -1,0 +1,12 @@
+sample:
+  name: Meshbus message service
+  description: Starts Meshbus message and logs request/response channels for board shell manual validation
+common:
+  tags:
+    - meshbus
+    - message
+  harness: keyboard
+tests:
+  sample.subsys.meshbus.services.message:
+    integration_platforms:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp

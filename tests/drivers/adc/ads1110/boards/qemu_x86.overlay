@@ -1,0 +1,25 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <zephyr/dt-bindings/i2c/i2c.h>
+
+/ {
+	test_i2c: i2c@100 {
+		compatible = "zephyr,i2c-emul-controller";
+		clock-frequency = <I2C_BITRATE_STANDARD>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x100 4>;
+		status = "okay";
+
+		ads1110: adc@48 {
+			compatible = "ti,ads1110";
+			reg = <0x48>;
+			#io-channel-cells = <1>;
+			status = "okay";
+		};
+	};
+};

@@ -1,0 +1,13 @@
+/ {
+	chosen {
+		zephyr,uart-mcumgr = &test_uart;
+	};
+
+	test_uart: uart-emul {
+		compatible = "zephyr,uart-emul";
+		current-speed = <115200>;
+		rx-fifo-size = <512>;
+		tx-fifo-size = <2048>;
+		status = "okay";
+	};
+};

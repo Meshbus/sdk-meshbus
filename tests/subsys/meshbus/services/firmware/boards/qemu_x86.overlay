@@ -1,0 +1,45 @@
+&flash_sim0 {
+	reg = <0x0 0x190000>;
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	partitions {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		/delete-node/ partition@11000;
+		/delete-node/ partition@21000;
+		/delete-node/ partition@31000;
+
+		slot0_partition: partition@20000 {
+			compatible = "zephyr,mapped-partition";
+			label = "image-0";
+			reg = <0x20000 0x96000>;
+		};
+
+		slot1_partition: partition@b6000 {
+			compatible = "zephyr,mapped-partition";
+			label = "image-1";
+			reg = <0xb6000 0x97000>;
+		};
+
+		firmware_patch_partition: partition@16d000 {
+			compatible = "zephyr,mapped-partition";
+			label = "firmware-patch";
+			reg = <0x16d000 0x6000>;
+		};
+
+		firmware_journal_partition: partition@173000 {
+			compatible = "zephyr,mapped-partition";
+			label = "firmware-journal";
+			reg = <0x173000 0x4000>;
+		};
+
+		eepromemu_partition: partition@180000 {
+			compatible = "zephyr,mapped-partition";
+			label = "eeprom-emu";
+			reg = <0x180000 0x10000>;
+		};
+	};
+};

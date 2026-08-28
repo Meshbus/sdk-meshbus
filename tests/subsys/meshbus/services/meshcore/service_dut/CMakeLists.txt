@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.20.0)
+
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(meshbus_meshcore_service_dut_test)
+
+target_sources(app PRIVATE src/test_service_dut.c)

@@ -1,0 +1,32 @@
+# Copyright (c) 2025 FoBE Projects
+# SPDX-License-Identifier: Apache-2.0
+
+config CHARGER_COMPOSITE
+	bool "Zephyr composite charger driver"
+	default y
+	depends on CHARGER
+	depends on DT_HAS_ZEPHYR_CHARGER_COMPOSITE_ENABLED
+	imply SENSOR
+	imply FUEL_GAUGE
+	help
+	  Enable driver for the Zephyr composite charger device.
+
+	  This driver combines voltage readings from a sensor or fuel-gauge
+	  device with GPIO-based charging status detection to provide a
+	  complete charger interface.
+
+	  If only GPIO-based detection is needed (without voltage source),
+	  the driver will still work but cannot detect FULL state based on
+	  voltage threshold.
+
+if CHARGER_COMPOSITE
+
+config CHARGER_COMPOSITE_DATA_VALIDITY_MS
+	int "Data from sensor_fetch is cached for this long (ms)"
+	default 150
+	help
+	  To ensure that data is consistent across multiple calls to
+	  charger_get_prop, sensor_fetch is only called if at least
+	  this long has passed since the previous call.
+
+endif # CHARGER_COMPOSITE

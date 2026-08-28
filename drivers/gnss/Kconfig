@@ -1,0 +1,8 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+if GNSS
+
+rsource "Kconfig.quectel_l76k"
+
+endif

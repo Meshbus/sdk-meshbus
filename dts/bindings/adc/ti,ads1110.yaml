@@ -1,0 +1,13 @@
+description: |
+  Texas Instruments ADS1110 I2C ADC.
+
+  The device supports single-ended VIN+ and differential VIN+ - VIN- channel 0
+  with hardware gains ADC_GAIN_1, ADC_GAIN_2, ADC_GAIN_4, and ADC_GAIN_8.
+  Conversion resolution is tied to data rate: 12 bit = 240 SPS,
+  14 bit = 60 SPS, 15 bit = 30 SPS, and 16 bit = 15 SPS. If
+  zephyr,acquisition-time is used to encode an ADS1110 data rate, it must match
+  the resolution requested in adc_sequence.
+
+compatible: "ti,ads1110"
+
+include: ti,ads1x1x-base.yaml

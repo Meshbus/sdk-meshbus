@@ -1,0 +1,6 @@
+id: ard_drivin
+type: app
+name: Ard Drivin
+version: 1.0.0-fobe.1
+entry-point: ard_drivin_app_main
+stack-size: 4096

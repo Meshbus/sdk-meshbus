@@ -1,0 +1,160 @@
+# Copyright (c) 2025 FoBE Projects
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  Composite charger constructed from sensor/fuel-gauge devices and GPIO signals.
+
+  This driver combines voltage readings from a sensor or fuel-gauge device with
+  GPIO-based charging status detection to provide a complete charger interface.
+
+  Charging status logic:
+  - If online-gpios is provided and inactive: CHARGER_STATUS_NOT_CHARGING
+  - If charging-gpios is active: CHARGER_STATUS_CHARGING
+  - If charging-gpios is inactive and voltage >= constant-charge-voltage-max-microvolt:
+    CHARGER_STATUS_FULL
+  - If charging-gpios is not provided, infer charging from voltage trend
+    (rise/fall thresholds with hold timeout)
+  - Otherwise: CHARGER_STATUS_NOT_CHARGING
+
+  Online status logic:
+  - If online-gpios is provided, use it directly
+  - If online-gpios is not provided and a voltage source exists, infer ONLINE_FIXED
+    while charging/FULL and keep a short hold timeout
+  - If neither online-gpios nor voltage source is available, ONLINE is not supported
+
+  CHARGER_PROP_ONLINE_NOTIFICATION is available when online-gpios directly
+  determines ONLINE. CHARGER_PROP_STATUS_NOTIFICATION is available for
+  GPIO-only status configurations without voltage or Nordic VBUS-derived
+  state. Statuses derived from voltage, VBUS, or hold timeouts must be read
+  periodically by the consumer.
+
+  Supported GPIO notifications use edge interrupts and the configured
+  debounce interval when possible. Other GPIOs are checked at
+  gpio-poll-interval-ms. Consumers use the same notification API without
+  depending on the selected backend.
+
+compatible: zephyr,charger-composite
+
+include: [base.yaml, battery.yaml]
+
+properties:
+  source-primary:
+    type: phandle
+    description: |
+      Primary device to read voltage data from.
+      Device may implement either:
+      - Fuel gauge API (FUEL_GAUGE_VOLTAGE), or
+      - Sensor API (SENSOR_CHAN_VOLTAGE)
+      The driver will attempt fuel gauge API first, then sensor API.
+
+      If not specified, the driver will only use GPIO-based charging
+      detection without voltage-based FULL state detection.
+
+  source-secondary:
+    type: phandle
+    description: |
+      Secondary device to read voltage data from.
+      This device will be used if source-primary does not expose
+      the voltage channel.
+
+      Device may implement sensor API or fuel gauge API.
+
+  charge-full-hysteresis-microvolt:
+    type: int
+    default: 50000
+    description: |
+      Hysteresis voltage in microvolts for FULL state detection.
+      To prevent oscillation between FULL and NOT_CHARGING states:
+      - Enter FULL: voltage >= constant-charge-voltage-max-microvolt
+      - Exit FULL: voltage < (constant-charge-voltage-max-microvolt - hysteresis)
+      Default is 50mV (50000 uV).
+
+  charge-detect-rise-threshold-microvolt:
+    type: int
+    default: 8000
+    description: |
+      Minimum voltage increase (uV) between inference samples to count as
+      charging evidence when charging-gpios is not provided.
+
+  charge-detect-fall-threshold-microvolt:
+    type: int
+    default: 12000
+    description: |
+      Minimum voltage decrease (uV) between inference samples to count as
+      discharge evidence and exit inferred charging state.
+
+  charge-detect-sample-interval-ms:
+    type: int
+    default: 5000
+    description: |
+      Minimum elapsed time between two voltage points used for trend inference.
+      Status calls within this interval reuse the last trend evidence.
+
+  charge-detect-enter-count:
+    type: int
+    default: 2
+    description: |
+      Number of consecutive rise evidences required to enter inferred
+      CHARGING state.
+
+  charge-detect-exit-count:
+    type: int
+    default: 2
+    description: |
+      Number of consecutive fall evidences required to leave inferred
+      CHARGING state.
+
+  charge-detect-hold-ms:
+    type: int
+    default: 45000
+    description: |
+      Maximum time to keep inferred CHARGING after the last rise evidence.
+      If this timeout expires, status falls back to NOT_CHARGING.
+
+  online-infer-hold-ms:
+    type: int
+    default: 120000
+    description: |
+      Hold timeout used by ONLINE weak inference when online-gpios is not
+      provided. ONLINE remains FIXED for this duration after charging/FULL
+      evidence.
+
+  gpio-debounce-ms:
+    type: int
+    default: 30
+    description: |
+      Delay in milliseconds used to debounce charging-gpios and online-gpios
+      edges before charger notification callbacks run.
+
+  gpio-poll-interval-ms:
+    type: int
+    default: 1000
+    min: 1
+    description: |
+      Interval in milliseconds used to check charging-gpios and online-gpios
+      when their GPIO controller does not support interrupts. Polling starts
+      only while a charger status or online notifier is registered.
+
+  charging-gpios:
+    type: phandle-array
+    description: |
+      GPIO indicating charging status.
+      When this GPIO is active (according to the flags specified),
+      the charger is considered to be charging.
+
+  online-gpios:
+    type: phandle-array
+    description: |
+      GPIO indicating external power is connected.
+      When this GPIO is active (according to the flags specified),
+      external power supply is considered to be present.
+
+  nordic,vbus-detect:
+    type: boolean
+    description: |
+      Use the Nordic POWER USBREGSTATUS VBUSDETECT bit as an external power
+      source indicator. When VBUS is present, ONLINE is reported as FIXED and
+      STATUS is reported as CHARGING unless the voltage source is already at
+      the configured full-charge threshold. When VBUS is absent, ONLINE is
+      reported as OFFLINE and STATUS is reported as NOT_CHARGING without
+      voltage-trend inference or hold timeouts.

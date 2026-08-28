@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+
+config ANALOG_LIGHT
+	bool "Generic analog light sensor"
+	depends on DT_HAS_ZEPHYR_ANALOG_LIGHT_ENABLED
+	select ADC
+	help
+	  Enable a generic ADC-backed light sensor. The driver samples an ADC
+	  input and maps the configured voltage range to SENSOR_CHAN_LIGHT as a
+	  0-100 relative light level.

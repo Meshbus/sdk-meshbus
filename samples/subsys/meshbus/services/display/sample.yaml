@@ -1,0 +1,14 @@
+sample:
+  name: Meshbus display service
+  description: Starts Meshbus display and logs display state events for board shell manual validation
+common:
+  tags:
+    - meshbus
+    - display
+  harness: keyboard
+tests:
+  sample.subsys.meshbus.services.display:
+    platform_allow:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp
+    integration_platforms:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp

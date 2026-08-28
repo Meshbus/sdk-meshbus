@@ -1,0 +1,6 @@
+id: cxx_hello
+type: app
+name: C++ Hello
+version: 1.0.0
+entry-point: cxx_hello_app_main
+stack-size: 4096

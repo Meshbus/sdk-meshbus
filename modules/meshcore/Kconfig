@@ -1,0 +1,8 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+config MESHCORE
+	bool "MeshCore C library"
+	depends on ZEPHYR_MESHCORE_MODULE
+	help
+	  MeshCore platform-neutral C protocol/runtime library.

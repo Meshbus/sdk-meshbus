@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: Apache-2.0
+
+description: Generic ADC-backed analog light sensor
+
+compatible: "zephyr,analog-light"
+
+include:
+  - sensor-device.yaml
+
+properties:
+  io-channels:
+    type: phandle-array
+    required: true
+    description: ADC channel connected to the analog light sensor.
+
+  low-threshold-mv:
+    type: int
+    default: 80
+    description: ADC voltage in millivolts mapped to light level 0.
+
+  high-threshold-mv:
+    type: int
+    default: 2480
+    description: ADC voltage in millivolts mapped to light level 100.
+
+  averaging-samples:
+    type: int
+    default: 15
+    description: Number of ADC samples averaged for each reading.

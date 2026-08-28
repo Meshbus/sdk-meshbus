@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig U8G2
+	bool "U8G2 graphics library"
+	depends on DISPLAY
+	help
+	  Enable the embedded U8G2 graphics library as an SDK subsystem.
+
+	  Notes:
+	  - The Zephyr display adapter (u8g2_display.*) uses dynamic allocation
+	    (k_malloc/k_free). Ensure you have a heap configured (e.g.
+	    CONFIG_HEAP_MEM_POOL_SIZE > 0).
+
+if U8G2
+
+choice
+	prompt "U8G2 buffer mode"
+	default U8G2_BUFFER_MODE_FULL
+
+config U8G2_BUFFER_MODE_FULL
+	bool "Full framebuffer"
+	help
+	  Use a full framebuffer in RAM and flush with u8g2_SendBuffer().
+
+config U8G2_BUFFER_MODE_PAGE8
+	bool "Paged buffer (fixed 8-row pages)"
+	help
+	  Use a paged buffer with tile_buf_height=1 (8 pixel rows) and render
+	  with the u8g2_FirstPage()/u8g2_NextPage() loop.
+
+endchoice
+
+config U8G2_INVERT
+	bool "Invert monochrome output"
+	default n
+	help
+	  Invert the final monochrome pixel stream before it is written via the
+	  Zephyr Display API.
+
+config U8G2_FONT_ALL
+	bool "Enable all built-in U8G2 fonts"
+	default n
+	help
+	  Build all fonts defined in subsys/u8g2/u8g2_fonts.c.
+
+	  Disable this to selectively enable only required font symbols through
+	  the U8G2 font options below.
+
+rsource "Kconfig.fonts"
+
+endif # U8G2

@@ -1,0 +1,69 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <zephyr/dt-bindings/adc/adc.h>
+#include <zephyr/dt-bindings/battery/battery.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+/ {
+	chosen {
+		meshbus-fuel-gauge = &test_fuel_gauge;
+		meshbus-charger = &test_charger;
+	};
+
+	test_gpio: gpio {
+		compatible = "zephyr,gpio-emul";
+		ngpios = <2>;
+		status = "okay";
+		#gpio-cells = <2>;
+		gpio-controller;
+	};
+
+	test_adc: adc {
+		compatible = "zephyr,adc-emul";
+		nchannels = <1>;
+		ref-internal-mv = <3300>;
+		#io-channel-cells = <1>;
+		status = "okay";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		channel@0 {
+			reg = <0>;
+			zephyr,gain = "ADC_GAIN_1_2";
+			zephyr,reference = "ADC_REF_INTERNAL";
+			zephyr,vref-mv = <3300>;
+			zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+			zephyr,resolution = <12>;
+		};
+	};
+
+	test_vbatt: vbatt {
+		compatible = "voltage-divider";
+		io-channels = <&test_adc 0>;
+		output-ohms = <100000>;
+		full-ohms = <100000>;
+	};
+
+	test_fuel_gauge: fuel_gauge {
+		compatible = "zephyr,fuel-gauge-composite";
+		source-primary = <&test_vbatt>;
+		device-chemistry = "lithium-ion-polymer";
+		ocv-capacity-table-0 = <BATTERY_OCV_CURVE_LITHIUM_ION_POLYMER_DEFAULT>;
+		charge-full-design-microamp-hours = <1500000>;
+	};
+
+	test_charger: charger {
+		compatible = "zephyr,charger-composite";
+		source-primary = <&test_fuel_gauge>;
+		charging-gpios = <&test_gpio 0 GPIO_ACTIVE_HIGH>;
+		online-gpios = <&test_gpio 1 GPIO_ACTIVE_HIGH>;
+		constant-charge-voltage-max-microvolt = <4200000>;
+		gpio-debounce-ms = <10>;
+		gpio-poll-interval-ms = <20>;
+	};
+};

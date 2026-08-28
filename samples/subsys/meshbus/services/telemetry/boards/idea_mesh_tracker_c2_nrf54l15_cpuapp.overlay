@@ -1,0 +1,49 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Meshbus telemetry channel configuration for idea_mesh_tracker_c2.
+ */
+
+#include <zephyr/dt-bindings/sensor/sensor_channel.h>
+
+/ {
+
+	meshbus_telemetry: meshbus-telemetry {
+		compatible = "fobe,meshbus-telemetry";
+		
+		ch0 { sensor = <&lps22>; channel = <SENSOR_CHAN_AMBIENT_TEMP>; };
+		ch1 { sensor = <&lps22>; channel = <SENSOR_CHAN_PRESS>; };
+		ch2 { sensor = <&lsm6ds3tr>; channel = <SENSOR_CHAN_ACCEL_XYZ>; };
+		ch3 { sensor = <&lsm6ds3tr>; channel = <SENSOR_CHAN_GYRO_XYZ>; };
+		ch4 { sensor = <&mmc5603>; channel = <SENSOR_CHAN_MAGN_XYZ>; };
+	};
+
+	chosen {
+		meshbus,telemetry = &meshbus_telemetry;
+	};
+};
+
+&i2c20 {
+	lps22: lps22hh@5c {
+		compatible = "st,lps22hh";
+		reg = <0x5c>;
+		odr = <1>;
+		power-domains = <&peripheral_power>;
+	};
+
+	mmc5603: mmc5603@30 {
+		compatible = "memsic,mmc56x3";
+		reg = <0x30>;
+		magn-odr = <0>;
+		auto-self-reset;
+		power-domains = <&peripheral_power>;
+	};
+
+	lsm6ds3tr: lsm6ds3tr@6a {
+		compatible = "st,lsm6dsl";
+		reg = <0x6a>;
+		power-domains = <&peripheral_power>;
+	};
+};

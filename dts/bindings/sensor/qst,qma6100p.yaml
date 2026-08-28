@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+
+description: QST QMA6100P 3-axis accelerometer
+
+compatible: "qst,qma6100p"
+
+include: [sensor-device.yaml, i2c-device.yaml]
+
+properties:
+  irq-gpios:
+    type: phandle-array
+    description: Optional INT1 GPIO. The base driver does not enable interrupts yet.
+
+  range-g:
+    type: int
+    default: 32
+    enum: [2, 4, 8, 16, 32]
+    description: Accelerometer full-scale range in g.

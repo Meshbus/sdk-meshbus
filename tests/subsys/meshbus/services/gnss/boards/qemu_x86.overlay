@@ -1,0 +1,14 @@
+/ {
+	chosen {
+		meshbus,gnss = &gnss;
+	};
+
+	aliases {
+		gnss = &gnss;
+	};
+
+	gnss: gnss {
+		compatible = "zephyr,gnss-emul";
+		status = "okay";
+	};
+};

@@ -1,0 +1,14 @@
+sample:
+  name: Meshbus power service
+  description: Starts Meshbus power for board shell, fuel gauge, charger, and shutdown manual validation
+common:
+  tags:
+    - meshbus
+    - power
+  harness: keyboard
+tests:
+  sample.subsys.meshbus.services.power:
+    platform_allow:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp
+    integration_platforms:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp

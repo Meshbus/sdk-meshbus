@@ -1,0 +1,12 @@
+# Seeed SenseCAP Card Tracker T1000-E board configuration
+
+# SPDX-License-Identifier: Apache-2.0
+
+if BOARD_TRACKER_T1000_E
+
+config HW_STACK_PROTECTION
+	default ARCH_HAS_STACK_PROTECTION
+
+source "boards/common/usb/Kconfig.cdc_acm_serial.defconfig"
+
+endif # BOARD_TRACKER_T1000_E

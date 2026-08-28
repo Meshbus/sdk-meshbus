@@ -1,0 +1,76 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	fake_accel: fake_accel {
+		compatible = "fobe,vector-sensor";
+		status = "okay";
+	};
+
+	fake_gyro: fake_gyro {
+		compatible = "fobe,vector-sensor";
+		status = "okay";
+	};
+
+	fake_imu: fake_imu {
+		compatible = "fobe,vector-sensor";
+		status = "okay";
+	};
+
+	fake_magn: fake_magn {
+		compatible = "fobe,vector-sensor";
+		status = "okay";
+	};
+
+	compass: compass {
+		compatible = "zephyr,compass-composite";
+		accel-source = <&fake_accel>;
+		gyro-source = <&fake_gyro>;
+		magn-source = <&fake_magn>;
+		calibration-sample-period-ms = <0>;
+		gyro-fusion-alpha-milli = <1000>;
+		imu-rate-override-supported;
+		gyro-axis-remap = <1 0 2>;
+		gyro-axis-sign = <1 1 1>;
+	};
+
+	compass_inherit: compass_inherit {
+		compatible = "zephyr,compass-composite";
+		accel-source = <&fake_accel>;
+		gyro-source = <&fake_gyro>;
+		magn-source = <&fake_magn>;
+		gyro-fusion-alpha-milli = <1000>;
+		accel-axis-remap = <1 0 2>;
+		accel-axis-sign = <1 1 1>;
+	};
+
+	compass_fast_fusion: compass_fast_fusion {
+		compatible = "zephyr,compass-composite";
+		accel-source = <&fake_accel>;
+		gyro-source = <&fake_gyro>;
+		magn-source = <&fake_magn>;
+		calibration-sample-period-ms = <0>;
+		gyro-fusion-alpha-milli = <850>;
+	};
+
+	compass_slow_fusion: compass_slow_fusion {
+		compatible = "zephyr,compass-composite";
+		accel-source = <&fake_accel>;
+		gyro-source = <&fake_gyro>;
+		magn-source = <&fake_magn>;
+		calibration-sample-period-ms = <0>;
+		gyro-fusion-alpha-milli = <850>;
+	};
+
+	compass_shared_imu: compass_shared_imu {
+		compatible = "zephyr,compass-composite";
+		accel-source = <&fake_imu>;
+		gyro-source = <&fake_imu>;
+		magn-source = <&fake_magn>;
+		calibration-sample-period-ms = <0>;
+		gyro-fusion-alpha-milli = <850>;
+	};
+};

@@ -1,0 +1,13 @@
+sample:
+  name: es4_ag1
+  description: EC Sense ES4-AG1 VOC sensor sample
+common:
+  tags:
+    - sensor
+    - voc
+    - es4_ag1
+  build_only: true
+tests:
+  sample.drivers.sensor.ecsense.es4_ag1:
+    integration_platforms:
+      - qikira_f9802

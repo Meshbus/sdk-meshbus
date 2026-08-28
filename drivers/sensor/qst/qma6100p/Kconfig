@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig QMA6100P
+	bool "QST QMA6100P accelerometer driver"
+	default y
+	depends on DT_HAS_QST_QMA6100P_ENABLED
+	depends on I2C
+	help
+	  Enable the QST QMA6100P 3-axis accelerometer driver.

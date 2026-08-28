@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  FoBE variant-aware integration for the register-compatible basic motion
+  subset of LSM6DS3/LSM6DS3TR (WHO_AM_I 0x69) and LSM6DS3TR-C/LSM6DSL
+  (WHO_AM_I 0x6a). Embedded interrupts, sensor-hub functions, and FIFO
+  features that differ between variants are intentionally not exposed.
+
+compatible: "fobe,lsm6ds3-family"
+
+include: [sensor-device.yaml, i2c-device.yaml]

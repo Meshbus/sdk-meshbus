@@ -1,0 +1,11 @@
+detools
+pyocd
+imgtool
+pyserial
+smpclient[serial]>=7.3,<8
+cbor2>=5,<6
+prompt_toolkit>=3.0,<4
+protobuf>=5,<8
+
+# Icon asset generation
+pillow

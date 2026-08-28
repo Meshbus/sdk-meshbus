@@ -1,0 +1,10 @@
+build:
+  kconfig: Kconfig
+  cmake: .
+  settings:
+    board_root: .
+    dts_root: .
+    module_ext_root: .
+
+runners:
+  - file: scripts/runners/gdb.py

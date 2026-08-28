@@ -1,0 +1,12 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+config ZEPHYR_DETOOLS_MODULE
+	bool
+
+config DETOOLS
+	bool "zcbor DETOOLS library"
+	depends on ZEPHYR_DETOOLS_MODULE
+	depends on HEATSHRINK
+	help
+	  DETOOLS decoder library

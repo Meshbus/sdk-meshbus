@@ -1,0 +1,6 @@
+# Seeed SenseCAP Card Tracker T1000-E board configuration
+
+# SPDX-License-Identifier: Apache-2.0
+
+config BOARD_TRACKER_T1000_E
+	select SOC_NRF52840_QIAA

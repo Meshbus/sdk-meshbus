@@ -1,0 +1,6 @@
+board:
+  name: idea_mesh_tracker_c1
+  full_name: IDEA Mesh Tracker C1
+  vendor: fobe
+  socs:
+  - name: nrf52840

@@ -1,0 +1,56 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig MESHBUS_DISPLAY
+	bool "Meshbus Display Service"
+	depends on DISPLAY
+	default n
+	help
+	  Enable Meshbus display service.
+
+	  This service provides runtime display configuration, automatic sleep,
+	  and display state publishing via ZBus.
+
+if MESHBUS_DISPLAY
+
+module = MESHBUS_DISPLAY
+module-str = meshbus_display
+module-dep = MESHBUS
+module-help = Sets log level for Meshbus Display service
+source "subsys/logging/Kconfig.template.log_config"
+
+config MESHBUS_DISPLAY_DEFAULT_BRIGHTNESS
+	int "Default brightness"
+	range 0 100
+	default 100
+	help
+	  Default display brightness percentage (0-100).
+
+config MESHBUS_DISPLAY_DEFAULT_SLEEP_TIMEOUT
+	int "Default sleep timeout (seconds)"
+	range 0 300
+	default 0
+	help
+	  Default display sleep timeout in seconds.
+	  0 means automatic sleep is disabled.
+
+config MESHBUS_DISPLAY_DEFAULT_INVERT
+	bool "Default invert"
+	default n
+	help
+	  Default display invert setting.
+
+config MESHBUS_DISPLAY_INIT_PRIORITY
+	int "Display service init priority"
+	default 90
+	help
+	  Initialization priority for the Meshbus Display service.
+
+config MESHBUS_DISPLAY_SHELL
+	bool "Meshbus Display shell commands"
+	depends on MESHBUS_SHELL
+	default y
+	help
+	  Enable shell commands for Meshbus Display service.
+
+endif # MESHBUS_DISPLAY

@@ -1,0 +1,12 @@
+tests:
+  subsys.meshbus.management.integration.access_policy:
+    tags:
+      - meshbus
+      - management
+      - mcumgr
+      - integration
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86

@@ -1,0 +1,10 @@
+sample:
+  description: ZUI draw primitive visual sample
+  name: zui draw sample
+common:
+  tags: zui draw
+  build_only: true
+tests:
+  sample.zui.draw:
+    integration_platforms:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp

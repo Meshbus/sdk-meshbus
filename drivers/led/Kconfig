@@ -1,0 +1,10 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig LED_FOBE_LP5024_MONO
+	bool "FoBE LP5024 mono LED driver"
+	depends on LED && I2C
+	depends on DT_HAS_FOBE_LP5024_MONO_ENABLED
+	help
+	  Single-channel LP5024 LED driver for boards that want to expose LP5024
+	  outputs as individual mono LEDs through the Zephyr LED API.

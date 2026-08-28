@@ -1,0 +1,96 @@
+tests:
+  subsys.meshbus.llext.contract.boot_services:
+    tags:
+      - meshbus
+      - llext
+      - contract
+    harness: ztest
+    extra_configs:
+      - CONFIG_MESHBUS_LLEXT_BOOT_SERVICES=y
+      - CONFIG_MESHBUS_LLEXT_MAX_SERVICES=4
+      - CONFIG_SENSOR=y
+      - CONFIG_MESHBUS_TELEMETRY=y
+      - CONFIG_MESHBUS_TELEMETRY_DEFAULT_ENABLED=n
+      - CONFIG_MESHBUS_TELEMETRY_SHELL=n
+      - CONFIG_MESHBUS_TELEMETRY_STATS=n
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86
+  subsys.meshbus.llext.contract.app_services:
+    tags:
+      - meshbus
+      - llext
+      - contract
+    harness: ztest
+    extra_configs:
+      - CONFIG_DISPLAY=y
+      - CONFIG_U8G2=y
+      - CONFIG_ZUI=y
+      - CONFIG_MESHBUS_LLEXT_APP_SERVICES=y
+      - CONFIG_MESHBUS_LLEXT_APP_HEAP_RESERVE_SIZE=32768
+      - CONFIG_MESHBUS_LLEXT_APP_MAX_HEAP_SIZE=65536
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86
+  subsys.meshbus.llext.contract.edk_provenance:
+    tags:
+      - meshbus
+      - llext
+      - contract
+      - compatibility
+    harness: ztest
+    extra_configs:
+      - CONFIG_DISPLAY=y
+      - CONFIG_U8G2=y
+      - CONFIG_ZUI=y
+      - CONFIG_MESHBUS_LLEXT_APP_SERVICES=y
+      - CONFIG_MESHBUS_LLEXT_APP_HEAP_RESERVE_SIZE=32768
+      - CONFIG_MESHBUS_LLEXT_APP_MAX_HEAP_SIZE=65536
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86
+  subsys.meshbus.llext.contract.app_services_shuffled:
+    tags:
+      - meshbus
+      - llext
+      - contract
+      - shuffle
+    harness: ztest
+    extra_configs:
+      - CONFIG_DISPLAY=y
+      - CONFIG_U8G2=y
+      - CONFIG_ZUI=y
+      - CONFIG_MESHBUS_LLEXT_APP_SERVICES=y
+      - CONFIG_MESHBUS_LLEXT_APP_HEAP_RESERVE_SIZE=32768
+      - CONFIG_MESHBUS_LLEXT_APP_MAX_HEAP_SIZE=65536
+      - CONFIG_ZTEST_SHUFFLE=y
+      - CONFIG_ZTEST_SHUFFLE_SUITE_REPEAT_COUNT=1
+      - CONFIG_ZTEST_SHUFFLE_TEST_REPEAT_COUNT=1
+      - CONFIG_TIMER_RANDOM_INITIAL_STATE=324508639
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86
+  subsys.meshbus.llext.contract.app_services_added_heap:
+    tags:
+      - meshbus
+      - llext
+      - contract
+      - heap
+    harness: ztest
+    extra_configs:
+      - CONFIG_DISPLAY=y
+      - CONFIG_U8G2=y
+      - CONFIG_ZUI=y
+      - CONFIG_MESHBUS_LLEXT_APP_SERVICES=y
+      - CONFIG_MESHBUS_LLEXT_APP_HEAP_RESERVE_SIZE=32768
+      - CONFIG_MESHBUS_LLEXT_APP_MAX_HEAP_SIZE=65536
+      - CONFIG_HEAP_MEM_POOL_SIZE=0
+      - CONFIG_MESHBUS_LLEXT_TEST_ADD_SYSTEM_HEAP=y
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86

@@ -1,0 +1,65 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig MESHBUS_CONTACT
+	bool "Meshbus contact management"
+	depends on SETTINGS
+	default n
+	help
+	  Enable Meshbus contact management subsystem.
+	  - Persistent remote contact records via Settings
+	  - ZBus command channels for contact-directed MeshCore actions
+
+if MESHBUS_CONTACT
+
+module = MESHBUS_CONTACT
+module-str = meshbus_contact
+module-help = Sets log level for Meshbus contact management
+source "subsys/logging/Kconfig.template.log_config"
+
+config MESHBUS_CONTACT_PREFIX_BYTES
+	int "Contact lookup prefix bytes"
+	default 4
+	range 3 5
+	help
+	  Number of public key bytes used for contact prefix lookup.
+	  Higher values reduce collision probability at the cost of slightly
+	  larger RAM usage in slot metadata.
+
+config MESHBUS_CONTACT_ADVERT_RAW_STORE
+	bool "Persist raw contact adverts"
+	default y
+	help
+	  Store raw contact advert payloads under meshbus/contact/advert_raw/<idx>
+	  so cached contact adverts can be replayed later. Disable this on
+	  storage-constrained boards to keep contact records without persisting raw
+	  advert blobs. Disabled builds preserve existing raw advert settings
+	  records without loading, exporting, saving, or deleting them.
+
+config MESHBUS_CONTACT_MAX_CONTACTS
+	int "Maximum number of contacts"
+	default 64
+	range 8 128
+	help
+	  Maximum number of contacts that can be stored.
+	  When the limit is reached, overwrite behavior is controlled at runtime
+	  by MeshCore config add_contact_config bit0.
+
+config MESHBUS_CONTACT_REQUEST_TIMEOUT_MS
+	int "Contact request timeout (ms)"
+	default 10000
+	range 10000 60000
+	help
+	  Timeout for discover_path/trace_path/get_telemetry single-flight control.
+	  Requests are limited per type; when timed out, a new request of the same
+	  type can be sent.
+
+config MESHBUS_CONTACT_SHELL
+	bool "Contact shell commands"
+	depends on MESHBUS_SHELL
+	default y
+	help
+	  Enable shell commands for contact management.
+	  Provides commands for viewing/modifying contact records.
+
+endif # MESHBUS_CONTACT

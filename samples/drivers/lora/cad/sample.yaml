@@ -1,0 +1,39 @@
+common:
+  tags: lora
+  depends_on: lora
+  harness: console
+sample:
+  description: Demonstration of LoRa CAD functionality
+  name: LoRa CAD Sample
+tests:
+  sample.driver.lora.cad:
+    integration_platforms:
+      - b_l072z_lrwan1
+    harness_config:
+      type: one_line
+      regex:
+        - "<inf> lora_cad: CAD not supported"
+  sample.driver.lora.cad.lbm:
+    filter: dt_compat_enabled("semtech,sx1261") or dt_compat_enabled("semtech,sx1262") or
+      dt_compat_enabled("semtech,lr1110") or dt_compat_enabled("semtech,lr1120") or
+      dt_compat_enabled("semtech,lr2021")
+    integration_platforms:
+      - rak11720
+    extra_configs:
+      - CONFIG_LORA_MODULE_BACKEND_LORA_BASICS_MODEM=y
+    harness_config:
+      type: one_line
+      regex:
+        - "<inf> lora_cad: CAD supported"
+  sample.driver.lora.cad.lr2021_build:
+    build_only: true
+    platform_allow:
+      - tracker_t1000_e
+    extra_args: DTC_OVERLAY_FILE=../boards/tracker_t1000_e_lr2021.overlay
+    extra_configs:
+      - CONFIG_LORA_MODULE_BACKEND_LORA_BASICS_MODEM=y
+      - CONFIG_LORA_BASICS_MODEM_DEFERRED_INIT=y
+    harness_config:
+      type: one_line
+      regex:
+        - "<inf> lora_cad: CAD supported"

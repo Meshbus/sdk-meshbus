@@ -1,0 +1,24 @@
+common:
+  tags: lora
+  depends_on: lora
+  harness: console
+  harness_config:
+    type: one_line
+    regex:
+      - "<inf> lora_duty_cycle: RX duty-cycle started"
+sample:
+  description: Demonstration of LoRa RX duty-cycle receive functionality
+  name: LoRa Duty Cycle Sample
+tests:
+  sample.driver.lora.duty_cycle:
+    build_only: true
+    integration_platforms:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp
+  sample.driver.lora.duty_cycle.lr2021_build:
+    build_only: true
+    platform_allow:
+      - tracker_t1000_e
+    extra_args: DTC_OVERLAY_FILE=../boards/tracker_t1000_e_lr2021.overlay
+    extra_configs:
+      - CONFIG_LORA_MODULE_BACKEND_LORA_BASICS_MODEM=y
+      - CONFIG_LORA_BASICS_MODEM_DEFERRED_INIT=y

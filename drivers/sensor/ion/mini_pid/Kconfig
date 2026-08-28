@@ -1,0 +1,11 @@
+# Ion Science MiniPID A1 VOC sensor configuration options
+
+config MINI_PID
+	bool "Ion Science MiniPID PPM Gas Sensor"
+	depends on DT_HAS_ION_MINI_PID_ENABLED
+	select ADC
+	help
+	  Enable support for the Ion Science MiniPID PPM Gas Sensor.
+	  The driver samples the analog output through an ADC channel and exposes
+	  the readings using the Zephyr sensor API on SENSOR_CHAN_VOLTAGE and
+	  SENSOR_CHAN_VOC.

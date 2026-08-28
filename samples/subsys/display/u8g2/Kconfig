@@ -1,0 +1,34 @@
+# Demo Kconfig
+# SPDX-License-Identifier: Apache-2.0
+
+mainmenu "U8G2 + Zephyr Display Demo"
+
+source "Kconfig.zephyr"
+
+menu "Performance stress settings"
+
+config U8G2_STRESS_LEVEL
+	int "Stress level (1..10)"
+	range 1 10
+	default 5
+	help
+	  Higher values increase drawing workload (more draw calls/pixels),
+	  to better stress CPU-side rendering. This does not change the
+	  display flush strategy.
+
+config U8G2_STRESS_MODE_CYCLE
+	bool "Cycle multiple workloads"
+	default y
+	help
+	  Cycle through several different rendering patterns (UI-ish, geometry,
+	  bitmap/pixels) to expose different bottlenecks.
+
+config U8G2_STRESS_MODE_FRAMES
+	int "Frames per workload"
+	range 30 600
+	default 120
+	depends on U8G2_STRESS_MODE_CYCLE
+	help
+	  Number of frames to run per workload before switching to the next one.
+
+endmenu

@@ -1,0 +1,19 @@
+/ {
+	es4_ag1: es4_ag1 {
+		compatible = "ecsense,es4-ag1";
+		status = "okay";
+		io-channels = <&ads1110 0>;
+		zero-offset-microvolt = <0>;
+		transimpedance-ohms = <220000>;
+		sensitivity-nanoamp-per-ppm = <55>;
+		averaging-samples = <1>;
+	};
+};
+
+&ads1110 {
+	channel@0 {
+		zephyr,gain = "ADC_GAIN_1";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,resolution = <15>;
+	};
+};

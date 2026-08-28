@@ -1,0 +1,11 @@
+tests:
+  lib.meshcore.utils.tdd:
+    tags:
+      - meshcore
+      - utils
+      - ztest
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86

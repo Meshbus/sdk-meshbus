@@ -1,0 +1,43 @@
+# DFU support configuration options
+
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+#
+# DFU
+#
+
+menuconfig IMG_MANAGER
+	bool "DFU image manager"
+	depends on STREAM_FLASH
+	depends on !MCUBOOT_BOOTLOADER_MODE_RAM_LOAD || RETENTION_BOOTLOADER_INFO_OUTPUT_FUNCTION
+	help
+	  Enable support for managing DFU image.
+
+if IMG_MANAGER
+
+if MCUBOOT_IMG_MANAGER
+
+config MCUBOOT_DELTA
+	bool "MCUboot delta updates"
+	depends on DETOOLS
+	select PSA_CRYPTO
+	select PSA_WANT_ALG_SHA_256
+	help
+	  Enable support for MCUboot delta updates.
+
+config MCUBOOT_DELTA_SHELL
+	bool "MCUboot shell"
+	depends on SHELL
+	depends on MCUBOOT_DELTA
+	help
+	  Enable shell module, which provides commands to create
+	  and apply delta updates.
+
+endif # MCUBOOT_IMG_MANAGER
+
+module = IMG_MANAGER
+module-str = image manager
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # IMG_MANAGER

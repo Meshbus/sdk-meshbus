@@ -1,0 +1,6 @@
+tests:
+  zui.input:
+    platform_allow: qemu_x86
+    tags:
+      - zui
+      - input

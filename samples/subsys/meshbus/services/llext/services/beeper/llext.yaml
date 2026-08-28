@@ -1,0 +1,7 @@
+id: beeper
+type: service
+name: Beeper Service
+description: One-shot buzzer request service.
+version: 1.0.0
+entry-point: beeper_thread_entry
+stack-size: 2048

@@ -1,0 +1,43 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig MESHBUS_CHANNEL
+	bool "Meshbus channel management"
+	depends on ZBUS
+	depends on SETTINGS
+	select PSA_CRYPTO
+	select PSA_WANT_ALG_SHA_256
+	default n
+	help
+	  Enable Meshbus channel management subsystem.
+	  - Channel configuration
+	  - Channel storage via settings
+
+if MESHBUS_CHANNEL
+module = MESHBUS_CHANNEL
+module-str = meshbus_channel
+module-help = Sets log level for Meshbus channel management
+source "subsys/logging/Kconfig.template.log_config"
+
+config MESHBUS_CHANNEL_MAX_CHANNELS
+	int "Maximum number of channels"
+	default 64
+	range 8 128
+	help
+	  Maximum number of channels that can be stored.
+
+config MESHBUS_CHANNEL_SECRET_PREFIX_BYTES
+	int "Channel secret prefix bytes"
+	default 3
+	range 3 5
+	help
+	  Number of bytes used to build the in-memory channel prefix index.
+
+config MESHBUS_CHANNEL_SHELL
+	bool "Channel shell commands"
+	depends on MESHBUS_SHELL
+	default y
+	help
+	  Enable shell commands for channel management.
+
+endif # MESHBUS_CHANNEL

@@ -1,0 +1,38 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+config HW_STACK_PROTECTION
+	default ARCH_HAS_STACK_PROTECTION
+
+if BOARD_IDEA_MESH_TRACKER_C2
+
+config GPIO_PCA953X_INIT_PRIORITY
+	default 85 if GPIO_PCA953X
+
+config GPIO_PCA_SERIES_INIT_PRIORITY
+	default 85 if GPIO_PCA_SERIES
+
+endif # BOARD_IDEA_MESH_TRACKER_C2
+
+if BOARD_IDEA_MESH_TRACKER_C2_NRF54L15_CPUAPP
+
+config ROM_START_OFFSET
+	default 0 if PARTITION_MANAGER_ENABLED
+	default 0x800 if BOOTLOADER_MCUBOOT
+
+endif # BOARD_IDEA_MESH_TRACKER_C2_NRF54L15_CPUAPP
+
+if BOARD_IDEA_MESH_TRACKER_C2_NRF54L15_CPUAPP_NS
+
+config BOARD_IDEA_MESH_TRACKER_C2
+	select USE_DT_CODE_PARTITION if BOARD_IDEA_MESH_TRACKER_C2_NRF54L15_CPUAPP_NS
+
+config HAS_BT_CTLR
+	default BT
+
+# By default, if we build for a Non-Secure version of the board,
+# enable building with TF-M as the Secure Execution Environment.
+config BUILD_WITH_TFM
+	default y
+
+endif # BOARD_IDEA_MESH_TRACKER_C2_NRF54L15_CPUAPP_NS

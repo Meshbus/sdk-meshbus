@@ -1,0 +1,17 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	chosen {
+		meshbus,input-buttons = &buttons;
+	};
+};
+
+&button0 {
+	zephyr,code = <INPUT_BTN_BACK>;
+};
+
+&buttons {
+	wakeup-source;
+};

@@ -1,0 +1,11 @@
+tests:
+  lib.meshcore.packet_manager.tdd:
+    tags:
+      - meshcore
+      - packet_manager
+      - ztest
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86

@@ -1,0 +1,10 @@
+sample:
+  name: ZUI assets sample
+tests:
+  sample.subsys.zui.assets:
+    build_only: true
+    platform_allow:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp
+    tags:
+      - zui
+      - assets

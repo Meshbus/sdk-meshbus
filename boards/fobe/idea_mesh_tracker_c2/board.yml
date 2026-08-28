@@ -1,0 +1,11 @@
+board:
+  name: idea_mesh_tracker_c2
+  full_name: FoBE IDEA Mesh Tracker C2
+  vendor: fobe
+  socs:
+  - name: nrf54l15
+    variants:
+      - name: xip
+        cpucluster: cpuflpr
+      - name: ns
+        cpucluster: cpuapp

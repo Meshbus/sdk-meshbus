@@ -1,0 +1,550 @@
+{
+  "version": 1,
+  "public_header": "../modules/lib/meshcore/include/meshcore/runtime.h",
+  "test_source_roots": [
+    "tests/lib/meshcore/runtime/oracle/src",
+    "tests/lib/meshcore/runtime/requests/src",
+    "tests/lib/meshcore/boundary/public_abi/src"
+  ],
+  "functions": [
+    {
+      "name": "meshcore_init",
+      "status": "target_only",
+      "reason": "C runtime lifecycle facade. Upstream constructs and begins Mesh/BaseChatMesh objects from Arduino setup instead of exposing a single C init API.",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/examples/companion_radio/main.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/examples/companion_radio/MyMesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.h"
+      ],
+      "coverage": [
+        "requests",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_init_rejects_double_init_and_deinit_allows_reinit",
+        "meshcore_runtime:test_init_uses_platform_timer_and_radio_send",
+        "meshcore_runtime:test_request_apis_execute_successfully",
+        "meshcore_runtime:test_deinit_and_reinit_clear_runtime_skeleton_state",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_deinit",
+      "status": "target_only",
+      "reason": "C lifecycle cleanup surface with no Arduino runtime teardown counterpart.",
+      "coverage": [
+        "requests",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_init_rejects_double_init_and_deinit_allows_reinit",
+        "meshcore_runtime:test_deinit_and_reinit_clear_runtime_skeleton_state",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_timer_fired",
+      "status": "target_only",
+      "reason": "C host-driven timer ingress replacing the Arduino loop pump while preserving observable timeout and pending-request behavior.",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/examples/companion_radio/main.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/examples/companion_radio/MyMesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.cpp"
+      ],
+      "coverage": [
+        "requests",
+        "oracle",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_timer_fired_fails_before_init",
+        "meshcore_runtime:test_timer_fired_accepts_non_decreasing_time_and_tracks_last_now",
+        "meshcore_runtime:test_timer_fired_accepts_32bit_tick_rollover",
+        "meshcore_runtime:test_timer_fired_uses_runtime_now_for_dispatcher_timebase",
+        "meshcore_runtime:test_active_tx_expires_on_timer_fired",
+        "meshcore_runtime_oracle:test_pending_timeout_clears_all_like_oracle",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_radio_rx_inject",
+      "status": "target_only",
+      "reason": "C host-driven raw RX ingress. Upstream receives through radio/loop dispatch and BaseChatMesh virtual callbacks.",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/examples/companion_radio/MyMesh.cpp"
+      ],
+      "coverage": [
+        "requests",
+        "oracle",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_radio_rx_inject_requires_init",
+        "meshcore_runtime:test_radio_rx_inject_delivers_immediately_without_process",
+        "meshcore_runtime_oracle:test_invalid_inbound_is_ignored_like_oracle",
+        "meshcore_runtime_oracle:test_invalid_inbound_req_is_ignored_like_oracle",
+        "meshcore_runtime_oracle:test_invalid_inbound_response_keeps_telemetry_pending_like_oracle",
+        "meshcore_runtime_oracle:test_inbound_advert_is_observed_without_followup_like_oracle",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_radio_tx_done",
+      "status": "target_only",
+      "reason": "C host-driven TX completion ingress. Upstream hides completion inside radio/packet-manager scheduling rather than exposing a public method.",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/examples/companion_radio/MyMesh.cpp"
+      ],
+      "coverage": [
+        "requests",
+        "oracle",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_init_uses_platform_timer_and_radio_send",
+        "meshcore_runtime:test_sync_request_recovers_after_packet_pool_is_released",
+        "meshcore_runtime_oracle:test_node_advert_local_matches_oracle",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_node_advert_request",
+      "status": "covered",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/AdvertDataHelpers.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/AdvertDataHelpers.cpp"
+      ],
+      "coverage": [
+        "requests",
+        "oracle",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_require_init",
+        "meshcore_runtime:test_request_apis_execute_successfully",
+        "meshcore_runtime_oracle:test_node_advert_local_matches_oracle",
+        "meshcore_runtime_oracle:test_node_advert_flood_matches_oracle",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_node_peer_advert_request",
+      "status": "covered",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/ContactInfo.h"
+      ],
+      "coverage": [
+        "requests",
+        "oracle",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_require_init",
+        "meshcore_runtime:test_request_apis_validate_arguments_after_init",
+        "meshcore_runtime:test_request_apis_execute_successfully",
+        "meshcore_runtime_oracle:test_peer_advert_replay_matches_oracle",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_message_send_to_node",
+      "status": "covered",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/TxtDataHelpers.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/TxtDataHelpers.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/examples/companion_radio/MyMesh.cpp"
+      ],
+      "coverage": [
+        "requests",
+        "oracle",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_require_init",
+        "meshcore_runtime:test_request_apis_validate_arguments_after_init",
+        "meshcore_runtime:test_request_api_enters_protocol_queue_synchronously",
+        "meshcore_runtime:test_expected_ack_registers_hits_and_clears",
+        "meshcore_runtime_oracle:test_send_to_node_direct_matches_oracle",
+        "meshcore_runtime_oracle:test_send_to_node_flood_attempt_tail_matches_oracle",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_message_send_to_channel",
+      "status": "covered",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/TxtDataHelpers.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/TxtDataHelpers.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/ChannelDetails.h",
+        "../modules/lib/meshcore/.reference/meshcore/examples/companion_radio/MyMesh.cpp"
+      ],
+      "coverage": [
+        "requests",
+        "oracle",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_require_init",
+        "meshcore_runtime:test_request_apis_validate_arguments_after_init",
+        "meshcore_runtime:test_request_apis_execute_successfully",
+        "meshcore_runtime_oracle:test_send_to_channel_matches_oracle",
+        "meshcore_runtime_oracle:test_no_channel_send_group_emits_no_outbound_like_oracle",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_node_discover_path_request",
+      "status": "covered",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/ContactInfo.h",
+        "../modules/lib/meshcore/.reference/meshcore/examples/companion_radio/MyMesh.cpp"
+      ],
+      "coverage": [
+        "requests",
+        "oracle",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_require_init",
+        "meshcore_runtime:test_request_apis_validate_arguments_after_init",
+        "meshcore_runtime:test_pending_discovery_hits_publish_and_clear",
+        "meshcore_runtime_oracle:test_discover_path_plain_matches_oracle",
+        "meshcore_runtime_oracle:test_discover_response_publish_matches_oracle",
+        "meshcore_runtime_oracle:test_discover_no_response_timeout_clears_pending_like_oracle",
+        "meshcore_runtime_oracle:test_pending_overlap_responses_publish_independently_like_oracle",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_node_discover_request",
+      "status": "covered",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/examples/simple_repeater/MyMesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/examples/simple_sensor/SensorMesh.cpp"
+      ],
+      "coverage": [
+        "requests",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_require_init",
+        "meshcore_runtime:test_request_apis_validate_arguments_after_init",
+        "meshcore_runtime:test_request_apis_execute_successfully",
+        "meshcore_runtime:test_node_discover_request_sends_zero_hop_control",
+        "meshcore_runtime:test_control_discover_response_publishes_typed_event",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_node_trace_request",
+      "status": "covered",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/examples/companion_radio/MyMesh.h",
+        "../modules/lib/meshcore/.reference/meshcore/examples/companion_radio/MyMesh.cpp"
+      ],
+      "coverage": [
+        "requests",
+        "oracle",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_require_init",
+        "meshcore_runtime:test_request_apis_validate_arguments_after_init",
+        "meshcore_runtime:test_pending_trace_hits_publish_and_clear",
+        "meshcore_runtime_oracle:test_trace_path_matches_oracle",
+        "meshcore_runtime_oracle:test_trace_path_hash_size_3_downgrades_like_oracle",
+        "meshcore_runtime_oracle:test_trace_result_publish_matches_oracle",
+        "meshcore_runtime_oracle:test_no_path_trace_emits_no_outbound_like_oracle",
+        "meshcore_runtime_oracle:test_pending_overlap_responses_publish_independently_like_oracle",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_node_trace_path_request",
+      "status": "target_only",
+      "reason": "Deprecated compatibility shim. Host-owned route construction moved out of lib-meshcore; callers should use meshcore_node_trace_request with an explicit route path.",
+      "coverage": [
+        "requests",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_validate_arguments_after_init",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_node_telemetry_request",
+      "status": "covered",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/examples/companion_radio/MyMesh.cpp"
+      ],
+      "coverage": [
+        "requests",
+        "oracle",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_require_init",
+        "meshcore_runtime:test_request_apis_validate_arguments_after_init",
+        "meshcore_runtime:test_node_telemetry_request_uses_request_tag_and_direct_route",
+        "meshcore_runtime:test_pending_telemetry_hits_timeout_and_clear",
+        "meshcore_runtime_oracle:test_telemetry_request_matches_oracle",
+        "meshcore_runtime_oracle:test_telemetry_response_publish_matches_oracle",
+        "meshcore_runtime_oracle:test_pending_timeout_clears_all_like_oracle",
+        "meshcore_runtime_oracle:test_pending_overlap_responses_publish_independently_like_oracle",
+        "meshcore_runtime_oracle:test_invalid_inbound_response_keeps_telemetry_pending_like_oracle",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_node_binary_request",
+      "status": "covered",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/examples/companion_radio/MyMesh.cpp"
+      ],
+      "coverage": [
+        "requests",
+        "oracle",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_require_init",
+        "meshcore_runtime:test_request_apis_validate_arguments_after_init",
+        "meshcore_runtime:test_node_binary_request_sends_peer_req_datagram",
+        "meshcore_runtime:test_node_binary_response_matches_pending_tag",
+        "meshcore_runtime_oracle:test_binary_request_flood_matches_oracle",
+        "meshcore_runtime_oracle:test_binary_request_direct_matches_oracle",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_channel_data_send",
+      "status": "covered",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/examples/companion_radio/MyMesh.cpp"
+      ],
+      "coverage": [
+        "requests",
+        "oracle",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_require_init",
+        "meshcore_runtime:test_request_apis_validate_arguments_after_init",
+        "meshcore_runtime:test_low_level_data_requests_emit_packets",
+        "meshcore_runtime_oracle:test_channel_data_flood_matches_oracle",
+        "meshcore_runtime_oracle:test_channel_data_direct_matches_oracle",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_node_binary_request_with_tag",
+      "status": "target_only",
+      "reason": "C runtime facade for host-owned correlation tags. Upstream Companion sendRequest returns a generated tag; Meshbus needs to pass its public ZBus tag through to the generic runtime.",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/examples/companion_radio/MyMesh.cpp"
+      ],
+      "coverage": [
+        "requests",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_require_init",
+        "meshcore_runtime:test_request_apis_validate_arguments_after_init",
+        "meshcore_runtime:test_node_binary_request_with_tag_uses_caller_tag",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_node_anon_data_send",
+      "status": "covered",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/src/Mesh.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/Mesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/BaseChatMesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/examples/companion_radio/MyMesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/examples/simple_repeater/MyMesh.cpp"
+      ],
+      "coverage": [
+        "requests",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_require_init",
+        "meshcore_runtime:test_request_apis_validate_arguments_after_init",
+        "meshcore_runtime:test_request_apis_execute_successfully",
+        "meshcore_runtime:test_node_anon_data_send_sends_anon_req_datagram",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_node_anon_data_send_delayed",
+      "status": "target_only",
+      "reason": "C host facade for the upstream delayed packet scheduler while retaining normal direct-or-flood route selection.",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/src/Mesh.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/Mesh.cpp"
+      ],
+      "coverage": [
+        "requests",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_require_init",
+        "meshcore_runtime:test_node_anon_data_delayed_variants_preserve_deadline",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_node_anon_data_send_direct",
+      "status": "target_only",
+      "reason": "C host facade for atomic direct-only routing. It fails closed when no stored route exists instead of applying the normal flood fallback.",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/src/Mesh.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/Mesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/RoutingPolicy.h"
+      ],
+      "coverage": [
+        "requests",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_require_init",
+        "meshcore_runtime:test_node_anon_data_direct_and_explicit_route_policy",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_node_anon_data_send_direct_delayed",
+      "status": "target_only",
+      "reason": "C host facade combining direct-only route admission with the upstream delayed dispatcher contract.",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/src/Mesh.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/Mesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/RoutingPolicy.h"
+      ],
+      "coverage": [
+        "requests",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_require_init",
+        "meshcore_runtime:test_node_anon_data_delayed_variants_preserve_deadline",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_node_anon_data_send_via_path",
+      "status": "target_only",
+      "reason": "C host facade for an authenticated caller-owned return route that is intentionally not persisted in the peer store.",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/src/Mesh.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/Mesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/RoutingPolicy.h",
+        "../modules/lib/meshcore/.reference/meshcore/examples/simple_repeater/MyMesh.cpp"
+      ],
+      "coverage": [
+        "requests",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_require_init",
+        "meshcore_runtime:test_request_apis_validate_arguments_after_init",
+        "meshcore_runtime:test_node_anon_data_direct_and_explicit_route_policy",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_node_anon_data_send_via_path_delayed",
+      "status": "target_only",
+      "reason": "C host facade applying the delayed dispatcher contract to an authenticated caller-owned direct route.",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/src/Mesh.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/Mesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/src/helpers/RoutingPolicy.h",
+        "../modules/lib/meshcore/.reference/meshcore/examples/simple_repeater/MyMesh.cpp"
+      ],
+      "coverage": [
+        "requests",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_require_init",
+        "meshcore_runtime:test_request_apis_validate_arguments_after_init",
+        "meshcore_runtime:test_node_anon_data_delayed_variants_preserve_deadline",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_node_binary_response",
+      "status": "target_only",
+      "reason": "C runtime facade for replying to an opaque binary request event already published to the host. Upstream handles binary request responses inside host application callbacks instead of exposing a standalone public runtime API.",
+      "coverage": [
+        "requests",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_node_binary_response_matches_pending_tag",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_raw_data_send",
+      "status": "covered",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/src/Mesh.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/Mesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/examples/companion_radio/MyMesh.cpp"
+      ],
+      "coverage": [
+        "requests",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_require_init",
+        "meshcore_runtime:test_request_apis_validate_arguments_after_init",
+        "meshcore_runtime:test_low_level_data_requests_emit_packets",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    },
+    {
+      "name": "meshcore_control_data_send",
+      "status": "covered",
+      "upstream_evidence": [
+        "../modules/lib/meshcore/.reference/meshcore/src/Mesh.h",
+        "../modules/lib/meshcore/.reference/meshcore/src/Mesh.cpp",
+        "../modules/lib/meshcore/.reference/meshcore/examples/companion_radio/MyMesh.cpp"
+      ],
+      "coverage": [
+        "requests",
+        "boundary"
+      ],
+      "tests": [
+        "meshcore_runtime:test_request_apis_require_init",
+        "meshcore_runtime:test_request_apis_validate_arguments_after_init",
+        "meshcore_runtime:test_low_level_data_requests_emit_packets",
+        "meshcore_public_abi:test_public_headers_compile_as_c_and_cpp"
+      ]
+    }
+  ]
+}

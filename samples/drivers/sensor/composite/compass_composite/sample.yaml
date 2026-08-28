@@ -1,0 +1,12 @@
+sample:
+  name: compass_composite
+  description: Compass composite sensor sample
+common:
+  tags:
+    - sensor
+    - compass_composite
+  harness: keyboard
+tests:
+  sample.drivers.sensor.composite.compass_composite:
+    integration_platforms:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp

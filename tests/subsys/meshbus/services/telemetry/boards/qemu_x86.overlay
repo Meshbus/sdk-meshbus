@@ -1,0 +1,47 @@
+#include <zephyr/dt-bindings/sensor/sensor_channel.h>
+
+/ {
+	test_power_domain: test-power-domain {
+		compatible = "fobe,test-power-domain";
+		status = "okay";
+		#power-domain-cells = <0>;
+	};
+
+	fake_sensor: fake-sensor {
+		compatible = "vnd,fake-sensor";
+		status = "okay";
+		power-domains = <&test_power_domain>;
+	};
+
+	fake_compass_overlap: fake-compass-overlap {
+		compatible = "zephyr,compass-composite";
+		status = "disabled";
+		accel-source = <&fake_sensor>;
+		gyro-source = <&fake_sensor>;
+		magn-source = <&fake_sensor>;
+	};
+
+	meshbus_telemetry: meshbus-telemetry {
+		compatible = "fobe,meshbus-telemetry";
+
+		ch0 {
+			sensor = <&fake_sensor>;
+			channel = <SENSOR_CHAN_AMBIENT_TEMP>;
+		};
+
+		ch1 {
+			sensor = <&fake_sensor>;
+			channel = <SENSOR_CHAN_PRESS>;
+		};
+
+		invalid_private_channel: invalid-private-channel {
+			status = "disabled";
+			sensor = <&fake_sensor>;
+			channel = <SENSOR_CHAN_PRIV_START>;
+		};
+	};
+
+	chosen {
+		meshbus,telemetry = &meshbus_telemetry;
+	};
+};

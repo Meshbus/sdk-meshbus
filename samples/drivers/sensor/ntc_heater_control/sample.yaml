@@ -1,0 +1,15 @@
+sample:
+  name: ntc_heater_control
+  description: NTC closed-loop heater control sample (hysteresis + shell)
+common:
+  tags:
+    - sensor
+    - ntc
+    - pwm
+    - heater
+  build_only: true
+  filter: dt_alias_exists("ambient-temp0") and dt_alias_exists("heater-pwm0")
+tests:
+  sample.drivers.sensor.ntc_heater_control:
+    integration_platforms:
+      - qikira_f9802

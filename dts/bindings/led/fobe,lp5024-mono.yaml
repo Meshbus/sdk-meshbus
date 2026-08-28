@@ -1,0 +1,33 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+description: TI LP5024 single-channel LED controller modeled as mono outputs
+
+compatible: "fobe,lp5024-mono"
+
+include: ["i2c-device.yaml", "led-controller.yaml"]
+
+properties:
+  enable-gpios:
+    type: phandle-array
+    description: GPIO used to enable or disable the controller.
+
+  max-curr-opt:
+    type: boolean
+    description: Enable the LP5024 high current output setting.
+
+  log-scale-en:
+    type: boolean
+    description: Enable the LP5024 logarithmic dimming curve.
+
+child-binding:
+  description: LP5024 mono LED output
+
+  properties:
+    label:
+      required: true
+
+    index:
+      type: int
+      required: true
+      description: Physical LP5024 output number in the range 0..23.

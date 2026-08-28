@@ -1,0 +1,14 @@
+sample:
+  name: Meshbus input service
+  description: Starts Meshbus input and logs raw/action events for board shell manual validation
+common:
+  tags:
+    - meshbus
+    - input
+  harness: keyboard
+tests:
+  sample.subsys.meshbus.services.input:
+    platform_allow:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp
+    integration_platforms:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp

@@ -1,0 +1,13 @@
+# Copyright (c) 2025 FoBE Projects
+# SPDX-License-Identifier: Apache-2.0
+
+config INPUT_TCA8418
+	bool "TI TCA8418 keyboard matrix scan driver"
+	default y
+	depends on INPUT
+	depends on DT_HAS_TI_TCA8418_KBD_ENABLED
+	depends on MFD_TCA8418
+	help
+	  Enable keyboard matrix scan driver for Texas Instruments TCA8418.
+	  This driver works as a child of the TCA8418 MFD driver and supports
+	  up to 80 keys (8x10 matrix) with integrated debounce and 10-event FIFO.

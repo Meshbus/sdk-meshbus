@@ -1,0 +1,292 @@
+/*
+ * Copyright (c) 2025 Chiho Sin
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <nordic/nrf52840_qiaa.dtsi>
+#include <zephyr/dt-bindings/adc/adc.h>
+#include <zephyr/dt-bindings/adc/nrf-saadc.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/input/keymap.h>
+#include <zephyr/dt-bindings/lora/sx126x.h>
+#include <zephyr/dt-bindings/led/led.h>
+#include <zephyr/dt-bindings/mipi_dbi/mipi_dbi.h>
+#include <zephyr/dt-bindings/battery/battery.h>
+#include "idea_mesh_tracker_c1-pinctrl.dtsi"
+
+/ {
+	chosen {
+		zephyr,sram = &sram0;
+		zephyr,flash = &flash0;
+		zephyr,code-partition = &code_partition;
+		zephyr,ieee802154 = &ieee802154;
+		zephyr,display = &ssd1306;
+	};
+
+	zephyr,user {
+		io-channels = <&adc 3>;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led0: led_0 {
+			label = "Blue LED";
+			gpios = <&gpio1 11 GPIO_ACTIVE_LOW>;
+		};
+	};
+
+	peripheral_power: peripheral_power {
+		compatible = "power-domain-gpio";
+		#power-domain-cells = <0>;
+		enable-gpios = <&gpio0 16 GPIO_ACTIVE_HIGH>;
+		startup-delay-us = <10000>;
+	};
+
+	gnss_power: gnss_power {
+		compatible = "power-domain-gpio";
+		#power-domain-cells = <0>;
+		enable-gpios = <&gpio0 26 GPIO_ACTIVE_HIGH>;
+		startup-delay-us = <10000>;
+	};
+
+	buttons: buttons {
+		compatible = "gpio-keys";
+
+		button0: usr_button {
+			gpios = <&gpio1 0 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "USR Button";
+			zephyr,code = <INPUT_KEY_0>;
+		};
+
+		button1: encoder_button {
+			gpios = <&gpio1 4 GPIO_ACTIVE_LOW>;
+			label = "Encoder Button";
+			zephyr,code = <INPUT_KEY_1>;
+		};
+	};
+
+	encoder: encoder {
+		compatible = "gpio-qdec";
+		gpios = <&gpio1 6 GPIO_ACTIVE_LOW>,
+			<&gpio1 2 GPIO_ACTIVE_LOW>;
+		zephyr,axis = <INPUT_REL_WHEEL>;
+		steps-per-period = <4>;
+		sample-time-us = <2000>;
+		idle-timeout-ms = <200>;
+		power-domains = <&peripheral_power>;
+	};
+
+	vbatt: vbatt {
+		status = "okay";
+		compatible = "voltage-divider";
+		io-channels = <&adc 3>;
+		output-ohms = <1500000>;
+		full-ohms = <(1000000 + 1500000)>;
+	};
+
+	fuel_gauge: fuel_gauge {
+		compatible = "zephyr,fuel-gauge-composite";
+		source-primary = <&vbatt>;
+		device-chemistry = "lithium-ion-polymer";
+		ocv-capacity-table-0 = <BATTERY_OCV_CURVE_LITHIUM_ION_POLYMER_DEFAULT>;
+		charge-full-design-microamp-hours = <1500000>;
+	};
+
+	charger: charger {
+		compatible = "zephyr,charger-composite";
+		source-primary = <&fuel_gauge>;
+		charging-gpios = <&gpio1 12 GPIO_ACTIVE_LOW>;
+		constant-charge-voltage-max-microvolt = <4200000>;
+	};
+
+	/* These aliases are provided for compatibility with samples */
+	aliases {
+		mcuboot-led0 = &led0;
+		mcuboot-button0 = &button0;
+		led0 = &led0;
+		button0 = &button0;
+		watchdog0 = &wdt0;
+	};
+};
+
+&uart0 {
+	status = "okay";
+	current-speed = <115200>;
+	pinctrl-0 = <&uart0_default>;
+	pinctrl-1 = <&uart0_sleep>;
+	pinctrl-names = "default", "sleep";
+
+	l76k: l76k {
+		status = "okay";
+		compatible = "quectel,l76k";
+		reset-gpios = <&gpio0 4 GPIO_ACTIVE_LOW>;
+		wakeup-gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
+		pps-gpios = <&gpio0 8 GPIO_ACTIVE_HIGH>;
+		power-domains = <&gnss_power>;
+	};
+};
+
+&i2c0 {
+	status = "okay";
+	pinctrl-0 = <&i2c0_default>;
+	pinctrl-1 = <&i2c0_sleep>;
+	pinctrl-names = "default", "sleep";
+
+	clock-frequency = <I2C_BITRATE_FAST>;
+	/* Needed by i2c_nrfx_twim when concatenating a 1-byte control field + payload (e.g. SSD1306 full-line writes). */
+	zephyr,concat-buf-size = <256>;
+	zephyr,flash-buf-max-size = <256>;
+	ssd1306: ssd1306@3d {
+		/* Zephyr renamed the compatible from "solomon,ssd1306fb" -> "solomon,ssd1306". */
+		compatible = "solomon,ssd1306";
+		reg = <0x3d>;
+		width = <128>;
+		height = <64>;
+		segment-offset = <0>;
+		page-offset = <0>;
+		display-offset = <0>;
+		multiplex-ratio = <63>;
+		segment-remap;
+		com-invdir;
+		prechargep = <0x22>;
+		power-domains = <&peripheral_power>;
+	};
+};
+
+&i2c1 {
+	status = "okay";
+	pinctrl-0 = <&i2c1_default>;
+	pinctrl-1 = <&i2c1_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&pwm0 {
+	status = "okay";
+	pinctrl-0 = <&pwm0_default>;
+	pinctrl-1 = <&pwm0_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&spi2 {
+	status = "okay";
+	pinctrl-0 = <&spi2_default>;
+	pinctrl-1 = <&spi2_sleep>;
+	pinctrl-names = "default", "sleep";
+	cs-gpios = <&gpio1 8 GPIO_ACTIVE_LOW>;
+
+	sx1262: sx1262@0 {
+		compatible = "semtech,sx1262";
+		label = "sx1262";
+		reg = <0>;
+		reset-gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
+		busy-gpios = <&gpio0 15 GPIO_ACTIVE_HIGH>;
+		antenna-enable-gpios = <&gpio0 11 GPIO_ACTIVE_HIGH>;
+		dio1-gpios = <&gpio0 17 GPIO_ACTIVE_HIGH>;
+		dio2-tx-enable;
+		rx-boosted;
+		dio3-tcxo-voltage = <SX126X_DIO3_TCXO_1V8>;
+		tcxo-power-startup-delay-ms = <5>;
+		spi-max-frequency = <DT_FREQ_M(8)>;
+	};
+};
+
+&reg0 {
+	status = "okay";
+};
+
+&reg1 {
+	regulator-initial-mode = <NRF5X_REG_MODE_DCDC>;
+};
+
+&adc {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	channel@3 {
+		reg = <3>;
+		zephyr,gain = "ADC_GAIN_1_5";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>;
+		zephyr,input-positive = <NRF_SAADC_AIN3>;
+		zephyr,resolution = <12>;
+		zephyr,oversampling = <4>;
+	};
+};
+
+&uicr {
+	gpio-as-nreset;
+};
+
+&ieee802154 {
+	status = "okay";
+};
+
+&gpiote {
+	status = "okay";
+};
+
+&gpio0 {
+	status = "okay";
+};
+
+&gpio1 {
+	status = "okay";
+};
+
+&flash0 {
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		mbr_partition: partition@0 {
+			label = "mbr";
+			reg = <0x00000000 0x00001000>;
+		};
+
+		softdevice_partition: partition@1000 {
+			label = "softdevice";
+			reg = <0x00001000 0x00026000>;
+		};
+
+		code_partition: partition@27000 {
+			label = "app";
+			reg = <0x00027000 0x000c3000>;
+		};
+
+		storage_partition: partition@ea000 {
+			label = "storage";
+			reg = <0x000ea000 0x00004000>;
+		};
+
+		lfs_partition: partition@ee000 {
+			label = "lfs_storage";
+			reg = <0x000ee000 0x00006000>;
+		};
+
+		bootloader_partition: partition@f4000 {
+			label = "bootloader";
+			reg = <0x000f4000 0x0000a000>;
+		};
+
+		mbr_params_partition: partition@fe000 {
+			label = "mbr_params";
+			reg = <0x000fe000 0x00001000>;
+		};
+
+		bootloader_settings_partition: partition@ff000 {
+			label = "bootloader_settings";
+			reg = <0x000ff000 0x00001000>;
+		};
+	};
+};
+
+
+zephyr_udc0: &usbd {
+	status = "okay";
+};
+
+#include <../boards/common/usb/cdc_acm_serial.dtsi>

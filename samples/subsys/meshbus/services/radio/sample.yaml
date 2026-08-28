@@ -1,0 +1,14 @@
+sample:
+  name: Meshbus radio service
+  description: Starts Meshbus radio for board shell and LoRa manual validation
+common:
+  tags:
+    - meshbus
+    - radio
+  harness: keyboard
+tests:
+  sample.subsys.meshbus.services.radio:
+    platform_allow:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp
+    integration_platforms:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp

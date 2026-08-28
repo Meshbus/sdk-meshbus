@@ -1,0 +1,155 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  Composite compass sensor constructed from accelerometer, gyroscope, and
+  magnetometer sources.
+
+  The driver performs tilt-compensated heading estimation from accel + magnet,
+  then applies heading-domain complementary fusion with gyro short-term
+  prediction and adaptive magnetic correction.
+
+compatible: zephyr,compass-composite
+
+include: [sensor-device.yaml]
+
+properties:
+  accel-source:
+    type: phandle
+    required: true
+    description: Accelerometer sensor source device.
+
+  gyro-source:
+    type: phandle
+    required: true
+    description: Gyroscope sensor source device.
+
+  magn-source:
+    type: phandle
+    required: true
+    description: Magnetometer sensor source device.
+
+  accel-channel:
+    type: int
+    default: 3
+    description: |
+      Accelerometer channel read from accel-source.
+      Default is SENSOR_CHAN_ACCEL_XYZ.
+
+  gyro-channel:
+    type: int
+    default: 7
+    description: |
+      Gyroscope channel read from gyro-source.
+      Default is SENSOR_CHAN_GYRO_XYZ.
+
+  magn-channel:
+    type: int
+    default: 11
+    description: |
+      Magnetometer channel read from magn-source.
+      Default is SENSOR_CHAN_MAGN_XYZ.
+
+  source-startup-delay-ms:
+    type: int
+    default: 25
+    description: |
+      Maximum source warm-up interval in milliseconds. The driver waits this
+      long after resuming a suspended source and retries one invalid first
+      sample once. Set to 0 only when every source can return valid data
+      immediately after resume.
+
+  source-idle-timeout-ms:
+    type: int
+    default: 250
+    description: |
+      Runtime-PM idle grace period in milliseconds. With asynchronous runtime
+      PM enabled, source suspension is deferred by this interval so periodic
+      compass reads avoid repeated power cycling and sensor warm-up. Set to 0
+      for immediate suspension after each sample.
+
+  calibration-sample-period-ms:
+    type: int
+    default: 100
+    description: |
+      Minimum interval in milliseconds between samples admitted to the rolling
+      magnetometer calibration window. Heading and gyro fusion still run on
+      every fetch. Keeping calibration sampling time-based prevents a faster
+      output rate from shortening the physical-motion history represented by
+      the fixed-size calibration window. Set to 0 to admit every sample.
+
+  declination-milli-deg:
+    type: int
+    default: 0
+    description: |
+      Local magnetic declination in milli-degrees used as boot default.
+      Positive values rotate heading eastward and negative values westward.
+      Runtime can override this value through SENSOR_ATTR_COMPASS_DECLINATION.
+
+  mount-offset-milli-deg:
+    type: int
+    default: 0
+    description: |
+      Board/assembly yaw mounting offset in milli-degrees used as boot default.
+      Positive values rotate heading eastward and negative values westward.
+      Runtime can override this value through SENSOR_ATTR_COMPASS_MOUNT_OFFSET.
+
+  gyro-fusion-alpha-milli:
+    type: int
+    default: 980
+    description: |
+      Base fusion alpha in milli-scale [0, 1000].
+      This controls heading-domain complementary fusion: higher values trust
+      gyro integration more, lower values increase magnetic correction. The
+      value describes retention over a 100 ms reference interval; the driver
+      normalizes magnetic correction to the actual elapsed sample time.
+      Runtime can override this value through SENSOR_ATTR_COMPASS_FUSION_ALPHA.
+
+  imu-rate-override-supported:
+    type: boolean
+    description: |
+      Declare that both accel-source and gyro-source implement readable and
+      writable SENSOR_ATTR_SAMPLING_FREQUENCY attributes. When absent, the
+      composite does not advertise COMPASS_CAP_RATE_OVERRIDE and rejects the
+      optional interactive-rate attribute with -ENOTSUP.
+
+  accel-axis-remap:
+    type: array
+    default: [0, 1, 2]
+    description: |
+      Axis remap indices applied to accelerometer vector. Three entries, each
+      in range [0, 2], defining output {x,y,z} source axis indices.
+
+  accel-axis-sign:
+    type: array
+    default: [1, 1, 1]
+    description: |
+      Axis sign multipliers applied after accel-axis-remap. Three entries, each
+      either 1 or -1.
+
+  gyro-axis-remap:
+    type: array
+    description: |
+      Axis remap indices applied to gyroscope vector. Three entries, each in
+      range [0, 2], defining output {x,y,z} source axis indices. If omitted,
+      accel-axis-remap is used.
+
+  gyro-axis-sign:
+    type: array
+    description: |
+      Axis sign multipliers applied after gyro-axis-remap. Three entries, each
+      either 1 or -1. If omitted, accel-axis-sign is used.
+
+  magn-axis-remap:
+    type: array
+    default: [0, 1, 2]
+    description: |
+      Axis remap indices applied to magnetometer vector. Three entries, each in
+      range [0, 2], defining output {x,y,z} source axis indices.
+
+  magn-axis-sign:
+    type: array
+    default: [1, 1, 1]
+    description: |
+      Axis sign multipliers applied after magn-axis-remap. Three entries, each
+      either 1 or -1.

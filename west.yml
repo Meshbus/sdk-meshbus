@@ -1,0 +1,35 @@
+manifest:
+  remotes:
+    - name: meshbus
+      url-base: https://github.com/Meshbus
+    - name: zephyrproject
+      url-base: https://github.com/zephyrproject-rtos
+
+  defaults:
+    remote: meshbus
+
+  projects:
+    - name: zephyr
+      repo-path: sdk-zephyr
+      revision: main
+      import: true
+    - name: meshbus-protobufs
+      path: modules/lib/meshbus-protobufs
+      repo-path: meshbus-protobufs
+      revision: main
+    - name: meshcore
+      path: modules/lib/meshcore
+      repo-path: sdk-meshcore
+      revision: main
+    - name: detools
+      path: modules/lib/detools
+      repo-path: sdk-detools
+      revision: fe0f40c323438c4945794780277724397481c6d6
+    - name: heatshrink
+      path: modules/lib/heatshrink
+      repo-path: sdk-heatshrink
+      revision: 8c98cde55c7bde2947064ff70eba30ab1c7dda7c
+
+  self:
+    path: meshbus
+    west-commands: scripts/west-commands.yml

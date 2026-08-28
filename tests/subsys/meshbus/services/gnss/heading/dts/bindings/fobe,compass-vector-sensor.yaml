@@ -1,0 +1,16 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+description: Fake vector sensor for Meshbus GNSS heading tests
+
+compatible: fobe,compass-vector-sensor
+
+include: sensor-device.yaml
+
+properties:
+  role:
+    type: string
+    required: true
+    enum:
+      - imu
+      - magnetometer

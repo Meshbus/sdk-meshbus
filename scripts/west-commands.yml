@@ -1,0 +1,24 @@
+west-commands:
+  - file: scripts/meshbus/meshbus.py
+    commands:
+      - name: meshbus
+        class: Meshbus
+        help: Meshbus packaging and device utilities
+
+  - file: scripts/zui/zui.py
+    commands:
+      - name: zui
+        class: Zui
+        help: ZUI (Zephyr UI) utilities
+
+  - file: scripts/mklfs/mklfs.py
+    commands:
+      - name: mklfs
+        class: MkLfs
+        help: create a LittleFS image
+
+  - file: scripts/remote/remote.py
+    commands:
+      - name: remote
+        class: Remote
+        help: remote helper commands

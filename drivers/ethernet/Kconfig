@@ -1,0 +1,6 @@
+menu "Ethernet Drivers"
+
+rsource "Kconfig.ch390"
+
+endmenu
+

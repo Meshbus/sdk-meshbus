@@ -1,0 +1,14 @@
+sample:
+  name: ntc_thermistor
+  description: NTC thermistor temperature sample for qikira_f9802
+common:
+  tags:
+    - sensor
+    - ntc
+    - thermometer
+  build_only: true
+  filter: dt_alias_exists("ambient-temp0")
+tests:
+  sample.drivers.sensor.ntc_thermistor:
+    integration_platforms:
+      - qikira_f9802

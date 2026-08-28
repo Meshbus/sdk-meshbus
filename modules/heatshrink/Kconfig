@@ -1,0 +1,11 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+config ZEPHYR_HEATSHRINK_MODULE
+	bool
+
+config HEATSHRINK
+	bool "Heatshrink library"
+	depends on ZEPHYR_HEATSHRINK_MODULE
+	help
+	  Heatshrink decoder library

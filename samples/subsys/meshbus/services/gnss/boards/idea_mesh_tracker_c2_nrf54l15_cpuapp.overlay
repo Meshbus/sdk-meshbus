@@ -1,0 +1,13 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * This overlay defines a fake LoRa device node for testing the LBM driver API.
+ */
+
+/ {
+	chosen {
+		meshbus,gnss = &l76k;
+	};
+};

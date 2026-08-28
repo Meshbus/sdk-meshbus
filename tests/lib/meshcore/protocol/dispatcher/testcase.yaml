@@ -1,0 +1,11 @@
+tests:
+  lib.meshcore.dispatcher.tdd:
+    tags:
+      - meshcore
+      - dispatcher
+      - ztest
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86

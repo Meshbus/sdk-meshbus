@@ -1,0 +1,26 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	fstab: fstab {
+		compatible = "zephyr,fstab";
+		extra: extra {
+			compatible = "zephyr,fstab,littlefs";
+			automount;
+			mount-point = "/extra";
+			partition = <&lfs_partition>;
+			read-size = <16>;
+			prog-size = <16>;
+			cache-size = <128>;
+			lookahead-size = <64>;
+			block-cycles = <512>;
+		};
+	};
+
+	chosen {
+		meshbus,indicator-light-active = &led0;
+		meshbus,indicator-buzzer = &pwm0;
+		meshbus,indicator-buzzer-power = &buzzer_power;
+	};
+};

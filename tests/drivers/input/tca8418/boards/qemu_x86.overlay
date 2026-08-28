@@ -1,0 +1,75 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/input/keymap.h>
+#include <zephyr/dt-bindings/i2c/i2c.h>
+
+/ {
+	test_gpio: gpio {
+		compatible = "zephyr,gpio-emul";
+		ngpios = <1>;
+		falling-edge;
+		status = "okay";
+		#gpio-cells = <2>;
+		gpio-controller;
+	};
+
+	test_i2c: i2c@100 {
+		compatible = "zephyr,i2c-emul-controller";
+		clock-frequency = <I2C_BITRATE_STANDARD>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x100 4>;
+		status = "okay";
+
+		tca_int: keypad@34 {
+			compatible = "ti,tca8418";
+			reg = <0x34>;
+			int-gpios = <&test_gpio 0 GPIO_ACTIVE_LOW>;
+			status = "okay";
+
+			kbd_int: kbd {
+				compatible = "ti,tca8418-kbd";
+				row-size = <3>;
+				col-size = <4>;
+				poll-interval-ms = <5>;
+
+				keymap {
+					compatible = "input-keymap";
+					keymap = <MATRIX_KEY(0, 0, INPUT_KEY_1)
+						  MATRIX_KEY(0, 1, INPUT_KEY_2)
+						  MATRIX_KEY(0, 2, INPUT_KEY_3)
+						  MATRIX_KEY(0, 3, INPUT_KEY_KPDOT)
+						  MATRIX_KEY(1, 0, INPUT_KEY_4)
+						  MATRIX_KEY(1, 1, INPUT_KEY_5)
+						  MATRIX_KEY(1, 2, INPUT_KEY_6)
+						  MATRIX_KEY(1, 3, INPUT_KEY_0)
+						  MATRIX_KEY(2, 0, INPUT_KEY_7)
+						  MATRIX_KEY(2, 1, INPUT_KEY_8)
+						  MATRIX_KEY(2, 2, INPUT_KEY_9)
+						  MATRIX_KEY(2, 3, INPUT_KEY_KPASTERISK)>;
+					row-size = <3>;
+					col-size = <4>;
+				};
+			};
+		};
+
+		tca_poll: keypad@35 {
+			compatible = "ti,tca8418";
+			reg = <0x35>;
+			status = "okay";
+
+			kbd_poll: kbd {
+				compatible = "ti,tca8418-kbd";
+				row-size = <2>;
+				col-size = <3>;
+				poll-interval-ms = <10>;
+			};
+		};
+	};
+};

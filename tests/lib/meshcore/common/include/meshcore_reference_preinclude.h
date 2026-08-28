@@ -1,0 +1,12 @@
+#ifndef FOBE_TESTS_LIB_MESHCORE_COMMON_INCLUDE_MESHCORE_REFERENCE_PREINCLUDE_H_
+#define FOBE_TESTS_LIB_MESHCORE_COMMON_INCLUDE_MESHCORE_REFERENCE_PREINCLUDE_H_
+
+#include <stddef.h>
+#include <stdint.h>
+
+#ifdef __cplusplus
+#include <cstddef>
+#include <cstdint>
+#endif
+
+#endif /* FOBE_TESTS_LIB_MESHCORE_COMMON_INCLUDE_MESHCORE_REFERENCE_PREINCLUDE_H_ */

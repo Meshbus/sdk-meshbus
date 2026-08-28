@@ -1,0 +1,16 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+&button0 {
+	zephyr,code = <INPUT_BTN_BACK>;
+};
+
+&button1 {
+	zephyr,code = <INPUT_BTN_SELECT>;
+};
+
+&buttons {
+	wakeup-source;
+};

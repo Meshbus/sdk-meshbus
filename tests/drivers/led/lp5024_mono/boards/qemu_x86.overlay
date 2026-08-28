@@ -1,0 +1,60 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/i2c/i2c.h>
+
+/ {
+	test_gpio: gpio {
+		compatible = "zephyr,gpio-emul";
+		ngpios = <1>;
+		status = "okay";
+		#gpio-cells = <2>;
+		gpio-controller;
+	};
+
+	test_i2c: i2c@100 {
+		compatible = "zephyr,i2c-emul-controller";
+		clock-frequency = <I2C_BITRATE_STANDARD>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x100 4>;
+		status = "okay";
+
+		lp5024: led-controller@30 {
+			compatible = "fobe,lp5024-mono";
+			reg = <0x30>;
+			enable-gpios = <&test_gpio 0 GPIO_ACTIVE_HIGH>;
+			status = "okay";
+
+			led0 {
+				label = "led0";
+				index = <2>;
+			};
+
+			led1 {
+				label = "led1";
+				index = <5>;
+			};
+		};
+
+		lp5024_dup: led-controller@31 {
+			compatible = "fobe,lp5024-mono";
+			reg = <0x31>;
+			status = "okay";
+
+			led0 {
+				label = "dup0";
+				index = <1>;
+			};
+
+			led1 {
+				label = "dup1";
+				index = <1>;
+			};
+		};
+	};
+};

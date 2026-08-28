@@ -1,0 +1,6 @@
+board:
+  name: tracker_t1000_e
+  full_name: SenseCAP Card Tracker T1000-E
+  vendor: seeed
+  socs:
+  - name: nrf52840

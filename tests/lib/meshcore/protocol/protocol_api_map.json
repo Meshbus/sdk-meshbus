@@ -1,0 +1,1630 @@
+{
+  "version": 1,
+  "default_access": [
+    "public",
+    "protected"
+  ],
+  "target_files": [
+    "../modules/lib/meshcore/include/meshcore/platform.h",
+    "../modules/lib/meshcore/include/meshcore/types.h",
+    "../modules/lib/meshcore/src/support/meshcore_advert_data.h",
+    "../modules/lib/meshcore/src/core/meshcore_clock.h",
+    "../modules/lib/meshcore/src/core/meshcore_dispatcher.h",
+    "../modules/lib/meshcore/src/core/meshcore_group_channel.h",
+    "../modules/lib/meshcore/src/core/meshcore_identity.h",
+    "../modules/lib/meshcore/src/core/meshcore_mesh.h",
+    "../modules/lib/meshcore/src/core/meshcore_packet.h",
+    "../modules/lib/meshcore/src/support/meshcore_packet_manager.h",
+    "../modules/lib/meshcore/src/core/meshcore_radio.h",
+    "../modules/lib/meshcore/src/core/meshcore_rng.h",
+    "../modules/lib/meshcore/src/support/meshcore_tables.h",
+    "../modules/lib/meshcore/src/core/meshcore_utils.h",
+    "../modules/lib/meshcore/src/platform/meshcore_platform_bridge.h",
+    "../modules/lib/meshcore/src/platform/meshcore_platform_bridge.c",
+    "../modules/lib/meshcore/src/support/meshcore_advert_data.c",
+    "../modules/lib/meshcore/src/core/meshcore_clock.c",
+    "../modules/lib/meshcore/src/core/meshcore_dispatcher.c",
+    "../modules/lib/meshcore/src/core/meshcore_identity.c",
+    "../modules/lib/meshcore/src/core/meshcore_mesh.c",
+    "../modules/lib/meshcore/src/core/meshcore_packet.c",
+    "../modules/lib/meshcore/src/support/meshcore_packet_manager.c",
+    "../modules/lib/meshcore/src/core/meshcore_radio.c",
+    "../modules/lib/meshcore/src/core/meshcore_rng.c",
+    "../modules/lib/meshcore/src/support/meshcore_tables.c",
+    "../modules/lib/meshcore/src/core/meshcore_utils.c"
+  ],
+  "modules": [
+    {
+      "name": "packet",
+      "upstream_header": "../modules/lib/meshcore/.reference/meshcore/src/Packet.h",
+      "classes": [
+        {
+          "name": "Packet",
+          "methods": [
+            {
+              "name": "Packet",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_init"
+              ]
+            },
+            {
+              "name": "calculatePacketHash",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_calculate_hash"
+              ]
+            },
+            {
+              "name": "getRouteType",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_get_route_type"
+              ]
+            },
+            {
+              "name": "isRouteFlood",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_is_route_flood"
+              ]
+            },
+            {
+              "name": "isRouteDirect",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_is_route_direct"
+              ]
+            },
+            {
+              "name": "hasTransportCodes",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_has_transport_codes"
+              ]
+            },
+            {
+              "name": "getPayloadType",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_get_payload_type"
+              ]
+            },
+            {
+              "name": "getPayloadVer",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_get_payload_ver"
+              ]
+            },
+            {
+              "name": "getPathHashSize",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_get_path_hash_size"
+              ]
+            },
+            {
+              "name": "getPathHashCount",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_get_path_hash_count"
+              ]
+            },
+            {
+              "name": "getPathByteLen",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_get_path_byte_len"
+              ]
+            },
+            {
+              "name": "setPathHashCount",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_set_path_hash_count"
+              ]
+            },
+            {
+              "name": "setPathHashSizeAndCount",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_set_path_hash_size_and_count"
+              ]
+            },
+            {
+              "name": "copyPath",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_copy_path"
+              ]
+            },
+            {
+              "name": "writePath",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_write_path"
+              ]
+            },
+            {
+              "name": "isValidPathLen",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_is_valid_path_len"
+              ]
+            },
+            {
+              "name": "markDoNotRetransmit",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_mark_do_not_retransmit"
+              ]
+            },
+            {
+              "name": "isMarkedDoNotRetransmit",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_is_marked_do_not_retransmit"
+              ]
+            },
+            {
+              "name": "getSNR",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_get_snr"
+              ]
+            },
+            {
+              "name": "getRawLength",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_get_raw_length"
+              ]
+            },
+            {
+              "name": "writeTo",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_write_to"
+              ]
+            },
+            {
+              "name": "readFrom",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_read_from"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "utils",
+      "upstream_header": "../modules/lib/meshcore/.reference/meshcore/src/Utils.h",
+      "classes": [
+        {
+          "name": "RNG",
+          "methods": [
+            {
+              "name": "random",
+              "status": "mapped",
+              "targets": [
+                "meshcore_rng_random"
+              ]
+            },
+            {
+              "name": "nextInt",
+              "status": "mapped",
+              "targets": [
+                "meshcore_rng_next_int"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Utils",
+          "methods": [
+            {
+              "name": "sha256",
+              "count": 2,
+              "status": "mapped",
+              "targets": [
+                "meshcore_utils_sha256",
+                "meshcore_utils_sha256_two_fragments"
+              ]
+            },
+            {
+              "name": "encrypt",
+              "status": "mapped",
+              "targets": [
+                "meshcore_utils_encrypt"
+              ]
+            },
+            {
+              "name": "decrypt",
+              "status": "mapped",
+              "targets": [
+                "meshcore_utils_decrypt"
+              ]
+            },
+            {
+              "name": "encryptThenMAC",
+              "status": "mapped",
+              "targets": [
+                "meshcore_utils_encrypt_then_mac"
+              ]
+            },
+            {
+              "name": "MACThenDecrypt",
+              "status": "mapped",
+              "targets": [
+                "meshcore_utils_mac_then_decrypt"
+              ]
+            },
+            {
+              "name": "toHex",
+              "status": "mapped",
+              "targets": [
+                "meshcore_utils_to_hex"
+              ]
+            },
+            {
+              "name": "fromHex",
+              "status": "mapped",
+              "targets": [
+                "meshcore_utils_from_hex"
+              ]
+            },
+            {
+              "name": "printHex",
+              "status": "excluded",
+              "reason": "Arduino Stream formatting is not part of the generic C protocol core."
+            },
+            {
+              "name": "parseTextParts",
+              "status": "mapped",
+              "targets": [
+                "meshcore_utils_parse_text_parts"
+              ]
+            },
+            {
+              "name": "isHexChar",
+              "status": "mapped",
+              "targets": [
+                "meshcore_utils_is_hex_char"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "identity",
+      "upstream_header": "../modules/lib/meshcore/.reference/meshcore/src/Identity.h",
+      "classes": [
+        {
+          "name": "Identity",
+          "methods": [
+            {
+              "name": "Identity",
+              "count": 3,
+              "status": "mapped",
+              "targets": [
+                "meshcore_identity_init",
+                "meshcore_identity_init_from_pub_hex",
+                "meshcore_identity_init_from_pub_key"
+              ]
+            },
+            {
+              "name": "copyHashTo",
+              "count": 2,
+              "status": "mapped",
+              "targets": [
+                "meshcore_identity_copy_hash_to",
+                "meshcore_identity_copy_hash_by_len"
+              ]
+            },
+            {
+              "name": "isHashMatch",
+              "count": 2,
+              "status": "mapped",
+              "targets": [
+                "meshcore_identity_is_hash_match",
+                "meshcore_identity_is_hash_match_by_len"
+              ]
+            },
+            {
+              "name": "verify",
+              "status": "mapped",
+              "targets": [
+                "meshcore_identity_verify"
+              ]
+            },
+            {
+              "name": "matches",
+              "count": 2,
+              "status": "mapped",
+              "targets": [
+                "meshcore_identity_matches",
+                "meshcore_identity_matches_by_pub_key"
+              ]
+            },
+            {
+              "name": "readFrom",
+              "status": "excluded",
+              "reason": "Arduino Stream serialization is not part of the generic C protocol core."
+            },
+            {
+              "name": "writeTo",
+              "status": "excluded",
+              "reason": "Arduino Stream serialization is not part of the generic C protocol core."
+            },
+            {
+              "name": "printTo",
+              "status": "excluded",
+              "reason": "Arduino Stream formatting is not part of the generic C protocol core."
+            }
+          ]
+        },
+        {
+          "name": "LocalIdentity",
+          "methods": [
+            {
+              "name": "LocalIdentity",
+              "count": 3,
+              "status": "mapped",
+              "targets": [
+                "meshcore_local_identity_init",
+                "meshcore_local_identity_init_from_hex",
+                "meshcore_local_identity_generate"
+              ]
+            },
+            {
+              "name": "sign",
+              "status": "mapped",
+              "targets": [
+                "meshcore_local_identity_sign"
+              ]
+            },
+            {
+              "name": "calcSharedSecret",
+              "count": 2,
+              "status": "mapped",
+              "targets": [
+                "meshcore_local_identity_calc_shared_secret"
+              ]
+            },
+            {
+              "name": "validatePrivateKey",
+              "status": "mapped",
+              "targets": [
+                "meshcore_local_identity_validate_private_key"
+              ]
+            },
+            {
+              "name": "readFrom",
+              "count": 2,
+              "status": "mapped",
+              "targets": [
+                "meshcore_local_identity_read_from"
+              ]
+            },
+            {
+              "name": "writeTo",
+              "count": 2,
+              "status": "mapped",
+              "targets": [
+                "meshcore_local_identity_write_to"
+              ]
+            },
+            {
+              "name": "printTo",
+              "status": "excluded",
+              "reason": "Arduino Stream formatting is not part of the generic C protocol core."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "clock",
+      "upstream_header": "../modules/lib/meshcore/.reference/meshcore/src/MeshCore.h",
+      "classes": [
+        {
+          "name": "RTCClock",
+          "methods": [
+            {
+              "name": "RTCClock",
+              "status": "mapped",
+              "targets": [
+                "meshcore_rtc_clock_state_init"
+              ]
+            },
+            {
+              "name": "getCurrentTime",
+              "status": "mapped",
+              "targets": [
+                "meshcore_clock_rtc_get_current_time"
+              ]
+            },
+            {
+              "name": "setCurrentTime",
+              "status": "excluded",
+              "reason": "The generic C protocol reads host RTC time; host time-setting policy stays outside lib/meshcore."
+            },
+            {
+              "name": "tick",
+              "status": "excluded",
+              "reason": "The C runtime is host-pumped and has no Arduino RTC tick hook."
+            },
+            {
+              "name": "getCurrentTimeUnique",
+              "status": "mapped",
+              "targets": [
+                "meshcore_clock_rtc_get_current_time_unique"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dispatcher",
+      "upstream_header": "../modules/lib/meshcore/.reference/meshcore/src/Dispatcher.h",
+      "classes": [
+        {
+          "name": "MillisecondClock",
+          "methods": [
+            {
+              "name": "getMillis",
+              "status": "mapped",
+              "targets": [
+                "meshcore_clock_millis_get"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Radio",
+          "methods": [
+            {
+              "name": "begin",
+              "status": "mapped",
+              "targets": [
+                "meshcore_radio_begin"
+              ]
+            },
+            {
+              "name": "recvRaw",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_receive_raw"
+              ]
+            },
+            {
+              "name": "getEstAirtimeFor",
+              "status": "mapped",
+              "targets": [
+                "meshcore_radio_get_est_airtime"
+              ]
+            },
+            {
+              "name": "packetScore",
+              "status": "mapped",
+              "targets": [
+                "meshcore_radio_packet_score"
+              ]
+            },
+            {
+              "name": "startSendRaw",
+              "status": "mapped",
+              "targets": [
+                "meshcore_radio_start_send_raw"
+              ]
+            },
+            {
+              "name": "isSendComplete",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_tx_done"
+              ]
+            },
+            {
+              "name": "onSendFinished",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_tx_done"
+              ]
+            },
+            {
+              "name": "loop",
+              "status": "excluded",
+              "reason": "Radio polling is host-owned in the C runtime."
+            },
+            {
+              "name": "getNoiseFloor",
+              "status": "excluded",
+              "reason": "Upstream default hook is not consumed by the generic C protocol core."
+            },
+            {
+              "name": "triggerNoiseFloorCalibrate",
+              "status": "mapped",
+              "targets": [
+                "meshcore_radio_trigger_noise_floor_calibrate"
+              ]
+            },
+            {
+              "name": "resetAGC",
+              "status": "mapped",
+              "targets": [
+                "meshcore_radio_reset_agc"
+              ]
+            },
+            {
+              "name": "isInRecvMode",
+              "status": "mapped",
+              "targets": [
+                "meshcore_radio_is_in_recv_mode"
+              ]
+            },
+            {
+              "name": "isReceiving",
+              "status": "mapped",
+              "targets": [
+                "meshcore_radio_is_receiving"
+              ]
+            },
+            {
+              "name": "setCADEnabled",
+              "status": "excluded",
+              "reason": "Mutable hardware CAD enablement is a concrete radio and host policy, not a generic C protocol contract."
+            },
+            {
+              "name": "getLastRSSI",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_receive_raw"
+              ]
+            },
+            {
+              "name": "getLastSNR",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_receive_raw"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "PacketManager",
+          "methods": [
+            {
+              "name": "allocNew",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_alloc_new"
+              ]
+            },
+            {
+              "name": "free",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_free"
+              ]
+            },
+            {
+              "name": "queueOutbound",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_queue_outbound"
+              ]
+            },
+            {
+              "name": "getNextOutbound",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_get_next_outbound"
+              ]
+            },
+            {
+              "name": "getOutboundCount",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_get_outbound_count"
+              ]
+            },
+            {
+              "name": "getOutboundTotal",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_get_outbound_total"
+              ]
+            },
+            {
+              "name": "getFreeCount",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_get_free_count"
+              ]
+            },
+            {
+              "name": "getOutboundByIdx",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_get_outbound_by_idx"
+              ]
+            },
+            {
+              "name": "removeOutboundByIdx",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_remove_outbound_by_idx"
+              ]
+            },
+            {
+              "name": "queueInbound",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_queue_inbound"
+              ]
+            },
+            {
+              "name": "getNextInbound",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_get_next_inbound"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Dispatcher",
+          "methods": [
+            {
+              "name": "Dispatcher",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_init"
+              ]
+            },
+            {
+              "name": "onRecvPacket",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_on_recv_packet"
+              ]
+            },
+            {
+              "name": "logRxRaw",
+              "status": "mapped",
+              "targets": [
+                "meshcore_platform_bridge_dispatcher_log_rx_raw"
+              ]
+            },
+            {
+              "name": "logRx",
+              "status": "mapped",
+              "targets": [
+                "meshcore_platform_bridge_dispatcher_log_rx"
+              ]
+            },
+            {
+              "name": "logTx",
+              "status": "mapped",
+              "targets": [
+                "meshcore_platform_bridge_dispatcher_log_tx"
+              ]
+            },
+            {
+              "name": "logTxFail",
+              "status": "mapped",
+              "targets": [
+                "meshcore_platform_bridge_dispatcher_log_tx_fail"
+              ]
+            },
+            {
+              "name": "getLogDateTime",
+              "status": "excluded",
+              "reason": "C logging hooks do not expose Arduino date-string formatting."
+            },
+            {
+              "name": "getAirtimeBudgetFactor",
+              "status": "mapped",
+              "targets": [
+                "meshcore_platform_bridge_dispatcher_airtime_budget_factor_get"
+              ]
+            },
+            {
+              "name": "calcRxDelay",
+              "status": "mapped",
+              "targets": [
+                "meshcore_platform_bridge_dispatcher_rx_delay_calc"
+              ]
+            },
+            {
+              "name": "getCADFailRetryDelay",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_get_cad_fail_retry_delay"
+              ]
+            },
+            {
+              "name": "getCADFailMaxDuration",
+              "status": "mapped",
+              "targets": [
+                "meshcore_platform_bridge_dispatcher_cad_fail_max_duration_get"
+              ]
+            },
+            {
+              "name": "getCADEnabled",
+              "status": "excluded",
+              "reason": "Hardware CAD enablement is selected by the concrete host runtime; the generic C dispatcher consumes CAD results without owning that switch."
+            },
+            {
+              "name": "getInterferenceThreshold",
+              "status": "mapped",
+              "targets": [
+                "meshcore_platform_bridge_dispatcher_interference_threshold_get"
+              ]
+            },
+            {
+              "name": "getAGCResetInterval",
+              "status": "mapped",
+              "targets": [
+                "meshcore_platform_bridge_dispatcher_agc_reset_interval_get"
+              ]
+            },
+            {
+              "name": "getDutyCycleWindowMs",
+              "status": "mapped",
+              "targets": [
+                "meshcore_platform_bridge_dispatcher_duty_cycle_window_ms_get"
+              ]
+            },
+            {
+              "name": "begin",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_begin"
+              ]
+            },
+            {
+              "name": "loop",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_loop"
+              ]
+            },
+            {
+              "name": "obtainNewPacket",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_obtain_new_packet"
+              ]
+            },
+            {
+              "name": "releasePacket",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_release_packet"
+              ]
+            },
+            {
+              "name": "sendPacket",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_send_packet"
+              ]
+            },
+            {
+              "name": "getTotalAirTime",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_get_total_air_time"
+              ]
+            },
+            {
+              "name": "getReceiveAirTime",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_get_receive_air_time"
+              ]
+            },
+            {
+              "name": "getRemainingTxBudget",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_get_remaining_tx_budget"
+              ]
+            },
+            {
+              "name": "getNumSentFlood",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_get_num_sent_flood"
+              ]
+            },
+            {
+              "name": "getNumSentDirect",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_get_num_sent_direct"
+              ]
+            },
+            {
+              "name": "getNumRecvFlood",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_get_num_recv_flood"
+              ]
+            },
+            {
+              "name": "getNumRecvDirect",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_get_num_recv_direct"
+              ]
+            },
+            {
+              "name": "resetStats",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_reset_stats"
+              ]
+            },
+            {
+              "name": "millisHasNowPassed",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_millis_has_now_passed"
+              ]
+            },
+            {
+              "name": "futureMillis",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_future_millis"
+              ]
+            },
+            {
+              "name": "tryParsePacket",
+              "status": "mapped",
+              "targets": [
+                "meshcore_dispatcher_try_parse_packet"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "packet_manager",
+      "upstream_header": "../modules/lib/meshcore/.reference/meshcore/src/helpers/StaticPoolPacketManager.h",
+      "classes": [
+        {
+          "name": "PacketQueue",
+          "methods": [
+            {
+              "name": "PacketQueue",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_init"
+              ]
+            },
+            {
+              "name": "get",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_get"
+              ]
+            },
+            {
+              "name": "add",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_add"
+              ]
+            },
+            {
+              "name": "count",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_count"
+              ]
+            },
+            {
+              "name": "countBefore",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_count_before"
+              ]
+            },
+            {
+              "name": "itemAt",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_item_at"
+              ]
+            },
+            {
+              "name": "removeByIdx",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_remove_by_idx"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "StaticPoolPacketManager",
+          "methods": [
+            {
+              "name": "StaticPoolPacketManager",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_prepare"
+              ]
+            },
+            {
+              "name": "allocNew",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_alloc_new"
+              ]
+            },
+            {
+              "name": "free",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_free"
+              ]
+            },
+            {
+              "name": "queueOutbound",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_queue_outbound"
+              ]
+            },
+            {
+              "name": "getNextOutbound",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_get_next_outbound"
+              ]
+            },
+            {
+              "name": "getOutboundCount",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_get_outbound_count"
+              ]
+            },
+            {
+              "name": "getOutboundTotal",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_get_outbound_total"
+              ]
+            },
+            {
+              "name": "getFreeCount",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_get_free_count"
+              ]
+            },
+            {
+              "name": "getOutboundByIdx",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_get_outbound_by_idx"
+              ]
+            },
+            {
+              "name": "removeOutboundByIdx",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_remove_outbound_by_idx"
+              ]
+            },
+            {
+              "name": "queueInbound",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_queue_inbound"
+              ]
+            },
+            {
+              "name": "getNextInbound",
+              "status": "mapped",
+              "targets": [
+                "meshcore_packet_queue_manager_get_next_inbound"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "tables",
+      "upstream_header": "../modules/lib/meshcore/.reference/meshcore/src/Mesh.h",
+      "classes": [
+        {
+          "name": "MeshTables",
+          "methods": [
+            {
+              "name": "wasSeen",
+              "status": "mapped",
+              "targets": [
+                "meshcore_tables_was_seen"
+              ]
+            },
+            {
+              "name": "markSeen",
+              "status": "mapped",
+              "targets": [
+                "meshcore_tables_mark_seen"
+              ]
+            },
+            {
+              "name": "clear",
+              "status": "mapped",
+              "targets": [
+                "meshcore_tables_clear"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "tables_simple",
+      "upstream_header": "../modules/lib/meshcore/.reference/meshcore/src/helpers/SimpleMeshTables.h",
+      "classes": [
+        {
+          "name": "SimpleMeshTables",
+          "methods": [
+            {
+              "name": "SimpleMeshTables",
+              "status": "mapped",
+              "targets": [
+                "meshcore_tables_init"
+              ]
+            },
+            {
+              "name": "restoreFrom",
+              "status": "excluded",
+              "reason": "ESP32 File persistence is host storage, not generic C protocol state."
+            },
+            {
+              "name": "saveTo",
+              "status": "excluded",
+              "reason": "ESP32 File persistence is host storage, not generic C protocol state."
+            },
+            {
+              "name": "wasSeen",
+              "status": "mapped",
+              "targets": [
+                "meshcore_tables_was_seen"
+              ]
+            },
+            {
+              "name": "markSeen",
+              "status": "mapped",
+              "targets": [
+                "meshcore_tables_mark_seen"
+              ]
+            },
+            {
+              "name": "clear",
+              "status": "mapped",
+              "targets": [
+                "meshcore_tables_clear"
+              ]
+            },
+            {
+              "name": "getNumDirectDups",
+              "status": "mapped",
+              "targets": [
+                "meshcore_tables_get_num_direct_dups"
+              ]
+            },
+            {
+              "name": "getNumFloodDups",
+              "status": "mapped",
+              "targets": [
+                "meshcore_tables_get_num_flood_dups"
+              ]
+            },
+            {
+              "name": "resetStats",
+              "status": "mapped",
+              "targets": [
+                "meshcore_tables_reset_stats"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mesh",
+      "upstream_header": "../modules/lib/meshcore/.reference/meshcore/src/Mesh.h",
+      "classes": [
+        {
+          "name": "Mesh",
+          "methods": [
+            {
+              "name": "onRecvPacket",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_on_recv_packet"
+              ]
+            },
+            {
+              "name": "getCADFailRetryDelay",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_get_cad_fail_retry_delay"
+              ]
+            },
+            {
+              "name": "routeRecvPacket",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_route_recv_packet"
+              ]
+            },
+            {
+              "name": "filterRecvFloodPacket",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_filter_recv_flood_packet"
+              ]
+            },
+            {
+              "name": "allowPacketForward",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_allow_packet_forward"
+              ]
+            },
+            {
+              "name": "getRetransmitDelay",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_get_retransmit_delay"
+              ]
+            },
+            {
+              "name": "getDirectRetransmitDelay",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_get_direct_retransmit_delay"
+              ]
+            },
+            {
+              "name": "getExtraAckTransmitCount",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_get_extra_ack_transmit_count"
+              ]
+            },
+            {
+              "name": "searchPeersByHash",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_next_peer_shared_secret_by_hash"
+              ]
+            },
+            {
+              "name": "getPeerSharedSecret",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_next_peer_shared_secret_by_hash"
+              ]
+            },
+            {
+              "name": "onPeerDataRecv",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_on_peer_data_recv"
+              ]
+            },
+            {
+              "name": "onTraceRecv",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_on_trace_recv"
+              ]
+            },
+            {
+              "name": "onPeerPathRecv",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_on_peer_path_recv"
+              ]
+            },
+            {
+              "name": "onAdvertRecv",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_on_advert_recv"
+              ]
+            },
+            {
+              "name": "onAnonDataRecv",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_on_anon_data_recv"
+              ]
+            },
+            {
+              "name": "onPathRecv",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_on_path_recv"
+              ]
+            },
+            {
+              "name": "onControlDataRecv",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_on_control_data_recv"
+              ]
+            },
+            {
+              "name": "onRawDataRecv",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_on_raw_data_recv"
+              ]
+            },
+            {
+              "name": "searchChannelsByHash",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_search_channels_by_hash"
+              ]
+            },
+            {
+              "name": "onGroupDataRecv",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_on_group_data_recv"
+              ]
+            },
+            {
+              "name": "onAckRecv",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_runtime_on_ack_recv"
+              ]
+            },
+            {
+              "name": "Mesh",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_init"
+              ]
+            },
+            {
+              "name": "getTables",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_get_tables"
+              ]
+            },
+            {
+              "name": "begin",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_begin"
+              ]
+            },
+            {
+              "name": "loop",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_loop"
+              ]
+            },
+            {
+              "name": "getRNG",
+              "status": "excluded",
+              "reason": "The C protocol uses meshcore_rng_* HAL-backed functions instead of object-owned RNG access."
+            },
+            {
+              "name": "getRTCClock",
+              "status": "excluded",
+              "reason": "The C protocol uses meshcore_clock_* HAL-backed functions instead of object-owned RTC access."
+            },
+            {
+              "name": "createAdvert",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_create_advert"
+              ]
+            },
+            {
+              "name": "createDatagram",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_create_datagram"
+              ]
+            },
+            {
+              "name": "createAnonDatagram",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_create_anon_datagram"
+              ]
+            },
+            {
+              "name": "createGroupDatagram",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_create_group_datagram"
+              ]
+            },
+            {
+              "name": "createAck",
+              "count": 2,
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_create_ack"
+              ]
+            },
+            {
+              "name": "createMultiAck",
+              "count": 2,
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_create_multi_ack"
+              ]
+            },
+            {
+              "name": "createPathReturn",
+              "count": 2,
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_create_path_return_by_dest_hash",
+                "meshcore_mesh_create_path_return_by_identity"
+              ]
+            },
+            {
+              "name": "createRawData",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_create_raw_data"
+              ]
+            },
+            {
+              "name": "createTrace",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_create_trace"
+              ]
+            },
+            {
+              "name": "createControlData",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_create_control_data"
+              ]
+            },
+            {
+              "name": "sendFlood",
+              "count": 2,
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_send_flood",
+                "meshcore_mesh_send_flood_by_transport_codes"
+              ]
+            },
+            {
+              "name": "sendDirect",
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_send_direct"
+              ]
+            },
+            {
+              "name": "sendZeroHop",
+              "count": 2,
+              "status": "mapped",
+              "targets": [
+                "meshcore_mesh_send_zero_hop",
+                "meshcore_mesh_send_zero_hop_by_transport_codes"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "advert_data",
+      "upstream_header": "../modules/lib/meshcore/.reference/meshcore/src/helpers/AdvertDataHelpers.h",
+      "classes": [
+        {
+          "name": "AdvertDataBuilder",
+          "methods": [
+            {
+              "name": "AdvertDataBuilder",
+              "count": 3,
+              "status": "mapped",
+              "targets": [
+                "meshcore_advert_data_builder_init",
+                "meshcore_advert_data_builder_init_with_name",
+                "meshcore_advert_data_builder_init_with_name_lat_lon"
+              ]
+            },
+            {
+              "name": "setFeat1",
+              "status": "mapped",
+              "targets": [
+                "meshcore_advert_data_builder_set_feat1"
+              ]
+            },
+            {
+              "name": "setFeat2",
+              "status": "mapped",
+              "targets": [
+                "meshcore_advert_data_builder_set_feat2"
+              ]
+            },
+            {
+              "name": "encodeTo",
+              "status": "mapped",
+              "targets": [
+                "meshcore_advert_data_builder_encode_to"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "AdvertDataParser",
+          "methods": [
+            {
+              "name": "AdvertDataParser",
+              "status": "mapped",
+              "targets": [
+                "meshcore_advert_data_parser_init"
+              ]
+            },
+            {
+              "name": "isValid",
+              "status": "mapped",
+              "targets": [
+                "meshcore_advert_data_parser_is_valid"
+              ]
+            },
+            {
+              "name": "getType",
+              "status": "mapped",
+              "targets": [
+                "meshcore_advert_data_parser_get_type"
+              ]
+            },
+            {
+              "name": "getFeat1",
+              "status": "mapped",
+              "targets": [
+                "meshcore_advert_data_parser_get_feat1"
+              ]
+            },
+            {
+              "name": "getFeat2",
+              "status": "mapped",
+              "targets": [
+                "meshcore_advert_data_parser_get_feat2"
+              ]
+            },
+            {
+              "name": "hasName",
+              "status": "mapped",
+              "targets": [
+                "meshcore_advert_data_parser_has_name"
+              ]
+            },
+            {
+              "name": "getName",
+              "status": "mapped",
+              "targets": [
+                "meshcore_advert_data_parser_get_name"
+              ]
+            },
+            {
+              "name": "hasLatLon",
+              "status": "mapped",
+              "targets": [
+                "meshcore_advert_data_parser_has_lat_lon"
+              ]
+            },
+            {
+              "name": "getIntLat",
+              "status": "mapped",
+              "targets": [
+                "meshcore_advert_data_parser_get_int_lat"
+              ]
+            },
+            {
+              "name": "getIntLon",
+              "status": "mapped",
+              "targets": [
+                "meshcore_advert_data_parser_get_int_lon"
+              ]
+            },
+            {
+              "name": "getLat",
+              "status": "mapped",
+              "targets": [
+                "meshcore_advert_data_parser_get_lat"
+              ]
+            },
+            {
+              "name": "getLon",
+              "status": "mapped",
+              "targets": [
+                "meshcore_advert_data_parser_get_lon"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "AdvertTimeHelper",
+          "methods": [
+            {
+              "name": "formatRelativeTimeDiff",
+              "status": "excluded",
+              "reason": "Presentation-time formatting belongs to runtime/UI policy, not Layer 1 protocol API."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "txt_data",
+      "upstream_header": "../modules/lib/meshcore/.reference/meshcore/src/helpers/TxtDataHelpers.h",
+      "classes": [
+        {
+          "name": "StrHelper",
+          "methods": [
+            {
+              "name": "strncpy",
+              "status": "excluded",
+              "reason": "Generic string copy helper is not part of the C protocol core."
+            },
+            {
+              "name": "strzcpy",
+              "status": "excluded",
+              "reason": "Generic string copy helper is not part of the C protocol core."
+            },
+            {
+              "name": "ftoa",
+              "status": "excluded",
+              "reason": "Presentation formatting is not part of the C protocol core."
+            },
+            {
+              "name": "ftoa3",
+              "status": "excluded",
+              "reason": "Presentation formatting is not part of the C protocol core."
+            },
+            {
+              "name": "isBlank",
+              "status": "excluded",
+              "reason": "Generic string helper is not part of the C protocol core."
+            },
+            {
+              "name": "fromHex",
+              "status": "excluded",
+              "reason": "StrHelper hex parsing is a small runtime/helper utility; Utils::fromHex is the protocol-core mapping."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

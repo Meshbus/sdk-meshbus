@@ -1,0 +1,12 @@
+tests:
+  lib.meshcore.runtime.topology:
+    tags:
+      - meshcore
+      - runtime
+      - topology
+      - ztest
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86

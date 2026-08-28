@@ -1,0 +1,12 @@
+tests:
+  lib.meshcore.oracle_parity:
+    tags:
+      - meshcore
+      - oracle
+      - parity
+      - ztest
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86

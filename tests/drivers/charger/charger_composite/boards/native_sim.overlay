@@ -1,0 +1,155 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <zephyr/dt-bindings/adc/adc.h>
+#include <zephyr/dt-bindings/battery/battery.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+/ {
+	test_gpio: gpio {
+		compatible = "zephyr,gpio-emul";
+		ngpios = <2>;
+		status = "okay";
+		#gpio-cells = <2>;
+		gpio-controller;
+		rising-edge;
+		falling-edge;
+	};
+
+	test_poll_gpio: poll_gpio {
+		compatible = "zephyr,gpio-emul";
+		ngpios = <2>;
+		status = "okay";
+		#gpio-cells = <2>;
+		gpio-controller;
+	};
+
+	test_adc: adc {
+		compatible = "zephyr,adc-emul";
+		nchannels = <1>;
+		ref-internal-mv = <3300>;
+		ref-external1-mv = <5000>;
+		#io-channel-cells = <1>;
+		status = "okay";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		channel@0 {
+			reg = <0>;
+			zephyr,gain = "ADC_GAIN_1_2";
+			zephyr,reference = "ADC_REF_INTERNAL";
+			zephyr,vref-mv = <3300>;
+			zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+			zephyr,resolution = <12>;
+		};
+	};
+
+	test_vbatt: vbatt {
+		compatible = "voltage-divider";
+		io-channels = <&test_adc 0>;
+		output-ohms = <100000>;
+		full-ohms = <100000>;
+	};
+
+	test_fuel_gauge: fuel_gauge {
+		compatible = "zephyr,fuel-gauge-composite";
+		source-primary = <&test_vbatt>;
+		device-chemistry = "lithium-ion-polymer";
+		ocv-capacity-table-0 = <BATTERY_OCV_CURVE_LITHIUM_ION_POLYMER_DEFAULT>;
+		charge-full-design-microamp-hours = <1500000>;
+	};
+
+	charger_infer: charger_infer {
+		compatible = "zephyr,charger-composite";
+		source-primary = <&test_fuel_gauge>;
+		constant-charge-voltage-max-microvolt = <4200000>;
+		charge-full-hysteresis-microvolt = <50000>;
+		charge-detect-rise-threshold-microvolt = <8000>;
+		charge-detect-fall-threshold-microvolt = <12000>;
+		charge-detect-sample-interval-ms = <20>;
+		charge-detect-enter-count = <2>;
+		charge-detect-exit-count = <2>;
+		charge-detect-hold-ms = <200>;
+		online-infer-hold-ms = <300>;
+	};
+
+	charger_gpio: charger_gpio {
+		compatible = "zephyr,charger-composite";
+		source-primary = <&test_fuel_gauge>;
+		charging-gpios = <&test_gpio 0 GPIO_ACTIVE_HIGH>;
+		online-gpios = <&test_gpio 1 GPIO_ACTIVE_HIGH>;
+		constant-charge-voltage-max-microvolt = <4200000>;
+		gpio-debounce-ms = <10>;
+	};
+
+	charger_online: charger_online {
+		compatible = "zephyr,charger-composite";
+		source-primary = <&test_fuel_gauge>;
+		online-gpios = <&test_gpio 1 GPIO_ACTIVE_HIGH>;
+		constant-charge-voltage-max-microvolt = <4200000>;
+		charge-detect-rise-threshold-microvolt = <8000>;
+		charge-detect-fall-threshold-microvolt = <12000>;
+		charge-detect-sample-interval-ms = <20>;
+		charge-detect-enter-count = <2>;
+		charge-detect-exit-count = <2>;
+		charge-detect-hold-ms = <200>;
+		gpio-debounce-ms = <10>;
+	};
+
+	charger_direct: charger_direct {
+		compatible = "zephyr,charger-composite";
+		charging-gpios = <&test_gpio 0 GPIO_ACTIVE_HIGH>;
+		online-gpios = <&test_gpio 1 GPIO_ACTIVE_HIGH>;
+		gpio-debounce-ms = <10>;
+	};
+
+	charger_charging_only: charger_charging_only {
+		compatible = "zephyr,charger-composite";
+		charging-gpios = <&test_gpio 0 GPIO_ACTIVE_HIGH>;
+		gpio-debounce-ms = <10>;
+	};
+
+	charger_poll: charger_poll {
+		compatible = "zephyr,charger-composite";
+		charging-gpios = <&test_poll_gpio 0 GPIO_ACTIVE_HIGH>;
+		online-gpios = <&test_poll_gpio 1 GPIO_ACTIVE_HIGH>;
+		gpio-poll-interval-ms = <20>;
+	};
+
+	charger_sensor: charger_sensor {
+		compatible = "zephyr,charger-composite";
+		source-primary = <&test_vbatt>;
+		constant-charge-voltage-max-microvolt = <4200000>;
+	};
+
+	failing_sensor: failing_sensor {
+		compatible = "fobe,failing-sensor";
+		status = "okay";
+	};
+
+	unsupported_source: unsupported_source {
+		compatible = "fobe,unsupported-device";
+		status = "okay";
+	};
+
+	charger_fallback: charger_fallback {
+		compatible = "zephyr,charger-composite";
+		source-primary = <&failing_sensor>;
+		source-secondary = <&test_fuel_gauge>;
+		constant-charge-voltage-max-microvolt = <4200000>;
+	};
+
+	charger_fail: charger_fail {
+		compatible = "zephyr,charger-composite";
+		source-primary = <&failing_sensor>;
+	};
+
+	charger_unsupported: charger_unsupported {
+		compatible = "zephyr,charger-composite";
+		source-primary = <&unsupported_source>;
+	};
+};

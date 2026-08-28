@@ -1,0 +1,10 @@
+# EC Sense ES4-AG1 VOC sensor configuration options
+
+config ES4_AG1
+	bool "EC Sense ES4-AG1 VOC sensor"
+	depends on DT_HAS_ECSENSE_ES4_AG1_ENABLED
+	select ADC
+	help
+	  Enable support for the EC Sense ES4-AG1 electrochemical VOC sensor.
+	  The driver samples a TIA/amplifier output through ADC io-channels and
+	  reports SENSOR_CHAN_VOLTAGE and SENSOR_CHAN_VOC.

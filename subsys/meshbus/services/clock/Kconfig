@@ -1,0 +1,53 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig MESHBUS_CLOCK
+	bool "Meshbus Clock Service"
+	default n
+	help
+	  Enable Meshbus clock service.
+
+	  This service provides runtime clock configuration persistence for
+	  time format and UTC offset settings.
+
+if MESHBUS_CLOCK
+
+module = MESHBUS_CLOCK
+module-str = meshbus_clock
+module-dep = MESHBUS
+module-help = Sets log level for Meshbus Clock service
+source "subsys/logging/Kconfig.template.log_config"
+
+config MESHBUS_CLOCK_DEFAULT_TIME_FORMAT
+	int "Default time format"
+	range 0 1
+	default 1
+	help
+	  Default clock time format.
+	  0 = 12-hour format, 1 = 24-hour format.
+
+config MESHBUS_CLOCK_DEFAULT_UTC_OFFSET_MINUTES
+	int "Default UTC offset (minutes)"
+	range -720 840
+	default 0
+	help
+	  Default UTC offset in minutes.
+
+	  Runtime validation enforces:
+	  - range -720..840 (UTC-12:00..UTC+14:00)
+	  - multiples of 15 minutes only.
+
+config MESHBUS_CLOCK_INIT_PRIORITY
+	int "Clock service init priority"
+	default 90
+	help
+	  Initialization priority for the Meshbus Clock service.
+
+config MESHBUS_CLOCK_SHELL
+	bool "Meshbus Clock shell commands"
+	depends on MESHBUS_SHELL
+	default y
+	help
+	  Enable shell commands for Meshbus Clock service.
+
+endif # MESHBUS_CLOCK

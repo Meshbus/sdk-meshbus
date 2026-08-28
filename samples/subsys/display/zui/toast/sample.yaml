@@ -1,0 +1,10 @@
+sample:
+  description: ZUI toast animation sample
+  name: zui toast sample
+common:
+  tags: zui toast
+  build_only: true
+tests:
+  sample.zui.toast:
+    integration_platforms:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp

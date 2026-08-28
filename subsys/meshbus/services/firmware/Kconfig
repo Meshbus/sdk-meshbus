@@ -1,0 +1,147 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig MESHBUS_FIRMWARE
+	bool "Meshbus firmware update coordinator [EXPERIMENTAL]"
+	default n
+	depends on MESHBUS
+	depends on BOOTLOADER_MCUBOOT
+	depends on MCUBOOT_BOOTLOADER_MODE_SWAP_USING_OFFSET
+	depends on IMG_MANAGER && FLASH_MAP
+	depends on MCUBOOT_DELTA
+	select CRC
+	select PSA_CRYPTO
+	select PSA_WANT_ALG_SHA_256
+	select EXPERIMENTAL
+	help
+	  Register transport-independent Firmware MCUmgr commands and coordinate the
+	  shared MCUboot update lifecycle. Any configured SMP transport may dispatch
+	  these commands through MCUmgr. Product transport policy decides which
+	  groups each bearer exposes; the Firmware service does not branch on UART,
+	  Bluetooth, or MeshCore/LoRa origin.
+
+if MESHBUS_FIRMWARE
+
+module = MESHBUS_FIRMWARE
+module-str = meshbus_firmware
+module-dep = MESHBUS
+module-help = Sets log level for Meshbus Firmware service
+source "subsys/logging/Kconfig.template.log_config"
+
+config MESHBUS_FIRMWARE_ROLE
+	int
+	default 1 if MESHBUS_MESHCORE_ROLE_REPEATER
+	default 2 if MESHBUS_MESHCORE_ROLE_ROOM
+	default 3 if MESHBUS_MESHCORE_ROLE_SENSOR
+	range 1 3
+
+config MESHBUS_FIRMWARE_BOARD_ID
+	string
+	default "idea_mesh_tracker_c2" if BOARD_IDEA_MESH_TRACKER_C2
+	default "devkit_nrf54l15" if BOARD_DEVKIT_NRF54L15
+	default "unsupported"
+
+config MESHBUS_FIRMWARE_SOC_ID
+	string
+	default "nrf54l15"
+
+config MESHBUS_FIRMWARE_HARDWARE_REVISION
+	int
+	default 1
+	range 0 65535
+
+config MESHBUS_FIRMWARE_IMAGE_KEY_ID
+	int
+	default 1
+	range 1 65535
+
+config MESHBUS_FIRMWARE_MANIFEST_KEY_ID
+	int
+	default 1
+	range 1 65535
+
+config MESHBUS_FIRMWARE_SECURITY_COUNTER
+	int "Minimum accepted delta security counter"
+	default 1
+	range 0 2147483647
+	help
+	  Reject manifests whose protected MCUboot security counter is below
+	  this value. Set the target or release floor to match its anti-rollback
+	  policy. This does not set the counter stamped into signed images; use
+	  CONFIG_MCUBOOT_EXTRA_IMGTOOL_ARGS for that value.
+
+config MESHBUS_FIRMWARE_MANIFEST_PUBLIC_KEY_HEX
+	string
+	default "d4b31ba49a3add3f825d10ca7f31b50b0de87f37ccc49f1a403a5c1320ffb4e0"
+	help
+	  Raw 32-byte Ed25519 public key in hex. The default is the repository
+	  engineering key and must never be used as a production trust root.
+
+config MESHBUS_FIRMWARE_IMAGE_PUBLIC_KEY_HEX
+	string
+	default "d4b31ba49a3add3f825d10ca7f31b50b0de87f37ccc49f1a403a5c1320ffb4e0"
+	help
+	  Raw 32-byte MCUboot Ed25519 public key in hex. This is deliberately
+	  independent of MESHBUS_FIRMWARE_MANIFEST_PUBLIC_KEY_HEX even when both
+	  engineering defaults currently name the same repository test key.
+
+config MESHBUS_FIRMWARE_ACTIVATE_HANDOFF_TIMEOUT_MS
+	int "Activation response handoff fallback timeout"
+	default 60000
+	range 5000 300000
+	help
+	  Maximum time to wait for an SMP transport adapter to report delivery of
+	  the DELTA_ACTIVATE response. The timeout is a transport-independent
+	  recovery fallback. An adapter with a reliable delivery-completion signal
+	  may request the normal immediate reboot handoff.
+
+config MESHBUS_FIRMWARE_MCUMGR_IMAGE
+	bool "Coordinate standard MCUmgr full-image uploads"
+	default y
+	depends on MCUMGR_GRP_IMG
+	depends on !MCUMGR_GRP_IMG_ALLOW_CONFIRM_NON_ACTIVE_SLOT
+	select MCUMGR_MGMT_NOTIFICATION_HOOKS
+	select MCUMGR_SMP_COMMAND_STATUS_HOOKS
+	select MCUMGR_GRP_IMG_UPLOAD_CHECK_HOOK
+	select MCUMGR_GRP_IMG_STATUS_HOOKS
+	select MCUMGR_GRP_IMG_MUTEX
+	help
+	  Apply the Firmware service's update-slot exclusion and power policy to
+	  Zephyr's standard image-management group, independently of the SMP
+	  transport that dispatched it. Each configured SMP transport or adapter
+	  owns its own group-exposure policy. Permanent activation of an image that
+	  has not booted is deliberately disabled; the candidate must boot in test
+	  mode and pass role health before Firmware confirms it.
+
+config MESHBUS_FIRMWARE_ASSUME_SAFE_POWER
+	bool "Assume a stable external power source"
+	default n
+	help
+	  Explicit engineering-fixture escape hatch for targets that have no
+	  Meshbus Power service or fuel-gauge/charger telemetry. Production
+	  targets should leave this disabled and remain fail-closed until the
+	  Power service reports an online or charging external source.
+
+config MESHBUS_FIRMWARE_COMMON_ENGINEERING_HEALTH_CONFIRM
+	bool "Confirm the qualified repeater DevKit engineering candidate"
+	default n
+	depends on BOARD_DEVKIT_NRF54L15
+	depends on MESHBUS_MESHCORE_ROLE_REPEATER
+	depends on MESHBUS_MESHCORE_RUNTIME
+	depends on MESHBUS_RADIO && MESHBUS_CONTACT
+	help
+	  Enable the narrow, engineering-only role health gate qualified for the
+	  nRF54L15 repeater DevKit fixture. Room, sensor, and C2 product profiles
+	  must provide their own retained-service health evidence before enabling
+	  automatic MCUboot confirmation.
+
+config MESHBUS_FIRMWARE_APPLY_STACK_SIZE
+	int
+	default 6144
+	range 4096 16384
+
+config MESHBUS_FIRMWARE_INIT_PRIORITY
+	int
+	default 97
+
+endif

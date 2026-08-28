@@ -1,0 +1,4 @@
+rsource "bootloader/Kconfig"
+rsource "modules/Kconfig"
+rsource "drivers/Kconfig"
+rsource "subsys/Kconfig"

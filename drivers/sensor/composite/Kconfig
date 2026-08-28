@@ -1,0 +1,11 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+config COMPASS_COMPOSITE
+	bool "Zephyr composite compass sensor driver"
+	default y
+	depends on SENSOR
+	depends on DT_HAS_ZEPHYR_COMPASS_COMPOSITE_ENABLED
+	help
+	  Enable compass composite driver that fuses accel, gyro, and magnetometer
+	  data to provide heading through SENSOR_CHAN_COMPASS_HEADING.

@@ -1,0 +1,12 @@
+tests:
+  subsys.meshbus.fs.contract:
+    tags:
+      - meshbus
+      - fs
+      - contract
+      - ztest
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86

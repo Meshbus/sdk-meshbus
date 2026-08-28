@@ -1,0 +1,25 @@
+tests:
+  zui.predictive.empty:
+    platform_allow: qemu_x86
+    extra_configs:
+      - CONFIG_ZUI_TEXT_EDITOR_PREDICTIVE_BUILTIN_ENGLISH_DICT=n
+    tags:
+      - zui
+      - predictive
+  zui.predictive.fixture:
+    platform_allow: qemu_x86
+    extra_configs:
+      - CONFIG_ZUI_TEXT_EDITOR_PREDICTIVE_DICT_SOURCE="words.txt"
+      - CONFIG_ZUI_TEXT_EDITOR_PREDICTIVE_SOURCE_LICENSE="FoBE test fixture"
+    tags:
+      - zui
+      - predictive
+  zui.predictive.fixture_small_budget:
+    platform_allow: qemu_x86
+    extra_configs:
+      - CONFIG_ZUI_TEXT_EDITOR_PREDICTIVE_DICT_SOURCE="words.txt"
+      - CONFIG_ZUI_TEXT_EDITOR_PREDICTIVE_SOURCE_LICENSE="FoBE test fixture"
+      - CONFIG_ZUI_TEXT_EDITOR_PREDICTIVE_DICT_SIZE=64
+    tags:
+      - zui
+      - predictive

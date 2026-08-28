@@ -1,0 +1,5071 @@
+# SPDX-License-Identifier: Apache-2.0
+# Auto-generated from subsys/u8g2/u8g2_fonts.c.
+# Keep sorted for stable diffs.
+
+config U8G2_FONT_U8G2_FONT_10X20_ME
+	bool "u8g2_font_10x20_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_10X20_MF
+	bool "u8g2_font_10x20_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_10X20_MN
+	bool "u8g2_font_10x20_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_10X20_MR
+	bool "u8g2_font_10x20_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_10X20_T_ARABIC
+	bool "u8g2_font_10x20_t_arabic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_10X20_T_CYRILLIC
+	bool "u8g2_font_10x20_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_10X20_T_GREEK
+	bool "u8g2_font_10x20_t_greek" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_10X20_TE
+	bool "u8g2_font_10x20_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_10X20_TF
+	bool "u8g2_font_10x20_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_10X20_TN
+	bool "u8g2_font_10x20_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_10X20_TR
+	bool "u8g2_font_10x20_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_4X6_MF
+	bool "u8g2_font_4x6_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_4X6_MN
+	bool "u8g2_font_4x6_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_4X6_MR
+	bool "u8g2_font_4x6_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_4X6_T_CYRILLIC
+	bool "u8g2_font_4x6_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_4X6_TF
+	bool "u8g2_font_4x6_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_4X6_TN
+	bool "u8g2_font_4x6_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_4X6_TR
+	bool "u8g2_font_4x6_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_5X7_MF
+	bool "u8g2_font_5x7_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_5X7_MN
+	bool "u8g2_font_5x7_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_5X7_MR
+	bool "u8g2_font_5x7_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_5X7_T_CYRILLIC
+	bool "u8g2_font_5x7_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_5X7_TF
+	bool "u8g2_font_5x7_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_5X7_TN
+	bool "u8g2_font_5x7_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_5X7_TR
+	bool "u8g2_font_5x7_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_5X8_MF
+	bool "u8g2_font_5x8_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_5X8_MN
+	bool "u8g2_font_5x8_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_5X8_MR
+	bool "u8g2_font_5x8_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_5X8_T_CYRILLIC
+	bool "u8g2_font_5x8_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_5X8_TF
+	bool "u8g2_font_5x8_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_5X8_TN
+	bool "u8g2_font_5x8_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_5X8_TR
+	bool "u8g2_font_5x8_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X10_MF
+	bool "u8g2_font_6x10_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X10_MN
+	bool "u8g2_font_6x10_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X10_MR
+	bool "u8g2_font_6x10_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X10_TF
+	bool "u8g2_font_6x10_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X10_TN
+	bool "u8g2_font_6x10_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X10_TR
+	bool "u8g2_font_6x10_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X12_M_SYMBOLS
+	bool "u8g2_font_6x12_m_symbols" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X12_ME
+	bool "u8g2_font_6x12_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X12_MF
+	bool "u8g2_font_6x12_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X12_MN
+	bool "u8g2_font_6x12_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X12_MR
+	bool "u8g2_font_6x12_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X12_T_CYRILLIC
+	bool "u8g2_font_6x12_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X12_T_SYMBOLS
+	bool "u8g2_font_6x12_t_symbols" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X12_TE
+	bool "u8g2_font_6x12_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X12_TF
+	bool "u8g2_font_6x12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X12_TN
+	bool "u8g2_font_6x12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X12_TR
+	bool "u8g2_font_6x12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13B_MF
+	bool "u8g2_font_6x13B_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13B_MN
+	bool "u8g2_font_6x13B_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13B_MR
+	bool "u8g2_font_6x13B_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13B_T_CYRILLIC
+	bool "u8g2_font_6x13B_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13B_T_HEBREW
+	bool "u8g2_font_6x13B_t_hebrew" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13B_TF
+	bool "u8g2_font_6x13B_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13B_TN
+	bool "u8g2_font_6x13B_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13B_TR
+	bool "u8g2_font_6x13B_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13O_MF
+	bool "u8g2_font_6x13O_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13O_MN
+	bool "u8g2_font_6x13O_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13O_MR
+	bool "u8g2_font_6x13O_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13O_TF
+	bool "u8g2_font_6x13O_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13O_TN
+	bool "u8g2_font_6x13O_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13O_TR
+	bool "u8g2_font_6x13O_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13_ME
+	bool "u8g2_font_6x13_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13_MF
+	bool "u8g2_font_6x13_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13_MN
+	bool "u8g2_font_6x13_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13_MR
+	bool "u8g2_font_6x13_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13_T_CYRILLIC
+	bool "u8g2_font_6x13_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13_T_HEBREW
+	bool "u8g2_font_6x13_t_hebrew" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13_TE
+	bool "u8g2_font_6x13_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13_TF
+	bool "u8g2_font_6x13_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13_TN
+	bool "u8g2_font_6x13_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_6X13_TR
+	bool "u8g2_font_6x13_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7SEGMENTS_26X42_MN
+	bool "u8g2_font_7Segments_26x42_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13B_MF
+	bool "u8g2_font_7x13B_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13B_MN
+	bool "u8g2_font_7x13B_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13B_MR
+	bool "u8g2_font_7x13B_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13B_TF
+	bool "u8g2_font_7x13B_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13B_TN
+	bool "u8g2_font_7x13B_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13B_TR
+	bool "u8g2_font_7x13B_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13O_MF
+	bool "u8g2_font_7x13O_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13O_MN
+	bool "u8g2_font_7x13O_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13O_MR
+	bool "u8g2_font_7x13O_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13O_TF
+	bool "u8g2_font_7x13O_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13O_TN
+	bool "u8g2_font_7x13O_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13O_TR
+	bool "u8g2_font_7x13O_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13_M_SYMBOLS
+	bool "u8g2_font_7x13_m_symbols" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13_ME
+	bool "u8g2_font_7x13_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13_MF
+	bool "u8g2_font_7x13_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13_MN
+	bool "u8g2_font_7x13_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13_MR
+	bool "u8g2_font_7x13_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13_T_CYRILLIC
+	bool "u8g2_font_7x13_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13_T_SYMBOLS
+	bool "u8g2_font_7x13_t_symbols" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13_TE
+	bool "u8g2_font_7x13_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13_TF
+	bool "u8g2_font_7x13_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13_TN
+	bool "u8g2_font_7x13_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X13_TR
+	bool "u8g2_font_7x13_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X14B_MF
+	bool "u8g2_font_7x14B_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X14B_MN
+	bool "u8g2_font_7x14B_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X14B_MR
+	bool "u8g2_font_7x14B_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X14B_TF
+	bool "u8g2_font_7x14B_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X14B_TN
+	bool "u8g2_font_7x14B_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X14B_TR
+	bool "u8g2_font_7x14B_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X14_MF
+	bool "u8g2_font_7x14_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X14_MN
+	bool "u8g2_font_7x14_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X14_MR
+	bool "u8g2_font_7x14_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X14_TF
+	bool "u8g2_font_7x14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X14_TN
+	bool "u8g2_font_7x14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_7X14_TR
+	bool "u8g2_font_7x14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13B_MF
+	bool "u8g2_font_8x13B_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13B_MN
+	bool "u8g2_font_8x13B_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13B_MR
+	bool "u8g2_font_8x13B_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13B_TF
+	bool "u8g2_font_8x13B_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13B_TN
+	bool "u8g2_font_8x13B_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13B_TR
+	bool "u8g2_font_8x13B_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13O_MF
+	bool "u8g2_font_8x13O_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13O_MN
+	bool "u8g2_font_8x13O_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13O_MR
+	bool "u8g2_font_8x13O_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13O_TF
+	bool "u8g2_font_8x13O_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13O_TN
+	bool "u8g2_font_8x13O_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13O_TR
+	bool "u8g2_font_8x13O_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13_M_SYMBOLS
+	bool "u8g2_font_8x13_m_symbols" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13_ME
+	bool "u8g2_font_8x13_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13_MF
+	bool "u8g2_font_8x13_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13_MN
+	bool "u8g2_font_8x13_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13_MR
+	bool "u8g2_font_8x13_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13_T_CYRILLIC
+	bool "u8g2_font_8x13_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13_T_SYMBOLS
+	bool "u8g2_font_8x13_t_symbols" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13_TE
+	bool "u8g2_font_8x13_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13_TF
+	bool "u8g2_font_8x13_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13_TN
+	bool "u8g2_font_8x13_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_8X13_TR
+	bool "u8g2_font_8x13_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X15B_MF
+	bool "u8g2_font_9x15B_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X15B_MN
+	bool "u8g2_font_9x15B_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X15B_MR
+	bool "u8g2_font_9x15B_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X15B_TF
+	bool "u8g2_font_9x15B_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X15B_TN
+	bool "u8g2_font_9x15B_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X15B_TR
+	bool "u8g2_font_9x15B_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X15_M_SYMBOLS
+	bool "u8g2_font_9x15_m_symbols" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X15_ME
+	bool "u8g2_font_9x15_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X15_MF
+	bool "u8g2_font_9x15_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X15_MN
+	bool "u8g2_font_9x15_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X15_MR
+	bool "u8g2_font_9x15_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X15_T_CYRILLIC
+	bool "u8g2_font_9x15_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X15_T_SYMBOLS
+	bool "u8g2_font_9x15_t_symbols" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X15_TE
+	bool "u8g2_font_9x15_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X15_TF
+	bool "u8g2_font_9x15_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X15_TN
+	bool "u8g2_font_9x15_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X15_TR
+	bool "u8g2_font_9x15_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X18B_MF
+	bool "u8g2_font_9x18B_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X18B_MN
+	bool "u8g2_font_9x18B_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X18B_MR
+	bool "u8g2_font_9x18B_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X18B_TF
+	bool "u8g2_font_9x18B_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X18B_TN
+	bool "u8g2_font_9x18B_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X18B_TR
+	bool "u8g2_font_9x18B_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X18_MF
+	bool "u8g2_font_9x18_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X18_MN
+	bool "u8g2_font_9x18_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X18_MR
+	bool "u8g2_font_9x18_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X18_TF
+	bool "u8g2_font_9x18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X18_TN
+	bool "u8g2_font_9x18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_9X18_TR
+	bool "u8g2_font_9x18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BBSESQUE_TE
+	bool "u8g2_font_BBSesque_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BBSESQUE_TF
+	bool "u8g2_font_BBSesque_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BBSESQUE_TR
+	bool "u8g2_font_BBSesque_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BITTYPEWRITER_TE
+	bool "u8g2_font_BitTypeWriter_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BITTYPEWRITER_TR
+	bool "u8g2_font_BitTypeWriter_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BORN2BSPORTYSLAB_T_ALL
+	bool "u8g2_font_Born2bSportySlab_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BORN2BSPORTYSLAB_TE
+	bool "u8g2_font_Born2bSportySlab_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BORN2BSPORTYSLAB_TF
+	bool "u8g2_font_Born2bSportySlab_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BORN2BSPORTYSLAB_TR
+	bool "u8g2_font_Born2bSportySlab_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BORN2BSPORTYV2_TE
+	bool "u8g2_font_Born2bSportyV2_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BORN2BSPORTYV2_TF
+	bool "u8g2_font_Born2bSportyV2_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BORN2BSPORTYV2_TR
+	bool "u8g2_font_Born2bSportyV2_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CURSIVEPIXEL_TR
+	bool "u8g2_font_CursivePixel_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_DIGITALDISCOTHIN_TE
+	bool "u8g2_font_DigitalDiscoThin_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_DIGITALDISCOTHIN_TF
+	bool "u8g2_font_DigitalDiscoThin_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_DIGITALDISCOTHIN_TN
+	bool "u8g2_font_DigitalDiscoThin_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_DIGITALDISCOTHIN_TR
+	bool "u8g2_font_DigitalDiscoThin_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_DIGITALDISCOTHIN_TU
+	bool "u8g2_font_DigitalDiscoThin_tu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_DIGITALDISCO_TE
+	bool "u8g2_font_DigitalDisco_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_DIGITALDISCO_TF
+	bool "u8g2_font_DigitalDisco_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_DIGITALDISCO_TN
+	bool "u8g2_font_DigitalDisco_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_DIGITALDISCO_TR
+	bool "u8g2_font_DigitalDisco_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_DIGITALDISCO_TU
+	bool "u8g2_font_DigitalDisco_tu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ENGRISH_TF
+	bool "u8g2_font_Engrish_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ENGRISH_TR
+	bool "u8g2_font_Engrish_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GEORGIA7PX_TE
+	bool "u8g2_font_Georgia7px_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GEORGIA7PX_TF
+	bool "u8g2_font_Georgia7px_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GEORGIA7PX_TR
+	bool "u8g2_font_Georgia7px_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVETIPIXELOUTLINE_TE
+	bool "u8g2_font_HelvetiPixelOutline_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVETIPIXELOUTLINE_TR
+	bool "u8g2_font_HelvetiPixelOutline_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVETIPIXEL_TR
+	bool "u8g2_font_HelvetiPixel_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_IPAANDRUSLCD_TE
+	bool "u8g2_font_IPAandRUSLCD_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_IPAANDRUSLCD_TF
+	bool "u8g2_font_IPAandRUSLCD_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_IPAANDRUSLCD_TR
+	bool "u8g2_font_IPAandRUSLCD_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_IMPACTBITS_TR
+	bool "u8g2_font_ImpactBits_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PIXELLARI_TE
+	bool "u8g2_font_Pixellari_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PIXELLARI_TF
+	bool "u8g2_font_Pixellari_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PIXELLARI_TN
+	bool "u8g2_font_Pixellari_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PIXELLARI_TR
+	bool "u8g2_font_Pixellari_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PIXELLARI_TU
+	bool "u8g2_font_Pixellari_tu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMESNEWPIXEL_TR
+	bool "u8g2_font_TimesNewPixel_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNTITLED16PIXELSANSSERIFBITMAP_TR
+	bool "u8g2_font_Untitled16PixelSansSerifBitmap_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_VCR_OSD_MF
+	bool "u8g2_font_VCR_OSD_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_VCR_OSD_MN
+	bool "u8g2_font_VCR_OSD_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_VCR_OSD_MR
+	bool "u8g2_font_VCR_OSD_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_VCR_OSD_MU
+	bool "u8g2_font_VCR_OSD_mu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_VCR_OSD_TF
+	bool "u8g2_font_VCR_OSD_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_VCR_OSD_TN
+	bool "u8g2_font_VCR_OSD_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_VCR_OSD_TR
+	bool "u8g2_font_VCR_OSD_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_VCR_OSD_TU
+	bool "u8g2_font_VCR_OSD_tu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WIZZARD_TR
+	bool "u8g2_font_Wizzard_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ADVENTURER_T_ALL
+	bool "u8g2_font_adventurer_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ADVENTURER_TF
+	bool "u8g2_font_adventurer_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ADVENTURER_TR
+	bool "u8g2_font_adventurer_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_AMSTRAD_CPC_EXTENDED_8F
+	bool "u8g2_font_amstrad_cpc_extended_8f" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_AMSTRAD_CPC_EXTENDED_8N
+	bool "u8g2_font_amstrad_cpc_extended_8n" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_AMSTRAD_CPC_EXTENDED_8R
+	bool "u8g2_font_amstrad_cpc_extended_8r" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_AMSTRAD_CPC_EXTENDED_8U
+	bool "u8g2_font_amstrad_cpc_extended_8u" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ARTOSSANS8_8N
+	bool "u8g2_font_artossans8_8n" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ARTOSSANS8_8R
+	bool "u8g2_font_artossans8_8r" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ARTOSSANS8_8U
+	bool "u8g2_font_artossans8_8u" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ARTOSSERIF8_8N
+	bool "u8g2_font_artosserif8_8n" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ARTOSSERIF8_8R
+	bool "u8g2_font_artosserif8_8r" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ARTOSSERIF8_8U
+	bool "u8g2_font_artosserif8_8u" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ASTRAGAL_NBP_TF
+	bool "u8g2_font_astragal_nbp_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ASTRAGAL_NBP_TN
+	bool "u8g2_font_astragal_nbp_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ASTRAGAL_NBP_TR
+	bool "u8g2_font_astragal_nbp_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_B10_B_T_JAPANESE1
+	bool "u8g2_font_b10_b_t_japanese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_B10_B_T_JAPANESE2
+	bool "u8g2_font_b10_b_t_japanese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_B10_T_JAPANESE1
+	bool "u8g2_font_b10_t_japanese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_B10_T_JAPANESE2
+	bool "u8g2_font_b10_t_japanese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_B12_B_T_JAPANESE1
+	bool "u8g2_font_b12_b_t_japanese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_B12_B_T_JAPANESE2
+	bool "u8g2_font_b12_b_t_japanese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_B12_B_T_JAPANESE3
+	bool "u8g2_font_b12_b_t_japanese3" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_B12_T_JAPANESE1
+	bool "u8g2_font_b12_t_japanese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_B12_T_JAPANESE2
+	bool "u8g2_font_b12_t_japanese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_B12_T_JAPANESE3
+	bool "u8g2_font_b12_t_japanese3" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_B16_B_T_JAPANESE1
+	bool "u8g2_font_b16_b_t_japanese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_B16_B_T_JAPANESE2
+	bool "u8g2_font_b16_b_t_japanese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_B16_B_T_JAPANESE3
+	bool "u8g2_font_b16_b_t_japanese3" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_B16_T_JAPANESE1
+	bool "u8g2_font_b16_t_japanese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_B16_T_JAPANESE2
+	bool "u8g2_font_b16_t_japanese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_B16_T_JAPANESE3
+	bool "u8g2_font_b16_t_japanese3" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BABY_TF
+	bool "u8g2_font_baby_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BABY_TN
+	bool "u8g2_font_baby_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BABY_TR
+	bool "u8g2_font_baby_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BALTHASAR_REGULAR_NBP_TF
+	bool "u8g2_font_balthasar_regular_nbp_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BALTHASAR_REGULAR_NBP_TN
+	bool "u8g2_font_balthasar_regular_nbp_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BALTHASAR_REGULAR_NBP_TR
+	bool "u8g2_font_balthasar_regular_nbp_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BALTHASAR_TITLING_NBP_TF
+	bool "u8g2_font_balthasar_titling_nbp_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BALTHASAR_TITLING_NBP_TN
+	bool "u8g2_font_balthasar_titling_nbp_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BALTHASAR_TITLING_NBP_TR
+	bool "u8g2_font_balthasar_titling_nbp_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BATTERY19_TN
+	bool "u8g2_font_battery19_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BAUHAUS2015_TN
+	bool "u8g2_font_bauhaus2015_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BAUHAUS2015_TR
+	bool "u8g2_font_bauhaus2015_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BEANSTALK_MEL_TN
+	bool "u8g2_font_beanstalk_mel_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BEANSTALK_MEL_TR
+	bool "u8g2_font_beanstalk_mel_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BITCASUAL_T_ALL
+	bool "u8g2_font_bitcasual_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BITCASUAL_TF
+	bool "u8g2_font_bitcasual_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BITCASUAL_TN
+	bool "u8g2_font_bitcasual_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BITCASUAL_TR
+	bool "u8g2_font_bitcasual_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BITCASUAL_TU
+	bool "u8g2_font_bitcasual_tu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BLIPFEST_07_TN
+	bool "u8g2_font_blipfest_07_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BLIPFEST_07_TR
+	bool "u8g2_font_blipfest_07_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BRACKETEDBABIES_TR
+	bool "u8g2_font_bracketedbabies_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BUBBLE_TN
+	bool "u8g2_font_bubble_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_BUBBLE_TR
+	bool "u8g2_font_bubble_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CALIBRATION_GOTHIC_NBP_T_ALL
+	bool "u8g2_font_calibration_gothic_nbp_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CALIBRATION_GOTHIC_NBP_TF
+	bool "u8g2_font_calibration_gothic_nbp_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CALIBRATION_GOTHIC_NBP_TN
+	bool "u8g2_font_calibration_gothic_nbp_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CALIBRATION_GOTHIC_NBP_TR
+	bool "u8g2_font_calibration_gothic_nbp_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CARDIMON_PIXEL_TF
+	bool "u8g2_font_cardimon_pixel_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CARDIMON_PIXEL_TN
+	bool "u8g2_font_cardimon_pixel_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CARDIMON_PIXEL_TR
+	bool "u8g2_font_cardimon_pixel_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CELIBATEMONK_TR
+	bool "u8g2_font_celibatemonk_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CHIKITA_TF
+	bool "u8g2_font_chikita_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CHIKITA_TN
+	bool "u8g2_font_chikita_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CHIKITA_TR
+	bool "u8g2_font_chikita_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CHROMA48MEDIUM8_8N
+	bool "u8g2_font_chroma48medium8_8n" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CHROMA48MEDIUM8_8R
+	bool "u8g2_font_chroma48medium8_8r" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CHROMA48MEDIUM8_8U
+	bool "u8g2_font_chroma48medium8_8u" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURB08_TF
+	bool "u8g2_font_courB08_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURB08_TN
+	bool "u8g2_font_courB08_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURB08_TR
+	bool "u8g2_font_courB08_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURB10_TF
+	bool "u8g2_font_courB10_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURB10_TN
+	bool "u8g2_font_courB10_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURB10_TR
+	bool "u8g2_font_courB10_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURB12_TF
+	bool "u8g2_font_courB12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURB12_TN
+	bool "u8g2_font_courB12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURB12_TR
+	bool "u8g2_font_courB12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURB14_TF
+	bool "u8g2_font_courB14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURB14_TN
+	bool "u8g2_font_courB14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURB14_TR
+	bool "u8g2_font_courB14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURB18_TF
+	bool "u8g2_font_courB18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURB18_TN
+	bool "u8g2_font_courB18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURB18_TR
+	bool "u8g2_font_courB18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURB24_TF
+	bool "u8g2_font_courB24_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURB24_TN
+	bool "u8g2_font_courB24_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURB24_TR
+	bool "u8g2_font_courB24_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURR08_TF
+	bool "u8g2_font_courR08_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURR08_TN
+	bool "u8g2_font_courR08_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURR08_TR
+	bool "u8g2_font_courR08_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURR10_TF
+	bool "u8g2_font_courR10_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURR10_TN
+	bool "u8g2_font_courR10_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURR10_TR
+	bool "u8g2_font_courR10_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURR12_TF
+	bool "u8g2_font_courR12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURR12_TN
+	bool "u8g2_font_courR12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURR12_TR
+	bool "u8g2_font_courR12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURR14_TF
+	bool "u8g2_font_courR14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURR14_TN
+	bool "u8g2_font_courR14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURR14_TR
+	bool "u8g2_font_courR14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURR18_TF
+	bool "u8g2_font_courR18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURR18_TN
+	bool "u8g2_font_courR18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURR18_TR
+	bool "u8g2_font_courR18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURR24_TF
+	bool "u8g2_font_courR24_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURR24_TN
+	bool "u8g2_font_courR24_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_COURR24_TR
+	bool "u8g2_font_courR24_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1C_MF
+	bool "u8g2_font_crox1c_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1C_MN
+	bool "u8g2_font_crox1c_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1C_MR
+	bool "u8g2_font_crox1c_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1C_TF
+	bool "u8g2_font_crox1c_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1C_TN
+	bool "u8g2_font_crox1c_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1C_TR
+	bool "u8g2_font_crox1c_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1CB_MF
+	bool "u8g2_font_crox1cb_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1CB_MN
+	bool "u8g2_font_crox1cb_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1CB_MR
+	bool "u8g2_font_crox1cb_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1CB_TF
+	bool "u8g2_font_crox1cb_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1CB_TN
+	bool "u8g2_font_crox1cb_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1CB_TR
+	bool "u8g2_font_crox1cb_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1H_TF
+	bool "u8g2_font_crox1h_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1H_TN
+	bool "u8g2_font_crox1h_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1H_TR
+	bool "u8g2_font_crox1h_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1HB_TF
+	bool "u8g2_font_crox1hb_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1HB_TN
+	bool "u8g2_font_crox1hb_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1HB_TR
+	bool "u8g2_font_crox1hb_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1T_TF
+	bool "u8g2_font_crox1t_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1T_TN
+	bool "u8g2_font_crox1t_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1T_TR
+	bool "u8g2_font_crox1t_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1TB_TF
+	bool "u8g2_font_crox1tb_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1TB_TN
+	bool "u8g2_font_crox1tb_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX1TB_TR
+	bool "u8g2_font_crox1tb_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2C_MF
+	bool "u8g2_font_crox2c_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2C_MN
+	bool "u8g2_font_crox2c_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2C_MR
+	bool "u8g2_font_crox2c_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2C_TF
+	bool "u8g2_font_crox2c_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2C_TN
+	bool "u8g2_font_crox2c_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2C_TR
+	bool "u8g2_font_crox2c_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2CB_MF
+	bool "u8g2_font_crox2cb_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2CB_MN
+	bool "u8g2_font_crox2cb_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2CB_MR
+	bool "u8g2_font_crox2cb_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2CB_TF
+	bool "u8g2_font_crox2cb_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2CB_TN
+	bool "u8g2_font_crox2cb_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2CB_TR
+	bool "u8g2_font_crox2cb_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2H_TF
+	bool "u8g2_font_crox2h_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2H_TN
+	bool "u8g2_font_crox2h_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2H_TR
+	bool "u8g2_font_crox2h_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2HB_TF
+	bool "u8g2_font_crox2hb_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2HB_TN
+	bool "u8g2_font_crox2hb_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2HB_TR
+	bool "u8g2_font_crox2hb_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2T_TF
+	bool "u8g2_font_crox2t_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2T_TN
+	bool "u8g2_font_crox2t_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2T_TR
+	bool "u8g2_font_crox2t_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2TB_TF
+	bool "u8g2_font_crox2tb_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2TB_TN
+	bool "u8g2_font_crox2tb_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX2TB_TR
+	bool "u8g2_font_crox2tb_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3C_MF
+	bool "u8g2_font_crox3c_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3C_MN
+	bool "u8g2_font_crox3c_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3C_MR
+	bool "u8g2_font_crox3c_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3C_TF
+	bool "u8g2_font_crox3c_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3C_TN
+	bool "u8g2_font_crox3c_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3C_TR
+	bool "u8g2_font_crox3c_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3CB_MF
+	bool "u8g2_font_crox3cb_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3CB_MN
+	bool "u8g2_font_crox3cb_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3CB_MR
+	bool "u8g2_font_crox3cb_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3CB_TF
+	bool "u8g2_font_crox3cb_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3CB_TN
+	bool "u8g2_font_crox3cb_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3CB_TR
+	bool "u8g2_font_crox3cb_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3H_TF
+	bool "u8g2_font_crox3h_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3H_TN
+	bool "u8g2_font_crox3h_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3H_TR
+	bool "u8g2_font_crox3h_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3HB_TF
+	bool "u8g2_font_crox3hb_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3HB_TN
+	bool "u8g2_font_crox3hb_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3HB_TR
+	bool "u8g2_font_crox3hb_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3T_TF
+	bool "u8g2_font_crox3t_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3T_TN
+	bool "u8g2_font_crox3t_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3T_TR
+	bool "u8g2_font_crox3t_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3TB_TF
+	bool "u8g2_font_crox3tb_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3TB_TN
+	bool "u8g2_font_crox3tb_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX3TB_TR
+	bool "u8g2_font_crox3tb_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX4H_TF
+	bool "u8g2_font_crox4h_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX4H_TN
+	bool "u8g2_font_crox4h_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX4H_TR
+	bool "u8g2_font_crox4h_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX4HB_TF
+	bool "u8g2_font_crox4hb_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX4HB_TN
+	bool "u8g2_font_crox4hb_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX4HB_TR
+	bool "u8g2_font_crox4hb_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX4T_TF
+	bool "u8g2_font_crox4t_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX4T_TN
+	bool "u8g2_font_crox4t_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX4T_TR
+	bool "u8g2_font_crox4t_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX4TB_TF
+	bool "u8g2_font_crox4tb_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX4TB_TN
+	bool "u8g2_font_crox4tb_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX4TB_TR
+	bool "u8g2_font_crox4tb_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX5H_TF
+	bool "u8g2_font_crox5h_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX5H_TN
+	bool "u8g2_font_crox5h_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX5H_TR
+	bool "u8g2_font_crox5h_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX5HB_TF
+	bool "u8g2_font_crox5hb_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX5HB_TN
+	bool "u8g2_font_crox5hb_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX5HB_TR
+	bool "u8g2_font_crox5hb_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX5T_TF
+	bool "u8g2_font_crox5t_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX5T_TN
+	bool "u8g2_font_crox5t_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX5T_TR
+	bool "u8g2_font_crox5t_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX5TB_TF
+	bool "u8g2_font_crox5tb_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX5TB_TN
+	bool "u8g2_font_crox5tb_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CROX5TB_TR
+	bool "u8g2_font_crox5tb_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CU12_H_SYMBOLS
+	bool "u8g2_font_cu12_h_symbols" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CU12_HE
+	bool "u8g2_font_cu12_he" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CU12_HF
+	bool "u8g2_font_cu12_hf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CU12_HN
+	bool "u8g2_font_cu12_hn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CU12_HR
+	bool "u8g2_font_cu12_hr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CU12_ME
+	bool "u8g2_font_cu12_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CU12_MF
+	bool "u8g2_font_cu12_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CU12_MN
+	bool "u8g2_font_cu12_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CU12_MR
+	bool "u8g2_font_cu12_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CU12_T_ARABIC
+	bool "u8g2_font_cu12_t_arabic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CU12_T_CYRILLIC
+	bool "u8g2_font_cu12_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CU12_T_GREEK
+	bool "u8g2_font_cu12_t_greek" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CU12_T_HEBREW
+	bool "u8g2_font_cu12_t_hebrew" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CU12_T_SYMBOLS
+	bool "u8g2_font_cu12_t_symbols" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CU12_T_TIBETAN
+	bool "u8g2_font_cu12_t_tibetan" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CU12_TE
+	bool "u8g2_font_cu12_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CU12_TF
+	bool "u8g2_font_cu12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CU12_TN
+	bool "u8g2_font_cu12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CU12_TR
+	bool "u8g2_font_cu12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CUBE_MEL_TN
+	bool "u8g2_font_cube_mel_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CUBE_MEL_TR
+	bool "u8g2_font_cube_mel_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CUPCAKEMETOYOURLEADER_TN
+	bool "u8g2_font_cupcakemetoyourleader_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CUPCAKEMETOYOURLEADER_TR
+	bool "u8g2_font_cupcakemetoyourleader_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CUPCAKEMETOYOURLEADER_TU
+	bool "u8g2_font_cupcakemetoyourleader_tu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CURSOR_TF
+	bool "u8g2_font_cursor_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_CURSOR_TR
+	bool "u8g2_font_cursor_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_DIODESEMIMONO_TR
+	bool "u8g2_font_diodesemimono_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_DISRESPECTFULTEENAGER_TU
+	bool "u8g2_font_disrespectfulteenager_tu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_EMOTICONS21_TR
+	bool "u8g2_font_emoticons21_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ETL14THAI_T
+	bool "u8g2_font_etl14thai_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ETL16THAI_T
+	bool "u8g2_font_etl16thai_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ETL24THAI_T
+	bool "u8g2_font_etl24thai_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_F10_B_T_JAPANESE1
+	bool "u8g2_font_f10_b_t_japanese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_F10_B_T_JAPANESE2
+	bool "u8g2_font_f10_b_t_japanese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_F10_T_JAPANESE1
+	bool "u8g2_font_f10_t_japanese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_F10_T_JAPANESE2
+	bool "u8g2_font_f10_t_japanese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_F12_B_T_JAPANESE1
+	bool "u8g2_font_f12_b_t_japanese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_F12_B_T_JAPANESE2
+	bool "u8g2_font_f12_b_t_japanese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_F12_T_JAPANESE1
+	bool "u8g2_font_f12_t_japanese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_F12_T_JAPANESE2
+	bool "u8g2_font_f12_t_japanese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_F16_B_T_JAPANESE1
+	bool "u8g2_font_f16_b_t_japanese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_F16_B_T_JAPANESE2
+	bool "u8g2_font_f16_b_t_japanese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_F16_T_JAPANESE1
+	bool "u8g2_font_f16_t_japanese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_F16_T_JAPANESE2
+	bool "u8g2_font_f16_t_japanese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FANCYPIXELS_TF
+	bool "u8g2_font_fancypixels_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FANCYPIXELS_TR
+	bool "u8g2_font_fancypixels_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FEWTURE_TF
+	bool "u8g2_font_fewture_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FEWTURE_TN
+	bool "u8g2_font_fewture_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FEWTURE_TR
+	bool "u8g2_font_fewture_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FINDERSKEEPERS_TF
+	bool "u8g2_font_finderskeepers_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FINDERSKEEPERS_TN
+	bool "u8g2_font_finderskeepers_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FINDERSKEEPERS_TR
+	bool "u8g2_font_finderskeepers_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FREEDOOMR10_MU
+	bool "u8g2_font_freedoomr10_mu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FREEDOOMR10_TU
+	bool "u8g2_font_freedoomr10_tu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FREEDOOMR25_MN
+	bool "u8g2_font_freedoomr25_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FREEDOOMR25_TN
+	bool "u8g2_font_freedoomr25_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FRIKATIV_T_ALL
+	bool "u8g2_font_frikativ_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FRIKATIV_TF
+	bool "u8g2_font_frikativ_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FRIKATIV_TR
+	bool "u8g2_font_frikativ_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB11_T_SYMBOL
+	bool "u8g2_font_fub11_t_symbol" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB11_TF
+	bool "u8g2_font_fub11_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB11_TN
+	bool "u8g2_font_fub11_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB11_TR
+	bool "u8g2_font_fub11_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB14_T_SYMBOL
+	bool "u8g2_font_fub14_t_symbol" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB14_TF
+	bool "u8g2_font_fub14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB14_TN
+	bool "u8g2_font_fub14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB14_TR
+	bool "u8g2_font_fub14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB17_T_SYMBOL
+	bool "u8g2_font_fub17_t_symbol" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB17_TF
+	bool "u8g2_font_fub17_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB17_TN
+	bool "u8g2_font_fub17_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB17_TR
+	bool "u8g2_font_fub17_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB20_T_SYMBOL
+	bool "u8g2_font_fub20_t_symbol" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB20_TF
+	bool "u8g2_font_fub20_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB20_TN
+	bool "u8g2_font_fub20_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB20_TR
+	bool "u8g2_font_fub20_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB25_T_SYMBOL
+	bool "u8g2_font_fub25_t_symbol" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB25_TF
+	bool "u8g2_font_fub25_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB25_TN
+	bool "u8g2_font_fub25_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB25_TR
+	bool "u8g2_font_fub25_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB30_T_SYMBOL
+	bool "u8g2_font_fub30_t_symbol" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB30_TF
+	bool "u8g2_font_fub30_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB30_TN
+	bool "u8g2_font_fub30_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB30_TR
+	bool "u8g2_font_fub30_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB35_T_SYMBOL
+	bool "u8g2_font_fub35_t_symbol" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB35_TF
+	bool "u8g2_font_fub35_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB35_TN
+	bool "u8g2_font_fub35_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB35_TR
+	bool "u8g2_font_fub35_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB42_T_SYMBOL
+	bool "u8g2_font_fub42_t_symbol" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB42_TF
+	bool "u8g2_font_fub42_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB42_TN
+	bool "u8g2_font_fub42_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB42_TR
+	bool "u8g2_font_fub42_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB49_T_SYMBOL
+	bool "u8g2_font_fub49_t_symbol" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUB49_TN
+	bool "u8g2_font_fub49_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR11_T_SYMBOL
+	bool "u8g2_font_fur11_t_symbol" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR11_TF
+	bool "u8g2_font_fur11_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR11_TN
+	bool "u8g2_font_fur11_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR11_TR
+	bool "u8g2_font_fur11_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR14_T_SYMBOL
+	bool "u8g2_font_fur14_t_symbol" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR14_TF
+	bool "u8g2_font_fur14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR14_TN
+	bool "u8g2_font_fur14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR14_TR
+	bool "u8g2_font_fur14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR17_T_SYMBOL
+	bool "u8g2_font_fur17_t_symbol" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR17_TF
+	bool "u8g2_font_fur17_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR17_TN
+	bool "u8g2_font_fur17_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR17_TR
+	bool "u8g2_font_fur17_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR20_T_SYMBOL
+	bool "u8g2_font_fur20_t_symbol" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR20_TF
+	bool "u8g2_font_fur20_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR20_TN
+	bool "u8g2_font_fur20_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR20_TR
+	bool "u8g2_font_fur20_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR25_T_SYMBOL
+	bool "u8g2_font_fur25_t_symbol" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR25_TF
+	bool "u8g2_font_fur25_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR25_TN
+	bool "u8g2_font_fur25_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR25_TR
+	bool "u8g2_font_fur25_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR30_T_SYMBOL
+	bool "u8g2_font_fur30_t_symbol" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR30_TF
+	bool "u8g2_font_fur30_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR30_TN
+	bool "u8g2_font_fur30_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR30_TR
+	bool "u8g2_font_fur30_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR35_T_SYMBOL
+	bool "u8g2_font_fur35_t_symbol" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR35_TF
+	bool "u8g2_font_fur35_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR35_TN
+	bool "u8g2_font_fur35_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR35_TR
+	bool "u8g2_font_fur35_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR42_T_SYMBOL
+	bool "u8g2_font_fur42_t_symbol" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR42_TF
+	bool "u8g2_font_fur42_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR42_TN
+	bool "u8g2_font_fur42_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR42_TR
+	bool "u8g2_font_fur42_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR49_T_SYMBOL
+	bool "u8g2_font_fur49_t_symbol" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_FUR49_TN
+	bool "u8g2_font_fur49_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GANJ_NAMEH_SANS10_T_ALL
+	bool "u8g2_font_ganj_nameh_sans10_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GANJ_NAMEH_SANS12_T_ALL
+	bool "u8g2_font_ganj_nameh_sans12_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GANJ_NAMEH_SANS14_T_ALL
+	bool "u8g2_font_ganj_nameh_sans14_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GANJ_NAMEH_SANS16_T_ALL
+	bool "u8g2_font_ganj_nameh_sans16_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GB16ST_T_1
+	bool "u8g2_font_gb16st_t_1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GB16ST_T_2
+	bool "u8g2_font_gb16st_t_2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GB16ST_T_3
+	bool "u8g2_font_gb16st_t_3" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GB24ST_T_1
+	bool "u8g2_font_gb24st_t_1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GB24ST_T_2
+	bool "u8g2_font_gb24st_t_2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GB24ST_T_3
+	bool "u8g2_font_gb24st_t_3" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GLASSTOWN_NBP_T_ALL
+	bool "u8g2_font_glasstown_nbp_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GLASSTOWN_NBP_TF
+	bool "u8g2_font_glasstown_nbp_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GLASSTOWN_NBP_TN
+	bool "u8g2_font_glasstown_nbp_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GLASSTOWN_NBP_TR
+	bool "u8g2_font_glasstown_nbp_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GUILDENSTERN_NBP_T_ALL
+	bool "u8g2_font_guildenstern_nbp_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GUILDENSTERN_NBP_TF
+	bool "u8g2_font_guildenstern_nbp_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GUILDENSTERN_NBP_TN
+	bool "u8g2_font_guildenstern_nbp_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_GUILDENSTERN_NBP_TR
+	bool "u8g2_font_guildenstern_nbp_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HABSBURGCHANCERY_T_ALL
+	bool "u8g2_font_habsburgchancery_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HABSBURGCHANCERY_TF
+	bool "u8g2_font_habsburgchancery_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HABSBURGCHANCERY_TN
+	bool "u8g2_font_habsburgchancery_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HABSBURGCHANCERY_TR
+	bool "u8g2_font_habsburgchancery_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HALFTONE_TF
+	bool "u8g2_font_halftone_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HALFTONE_TN
+	bool "u8g2_font_halftone_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HALFTONE_TR
+	bool "u8g2_font_halftone_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HAXRCORP4089_T_CYRILLIC
+	bool "u8g2_font_haxrcorp4089_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HAXRCORP4089_TN
+	bool "u8g2_font_haxrcorp4089_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HAXRCORP4089_TR
+	bool "u8g2_font_haxrcorp4089_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HEAVYBOTTOM_TR
+	bool "u8g2_font_heavybottom_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB08_TE
+	bool "u8g2_font_helvB08_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB08_TF
+	bool "u8g2_font_helvB08_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB08_TN
+	bool "u8g2_font_helvB08_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB08_TR
+	bool "u8g2_font_helvB08_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB10_TE
+	bool "u8g2_font_helvB10_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB10_TF
+	bool "u8g2_font_helvB10_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB10_TN
+	bool "u8g2_font_helvB10_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB10_TR
+	bool "u8g2_font_helvB10_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB12_TE
+	bool "u8g2_font_helvB12_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB12_TF
+	bool "u8g2_font_helvB12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB12_TN
+	bool "u8g2_font_helvB12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB12_TR
+	bool "u8g2_font_helvB12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB14_TE
+	bool "u8g2_font_helvB14_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB14_TF
+	bool "u8g2_font_helvB14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB14_TN
+	bool "u8g2_font_helvB14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB14_TR
+	bool "u8g2_font_helvB14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB18_TE
+	bool "u8g2_font_helvB18_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB18_TF
+	bool "u8g2_font_helvB18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB18_TN
+	bool "u8g2_font_helvB18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB18_TR
+	bool "u8g2_font_helvB18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB24_TE
+	bool "u8g2_font_helvB24_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB24_TF
+	bool "u8g2_font_helvB24_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB24_TN
+	bool "u8g2_font_helvB24_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVB24_TR
+	bool "u8g2_font_helvB24_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR08_TE
+	bool "u8g2_font_helvR08_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR08_TF
+	bool "u8g2_font_helvR08_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR08_TN
+	bool "u8g2_font_helvR08_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR08_TR
+	bool "u8g2_font_helvR08_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR10_TE
+	bool "u8g2_font_helvR10_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR10_TF
+	bool "u8g2_font_helvR10_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR10_TN
+	bool "u8g2_font_helvR10_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR10_TR
+	bool "u8g2_font_helvR10_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR12_TE
+	bool "u8g2_font_helvR12_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR12_TF
+	bool "u8g2_font_helvR12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR12_TN
+	bool "u8g2_font_helvR12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR12_TR
+	bool "u8g2_font_helvR12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR14_TE
+	bool "u8g2_font_helvR14_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR14_TF
+	bool "u8g2_font_helvR14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR14_TN
+	bool "u8g2_font_helvR14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR14_TR
+	bool "u8g2_font_helvR14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR18_TE
+	bool "u8g2_font_helvR18_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR18_TF
+	bool "u8g2_font_helvR18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR18_TN
+	bool "u8g2_font_helvR18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR18_TR
+	bool "u8g2_font_helvR18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR24_TE
+	bool "u8g2_font_helvR24_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR24_TF
+	bool "u8g2_font_helvR24_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR24_TN
+	bool "u8g2_font_helvR24_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_HELVR24_TR
+	bool "u8g2_font_helvR24_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ICONQUADPIX_M_ALL
+	bool "u8g2_font_iconquadpix_m_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB16_MF
+	bool "u8g2_font_inb16_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB16_MN
+	bool "u8g2_font_inb16_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB16_MR
+	bool "u8g2_font_inb16_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB19_MF
+	bool "u8g2_font_inb19_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB19_MN
+	bool "u8g2_font_inb19_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB19_MR
+	bool "u8g2_font_inb19_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB21_MF
+	bool "u8g2_font_inb21_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB21_MN
+	bool "u8g2_font_inb21_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB21_MR
+	bool "u8g2_font_inb21_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB24_MF
+	bool "u8g2_font_inb24_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB24_MN
+	bool "u8g2_font_inb24_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB24_MR
+	bool "u8g2_font_inb24_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB27_MF
+	bool "u8g2_font_inb27_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB27_MN
+	bool "u8g2_font_inb27_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB27_MR
+	bool "u8g2_font_inb27_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB30_MF
+	bool "u8g2_font_inb30_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB30_MN
+	bool "u8g2_font_inb30_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB30_MR
+	bool "u8g2_font_inb30_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB33_MF
+	bool "u8g2_font_inb33_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB33_MN
+	bool "u8g2_font_inb33_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB33_MR
+	bool "u8g2_font_inb33_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB38_MF
+	bool "u8g2_font_inb38_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB38_MN
+	bool "u8g2_font_inb38_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB38_MR
+	bool "u8g2_font_inb38_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB42_MF
+	bool "u8g2_font_inb42_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB42_MN
+	bool "u8g2_font_inb42_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB42_MR
+	bool "u8g2_font_inb42_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB46_MF
+	bool "u8g2_font_inb46_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB46_MN
+	bool "u8g2_font_inb46_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB46_MR
+	bool "u8g2_font_inb46_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB49_MF
+	bool "u8g2_font_inb49_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB49_MN
+	bool "u8g2_font_inb49_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB49_MR
+	bool "u8g2_font_inb49_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB53_MF
+	bool "u8g2_font_inb53_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB53_MN
+	bool "u8g2_font_inb53_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB53_MR
+	bool "u8g2_font_inb53_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB57_MN
+	bool "u8g2_font_inb57_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INB63_MN
+	bool "u8g2_font_inb63_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR16_MF
+	bool "u8g2_font_inr16_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR16_MN
+	bool "u8g2_font_inr16_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR16_MR
+	bool "u8g2_font_inr16_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR19_MF
+	bool "u8g2_font_inr19_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR19_MN
+	bool "u8g2_font_inr19_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR19_MR
+	bool "u8g2_font_inr19_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR21_MF
+	bool "u8g2_font_inr21_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR21_MN
+	bool "u8g2_font_inr21_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR21_MR
+	bool "u8g2_font_inr21_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR24_MF
+	bool "u8g2_font_inr24_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR24_MN
+	bool "u8g2_font_inr24_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR24_MR
+	bool "u8g2_font_inr24_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR24_T_CYRILLIC
+	bool "u8g2_font_inr24_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR27_MF
+	bool "u8g2_font_inr27_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR27_MN
+	bool "u8g2_font_inr27_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR27_MR
+	bool "u8g2_font_inr27_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR27_T_CYRILLIC
+	bool "u8g2_font_inr27_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR30_MF
+	bool "u8g2_font_inr30_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR30_MN
+	bool "u8g2_font_inr30_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR30_MR
+	bool "u8g2_font_inr30_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR30_T_CYRILLIC
+	bool "u8g2_font_inr30_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR33_MF
+	bool "u8g2_font_inr33_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR33_MN
+	bool "u8g2_font_inr33_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR33_MR
+	bool "u8g2_font_inr33_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR33_T_CYRILLIC
+	bool "u8g2_font_inr33_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR38_MF
+	bool "u8g2_font_inr38_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR38_MN
+	bool "u8g2_font_inr38_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR38_MR
+	bool "u8g2_font_inr38_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR38_T_CYRILLIC
+	bool "u8g2_font_inr38_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR42_MF
+	bool "u8g2_font_inr42_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR42_MN
+	bool "u8g2_font_inr42_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR42_MR
+	bool "u8g2_font_inr42_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR42_T_CYRILLIC
+	bool "u8g2_font_inr42_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR46_MF
+	bool "u8g2_font_inr46_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR46_MN
+	bool "u8g2_font_inr46_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR46_MR
+	bool "u8g2_font_inr46_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR46_T_CYRILLIC
+	bool "u8g2_font_inr46_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR49_MF
+	bool "u8g2_font_inr49_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR49_MN
+	bool "u8g2_font_inr49_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR49_MR
+	bool "u8g2_font_inr49_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR49_T_CYRILLIC
+	bool "u8g2_font_inr49_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR53_MF
+	bool "u8g2_font_inr53_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR53_MN
+	bool "u8g2_font_inr53_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR53_MR
+	bool "u8g2_font_inr53_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR53_T_CYRILLIC
+	bool "u8g2_font_inr53_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR57_MN
+	bool "u8g2_font_inr57_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_INR62_MN
+	bool "u8g2_font_inr62_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_IRANIAN_SANS_10_T_ALL
+	bool "u8g2_font_iranian_sans_10_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_IRANIAN_SANS_12_T_ALL
+	bool "u8g2_font_iranian_sans_12_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_IRANIAN_SANS_14_T_ALL
+	bool "u8g2_font_iranian_sans_14_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_IRANIAN_SANS_16_T_ALL
+	bool "u8g2_font_iranian_sans_16_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_IRANIAN_SANS_8_T_ALL
+	bool "u8g2_font_iranian_sans_8_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_JINXEDWIZARDS_TR
+	bool "u8g2_font_jinxedwizards_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_KOLEEKO_TF
+	bool "u8g2_font_koleeko_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_KOLEEKO_TN
+	bool "u8g2_font_koleeko_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_KOLEEKO_TR
+	bool "u8g2_font_koleeko_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_KOLEEKO_TU
+	bool "u8g2_font_koleeko_tu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LASTAPPRENTICEBOLD_TR
+	bool "u8g2_font_lastapprenticebold_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LASTAPPRENTICETHIN_TR
+	bool "u8g2_font_lastapprenticethin_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LASTPRIESTESS_TR
+	bool "u8g2_font_lastpriestess_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LASTPRIESTESS_TU
+	bool "u8g2_font_lastpriestess_tu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO16_TF
+	bool "u8g2_font_logisoso16_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO16_TN
+	bool "u8g2_font_logisoso16_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO16_TR
+	bool "u8g2_font_logisoso16_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO18_TF
+	bool "u8g2_font_logisoso18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO18_TN
+	bool "u8g2_font_logisoso18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO18_TR
+	bool "u8g2_font_logisoso18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO20_TF
+	bool "u8g2_font_logisoso20_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO20_TN
+	bool "u8g2_font_logisoso20_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO20_TR
+	bool "u8g2_font_logisoso20_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO22_TF
+	bool "u8g2_font_logisoso22_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO22_TN
+	bool "u8g2_font_logisoso22_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO22_TR
+	bool "u8g2_font_logisoso22_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO24_TF
+	bool "u8g2_font_logisoso24_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO24_TN
+	bool "u8g2_font_logisoso24_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO24_TR
+	bool "u8g2_font_logisoso24_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO26_TF
+	bool "u8g2_font_logisoso26_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO26_TN
+	bool "u8g2_font_logisoso26_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO26_TR
+	bool "u8g2_font_logisoso26_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO28_TF
+	bool "u8g2_font_logisoso28_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO28_TN
+	bool "u8g2_font_logisoso28_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO28_TR
+	bool "u8g2_font_logisoso28_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO30_TF
+	bool "u8g2_font_logisoso30_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO30_TN
+	bool "u8g2_font_logisoso30_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO30_TR
+	bool "u8g2_font_logisoso30_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO32_TF
+	bool "u8g2_font_logisoso32_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO32_TN
+	bool "u8g2_font_logisoso32_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO32_TR
+	bool "u8g2_font_logisoso32_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO34_TF
+	bool "u8g2_font_logisoso34_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO34_TN
+	bool "u8g2_font_logisoso34_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO34_TR
+	bool "u8g2_font_logisoso34_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO38_TF
+	bool "u8g2_font_logisoso38_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO38_TN
+	bool "u8g2_font_logisoso38_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO38_TR
+	bool "u8g2_font_logisoso38_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO42_TF
+	bool "u8g2_font_logisoso42_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO42_TN
+	bool "u8g2_font_logisoso42_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO42_TR
+	bool "u8g2_font_logisoso42_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO46_TF
+	bool "u8g2_font_logisoso46_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO46_TN
+	bool "u8g2_font_logisoso46_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO46_TR
+	bool "u8g2_font_logisoso46_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO50_TF
+	bool "u8g2_font_logisoso50_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO50_TN
+	bool "u8g2_font_logisoso50_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO50_TR
+	bool "u8g2_font_logisoso50_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO54_TF
+	bool "u8g2_font_logisoso54_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO54_TN
+	bool "u8g2_font_logisoso54_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO54_TR
+	bool "u8g2_font_logisoso54_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO58_TF
+	bool "u8g2_font_logisoso58_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO58_TN
+	bool "u8g2_font_logisoso58_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO58_TR
+	bool "u8g2_font_logisoso58_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO62_TN
+	bool "u8g2_font_logisoso62_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO78_TN
+	bool "u8g2_font_logisoso78_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LOGISOSO92_TN
+	bool "u8g2_font_logisoso92_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS08_TE
+	bool "u8g2_font_luBIS08_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS08_TF
+	bool "u8g2_font_luBIS08_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS08_TN
+	bool "u8g2_font_luBIS08_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS08_TR
+	bool "u8g2_font_luBIS08_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS10_TE
+	bool "u8g2_font_luBIS10_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS10_TF
+	bool "u8g2_font_luBIS10_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS10_TN
+	bool "u8g2_font_luBIS10_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS10_TR
+	bool "u8g2_font_luBIS10_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS12_TE
+	bool "u8g2_font_luBIS12_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS12_TF
+	bool "u8g2_font_luBIS12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS12_TN
+	bool "u8g2_font_luBIS12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS12_TR
+	bool "u8g2_font_luBIS12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS14_TE
+	bool "u8g2_font_luBIS14_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS14_TF
+	bool "u8g2_font_luBIS14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS14_TN
+	bool "u8g2_font_luBIS14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS14_TR
+	bool "u8g2_font_luBIS14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS18_TE
+	bool "u8g2_font_luBIS18_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS18_TF
+	bool "u8g2_font_luBIS18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS18_TN
+	bool "u8g2_font_luBIS18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS18_TR
+	bool "u8g2_font_luBIS18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS19_TE
+	bool "u8g2_font_luBIS19_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS19_TF
+	bool "u8g2_font_luBIS19_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS19_TN
+	bool "u8g2_font_luBIS19_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS19_TR
+	bool "u8g2_font_luBIS19_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS24_TE
+	bool "u8g2_font_luBIS24_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS24_TF
+	bool "u8g2_font_luBIS24_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS24_TN
+	bool "u8g2_font_luBIS24_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBIS24_TR
+	bool "u8g2_font_luBIS24_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS08_TE
+	bool "u8g2_font_luBS08_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS08_TF
+	bool "u8g2_font_luBS08_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS08_TN
+	bool "u8g2_font_luBS08_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS08_TR
+	bool "u8g2_font_luBS08_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS10_TE
+	bool "u8g2_font_luBS10_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS10_TF
+	bool "u8g2_font_luBS10_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS10_TN
+	bool "u8g2_font_luBS10_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS10_TR
+	bool "u8g2_font_luBS10_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS12_TE
+	bool "u8g2_font_luBS12_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS12_TF
+	bool "u8g2_font_luBS12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS12_TN
+	bool "u8g2_font_luBS12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS12_TR
+	bool "u8g2_font_luBS12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS14_TE
+	bool "u8g2_font_luBS14_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS14_TF
+	bool "u8g2_font_luBS14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS14_TN
+	bool "u8g2_font_luBS14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS14_TR
+	bool "u8g2_font_luBS14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS18_TE
+	bool "u8g2_font_luBS18_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS18_TF
+	bool "u8g2_font_luBS18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS18_TN
+	bool "u8g2_font_luBS18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS18_TR
+	bool "u8g2_font_luBS18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS19_TE
+	bool "u8g2_font_luBS19_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS19_TF
+	bool "u8g2_font_luBS19_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS19_TN
+	bool "u8g2_font_luBS19_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS19_TR
+	bool "u8g2_font_luBS19_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS24_TE
+	bool "u8g2_font_luBS24_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS24_TF
+	bool "u8g2_font_luBS24_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS24_TN
+	bool "u8g2_font_luBS24_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBS24_TR
+	bool "u8g2_font_luBS24_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS08_TE
+	bool "u8g2_font_luIS08_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS08_TF
+	bool "u8g2_font_luIS08_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS08_TN
+	bool "u8g2_font_luIS08_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS08_TR
+	bool "u8g2_font_luIS08_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS10_TE
+	bool "u8g2_font_luIS10_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS10_TF
+	bool "u8g2_font_luIS10_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS10_TN
+	bool "u8g2_font_luIS10_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS10_TR
+	bool "u8g2_font_luIS10_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS12_TE
+	bool "u8g2_font_luIS12_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS12_TF
+	bool "u8g2_font_luIS12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS12_TN
+	bool "u8g2_font_luIS12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS12_TR
+	bool "u8g2_font_luIS12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS14_TE
+	bool "u8g2_font_luIS14_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS14_TF
+	bool "u8g2_font_luIS14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS14_TN
+	bool "u8g2_font_luIS14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS14_TR
+	bool "u8g2_font_luIS14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS18_TE
+	bool "u8g2_font_luIS18_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS18_TF
+	bool "u8g2_font_luIS18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS18_TN
+	bool "u8g2_font_luIS18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS18_TR
+	bool "u8g2_font_luIS18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS19_TE
+	bool "u8g2_font_luIS19_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS19_TF
+	bool "u8g2_font_luIS19_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS19_TN
+	bool "u8g2_font_luIS19_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS19_TR
+	bool "u8g2_font_luIS19_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS24_TE
+	bool "u8g2_font_luIS24_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS24_TF
+	bool "u8g2_font_luIS24_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS24_TN
+	bool "u8g2_font_luIS24_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUIS24_TR
+	bool "u8g2_font_luIS24_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS08_TE
+	bool "u8g2_font_luRS08_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS08_TF
+	bool "u8g2_font_luRS08_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS08_TN
+	bool "u8g2_font_luRS08_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS08_TR
+	bool "u8g2_font_luRS08_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS10_TE
+	bool "u8g2_font_luRS10_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS10_TF
+	bool "u8g2_font_luRS10_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS10_TN
+	bool "u8g2_font_luRS10_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS10_TR
+	bool "u8g2_font_luRS10_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS12_TE
+	bool "u8g2_font_luRS12_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS12_TF
+	bool "u8g2_font_luRS12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS12_TN
+	bool "u8g2_font_luRS12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS12_TR
+	bool "u8g2_font_luRS12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS14_TE
+	bool "u8g2_font_luRS14_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS14_TF
+	bool "u8g2_font_luRS14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS14_TN
+	bool "u8g2_font_luRS14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS14_TR
+	bool "u8g2_font_luRS14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS18_TE
+	bool "u8g2_font_luRS18_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS18_TF
+	bool "u8g2_font_luRS18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS18_TN
+	bool "u8g2_font_luRS18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS18_TR
+	bool "u8g2_font_luRS18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS19_TE
+	bool "u8g2_font_luRS19_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS19_TF
+	bool "u8g2_font_luRS19_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS19_TN
+	bool "u8g2_font_luRS19_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS19_TR
+	bool "u8g2_font_luRS19_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS24_TE
+	bool "u8g2_font_luRS24_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS24_TF
+	bool "u8g2_font_luRS24_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS24_TN
+	bool "u8g2_font_luRS24_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LURS24_TR
+	bool "u8g2_font_luRS24_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB08_TE
+	bool "u8g2_font_lubB08_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB08_TF
+	bool "u8g2_font_lubB08_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB08_TN
+	bool "u8g2_font_lubB08_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB08_TR
+	bool "u8g2_font_lubB08_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB10_TE
+	bool "u8g2_font_lubB10_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB10_TF
+	bool "u8g2_font_lubB10_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB10_TN
+	bool "u8g2_font_lubB10_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB10_TR
+	bool "u8g2_font_lubB10_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB12_TE
+	bool "u8g2_font_lubB12_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB12_TF
+	bool "u8g2_font_lubB12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB12_TN
+	bool "u8g2_font_lubB12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB12_TR
+	bool "u8g2_font_lubB12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB14_TE
+	bool "u8g2_font_lubB14_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB14_TF
+	bool "u8g2_font_lubB14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB14_TN
+	bool "u8g2_font_lubB14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB14_TR
+	bool "u8g2_font_lubB14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB18_TE
+	bool "u8g2_font_lubB18_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB18_TF
+	bool "u8g2_font_lubB18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB18_TN
+	bool "u8g2_font_lubB18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB18_TR
+	bool "u8g2_font_lubB18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB19_TE
+	bool "u8g2_font_lubB19_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB19_TF
+	bool "u8g2_font_lubB19_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB19_TN
+	bool "u8g2_font_lubB19_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB19_TR
+	bool "u8g2_font_lubB19_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB24_TE
+	bool "u8g2_font_lubB24_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB24_TF
+	bool "u8g2_font_lubB24_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB24_TN
+	bool "u8g2_font_lubB24_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBB24_TR
+	bool "u8g2_font_lubB24_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI08_TE
+	bool "u8g2_font_lubBI08_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI08_TF
+	bool "u8g2_font_lubBI08_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI08_TN
+	bool "u8g2_font_lubBI08_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI08_TR
+	bool "u8g2_font_lubBI08_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI10_TE
+	bool "u8g2_font_lubBI10_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI10_TF
+	bool "u8g2_font_lubBI10_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI10_TN
+	bool "u8g2_font_lubBI10_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI10_TR
+	bool "u8g2_font_lubBI10_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI12_TE
+	bool "u8g2_font_lubBI12_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI12_TF
+	bool "u8g2_font_lubBI12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI12_TN
+	bool "u8g2_font_lubBI12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI12_TR
+	bool "u8g2_font_lubBI12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI14_TE
+	bool "u8g2_font_lubBI14_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI14_TF
+	bool "u8g2_font_lubBI14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI14_TN
+	bool "u8g2_font_lubBI14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI14_TR
+	bool "u8g2_font_lubBI14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI18_TE
+	bool "u8g2_font_lubBI18_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI18_TF
+	bool "u8g2_font_lubBI18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI18_TN
+	bool "u8g2_font_lubBI18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI18_TR
+	bool "u8g2_font_lubBI18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI19_TE
+	bool "u8g2_font_lubBI19_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI19_TF
+	bool "u8g2_font_lubBI19_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI19_TN
+	bool "u8g2_font_lubBI19_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI19_TR
+	bool "u8g2_font_lubBI19_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI24_TE
+	bool "u8g2_font_lubBI24_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI24_TF
+	bool "u8g2_font_lubBI24_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI24_TN
+	bool "u8g2_font_lubBI24_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBBI24_TR
+	bool "u8g2_font_lubBI24_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI08_TE
+	bool "u8g2_font_lubI08_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI08_TF
+	bool "u8g2_font_lubI08_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI08_TN
+	bool "u8g2_font_lubI08_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI08_TR
+	bool "u8g2_font_lubI08_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI10_TE
+	bool "u8g2_font_lubI10_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI10_TF
+	bool "u8g2_font_lubI10_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI10_TN
+	bool "u8g2_font_lubI10_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI10_TR
+	bool "u8g2_font_lubI10_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI12_TE
+	bool "u8g2_font_lubI12_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI12_TF
+	bool "u8g2_font_lubI12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI12_TN
+	bool "u8g2_font_lubI12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI12_TR
+	bool "u8g2_font_lubI12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI14_TE
+	bool "u8g2_font_lubI14_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI14_TF
+	bool "u8g2_font_lubI14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI14_TN
+	bool "u8g2_font_lubI14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI14_TR
+	bool "u8g2_font_lubI14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI18_TE
+	bool "u8g2_font_lubI18_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI18_TF
+	bool "u8g2_font_lubI18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI18_TN
+	bool "u8g2_font_lubI18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI18_TR
+	bool "u8g2_font_lubI18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI19_TE
+	bool "u8g2_font_lubI19_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI19_TF
+	bool "u8g2_font_lubI19_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI19_TN
+	bool "u8g2_font_lubI19_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI19_TR
+	bool "u8g2_font_lubI19_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI24_TE
+	bool "u8g2_font_lubI24_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI24_TF
+	bool "u8g2_font_lubI24_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI24_TN
+	bool "u8g2_font_lubI24_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBI24_TR
+	bool "u8g2_font_lubI24_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR08_TE
+	bool "u8g2_font_lubR08_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR08_TF
+	bool "u8g2_font_lubR08_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR08_TN
+	bool "u8g2_font_lubR08_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR08_TR
+	bool "u8g2_font_lubR08_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR10_TE
+	bool "u8g2_font_lubR10_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR10_TF
+	bool "u8g2_font_lubR10_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR10_TN
+	bool "u8g2_font_lubR10_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR10_TR
+	bool "u8g2_font_lubR10_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR12_TE
+	bool "u8g2_font_lubR12_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR12_TF
+	bool "u8g2_font_lubR12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR12_TN
+	bool "u8g2_font_lubR12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR12_TR
+	bool "u8g2_font_lubR12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR14_TE
+	bool "u8g2_font_lubR14_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR14_TF
+	bool "u8g2_font_lubR14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR14_TN
+	bool "u8g2_font_lubR14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR14_TR
+	bool "u8g2_font_lubR14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR18_TE
+	bool "u8g2_font_lubR18_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR18_TF
+	bool "u8g2_font_lubR18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR18_TN
+	bool "u8g2_font_lubR18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR18_TR
+	bool "u8g2_font_lubR18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR19_TE
+	bool "u8g2_font_lubR19_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR19_TF
+	bool "u8g2_font_lubR19_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR19_TN
+	bool "u8g2_font_lubR19_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR19_TR
+	bool "u8g2_font_lubR19_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR24_TE
+	bool "u8g2_font_lubR24_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR24_TF
+	bool "u8g2_font_lubR24_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR24_TN
+	bool "u8g2_font_lubR24_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUBR24_TR
+	bool "u8g2_font_lubR24_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUCASARTS_SCUMM_SUBTITLE_O_TF
+	bool "u8g2_font_lucasarts_scumm_subtitle_o_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUCASARTS_SCUMM_SUBTITLE_O_TN
+	bool "u8g2_font_lucasarts_scumm_subtitle_o_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUCASARTS_SCUMM_SUBTITLE_O_TR
+	bool "u8g2_font_lucasarts_scumm_subtitle_o_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUCASARTS_SCUMM_SUBTITLE_R_TF
+	bool "u8g2_font_lucasarts_scumm_subtitle_r_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUCASARTS_SCUMM_SUBTITLE_R_TN
+	bool "u8g2_font_lucasarts_scumm_subtitle_r_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUCASARTS_SCUMM_SUBTITLE_R_TR
+	bool "u8g2_font_lucasarts_scumm_subtitle_r_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUCASFONT_ALTERNATE_TF
+	bool "u8g2_font_lucasfont_alternate_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUCASFONT_ALTERNATE_TN
+	bool "u8g2_font_lucasfont_alternate_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_LUCASFONT_ALTERNATE_TR
+	bool "u8g2_font_lucasfont_alternate_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_M2ICON_5_TF
+	bool "u8g2_font_m2icon_5_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_M2ICON_7_TF
+	bool "u8g2_font_m2icon_7_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_M2ICON_9_TF
+	bool "u8g2_font_m2icon_9_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MADEMOISELLE_MEL_TN
+	bool "u8g2_font_mademoiselle_mel_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MADEMOISELLE_MEL_TR
+	bool "u8g2_font_mademoiselle_mel_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MANIAC_TE
+	bool "u8g2_font_maniac_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MANIAC_TF
+	bool "u8g2_font_maniac_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MANIAC_TN
+	bool "u8g2_font_maniac_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MANIAC_TR
+	bool "u8g2_font_maniac_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MERCUTIO_BASIC_NBP_T_ALL
+	bool "u8g2_font_mercutio_basic_nbp_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MERCUTIO_BASIC_NBP_TF
+	bool "u8g2_font_mercutio_basic_nbp_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MERCUTIO_BASIC_NBP_TN
+	bool "u8g2_font_mercutio_basic_nbp_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MERCUTIO_BASIC_NBP_TR
+	bool "u8g2_font_mercutio_basic_nbp_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MERCUTIO_SC_NBP_T_ALL
+	bool "u8g2_font_mercutio_sc_nbp_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MERCUTIO_SC_NBP_TF
+	bool "u8g2_font_mercutio_sc_nbp_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MERCUTIO_SC_NBP_TN
+	bool "u8g2_font_mercutio_sc_nbp_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MERCUTIO_SC_NBP_TR
+	bool "u8g2_font_mercutio_sc_nbp_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MICHAELMOUSE_TU
+	bool "u8g2_font_michaelmouse_tu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MICRO_MN
+	bool "u8g2_font_micro_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MICRO_MR
+	bool "u8g2_font_micro_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MICRO_TN
+	bool "u8g2_font_micro_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MICRO_TR
+	bool "u8g2_font_micro_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MIRANDA_NBP_TF
+	bool "u8g2_font_miranda_nbp_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MIRANDA_NBP_TN
+	bool "u8g2_font_miranda_nbp_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MIRANDA_NBP_TR
+	bool "u8g2_font_miranda_nbp_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MISSINGPLANET_T_ALL
+	bool "u8g2_font_missingplanet_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MISSINGPLANET_TF
+	bool "u8g2_font_missingplanet_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MISSINGPLANET_TN
+	bool "u8g2_font_missingplanet_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MISSINGPLANET_TR
+	bool "u8g2_font_missingplanet_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MOZART_NBP_H_ALL
+	bool "u8g2_font_mozart_nbp_h_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MOZART_NBP_T_ALL
+	bool "u8g2_font_mozart_nbp_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MOZART_NBP_TF
+	bool "u8g2_font_mozart_nbp_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MOZART_NBP_TN
+	bool "u8g2_font_mozart_nbp_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_MOZART_NBP_TR
+	bool "u8g2_font_mozart_nbp_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB08_TE
+	bool "u8g2_font_ncenB08_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB08_TF
+	bool "u8g2_font_ncenB08_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB08_TN
+	bool "u8g2_font_ncenB08_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB08_TR
+	bool "u8g2_font_ncenB08_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB10_TE
+	bool "u8g2_font_ncenB10_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB10_TF
+	bool "u8g2_font_ncenB10_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB10_TN
+	bool "u8g2_font_ncenB10_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB10_TR
+	bool "u8g2_font_ncenB10_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB12_TE
+	bool "u8g2_font_ncenB12_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB12_TF
+	bool "u8g2_font_ncenB12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB12_TN
+	bool "u8g2_font_ncenB12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB12_TR
+	bool "u8g2_font_ncenB12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB14_TE
+	bool "u8g2_font_ncenB14_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB14_TF
+	bool "u8g2_font_ncenB14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB14_TN
+	bool "u8g2_font_ncenB14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB14_TR
+	bool "u8g2_font_ncenB14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB18_TE
+	bool "u8g2_font_ncenB18_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB18_TF
+	bool "u8g2_font_ncenB18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB18_TN
+	bool "u8g2_font_ncenB18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB18_TR
+	bool "u8g2_font_ncenB18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB24_TE
+	bool "u8g2_font_ncenB24_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB24_TF
+	bool "u8g2_font_ncenB24_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB24_TN
+	bool "u8g2_font_ncenB24_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENB24_TR
+	bool "u8g2_font_ncenB24_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR08_TE
+	bool "u8g2_font_ncenR08_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR08_TF
+	bool "u8g2_font_ncenR08_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR08_TN
+	bool "u8g2_font_ncenR08_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR08_TR
+	bool "u8g2_font_ncenR08_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR10_TE
+	bool "u8g2_font_ncenR10_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR10_TF
+	bool "u8g2_font_ncenR10_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR10_TN
+	bool "u8g2_font_ncenR10_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR10_TR
+	bool "u8g2_font_ncenR10_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR12_TE
+	bool "u8g2_font_ncenR12_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR12_TF
+	bool "u8g2_font_ncenR12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR12_TN
+	bool "u8g2_font_ncenR12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR12_TR
+	bool "u8g2_font_ncenR12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR14_TE
+	bool "u8g2_font_ncenR14_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR14_TF
+	bool "u8g2_font_ncenR14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR14_TN
+	bool "u8g2_font_ncenR14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR14_TR
+	bool "u8g2_font_ncenR14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR18_TE
+	bool "u8g2_font_ncenR18_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR18_TF
+	bool "u8g2_font_ncenR18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR18_TN
+	bool "u8g2_font_ncenR18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR18_TR
+	bool "u8g2_font_ncenR18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR24_TE
+	bool "u8g2_font_ncenR24_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR24_TF
+	bool "u8g2_font_ncenR24_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR24_TN
+	bool "u8g2_font_ncenR24_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NCENR24_TR
+	bool "u8g2_font_ncenR24_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NERHOE_TF
+	bool "u8g2_font_nerhoe_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NERHOE_TN
+	bool "u8g2_font_nerhoe_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NERHOE_TR
+	bool "u8g2_font_nerhoe_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NINE_BY_FIVE_NBP_T_ALL
+	bool "u8g2_font_nine_by_five_nbp_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NINE_BY_FIVE_NBP_TF
+	bool "u8g2_font_nine_by_five_nbp_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NINE_BY_FIVE_NBP_TN
+	bool "u8g2_font_nine_by_five_nbp_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NINE_BY_FIVE_NBP_TR
+	bool "u8g2_font_nine_by_five_nbp_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NOKIAFC22_TF
+	bool "u8g2_font_nokiafc22_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NOKIAFC22_TN
+	bool "u8g2_font_nokiafc22_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NOKIAFC22_TR
+	bool "u8g2_font_nokiafc22_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_NOKIAFC22_TU
+	bool "u8g2_font_nokiafc22_tu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OLDWIZARD_TF
+	bool "u8g2_font_oldwizard_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OLDWIZARD_TN
+	bool "u8g2_font_oldwizard_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OLDWIZARD_TR
+	bool "u8g2_font_oldwizard_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OLDWIZARD_TU
+	bool "u8g2_font_oldwizard_tu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_ALL_1X_T
+	bool "u8g2_font_open_iconic_all_1x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_ALL_2X_T
+	bool "u8g2_font_open_iconic_all_2x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_ALL_4X_T
+	bool "u8g2_font_open_iconic_all_4x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_ALL_6X_T
+	bool "u8g2_font_open_iconic_all_6x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_ALL_8X_T
+	bool "u8g2_font_open_iconic_all_8x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_APP_1X_T
+	bool "u8g2_font_open_iconic_app_1x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_APP_2X_T
+	bool "u8g2_font_open_iconic_app_2x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_APP_4X_T
+	bool "u8g2_font_open_iconic_app_4x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_APP_6X_T
+	bool "u8g2_font_open_iconic_app_6x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_APP_8X_T
+	bool "u8g2_font_open_iconic_app_8x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_ARROW_1X_T
+	bool "u8g2_font_open_iconic_arrow_1x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_ARROW_2X_T
+	bool "u8g2_font_open_iconic_arrow_2x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_ARROW_4X_T
+	bool "u8g2_font_open_iconic_arrow_4x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_ARROW_6X_T
+	bool "u8g2_font_open_iconic_arrow_6x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_ARROW_8X_T
+	bool "u8g2_font_open_iconic_arrow_8x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_CHECK_1X_T
+	bool "u8g2_font_open_iconic_check_1x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_CHECK_2X_T
+	bool "u8g2_font_open_iconic_check_2x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_CHECK_4X_T
+	bool "u8g2_font_open_iconic_check_4x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_CHECK_6X_T
+	bool "u8g2_font_open_iconic_check_6x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_CHECK_8X_T
+	bool "u8g2_font_open_iconic_check_8x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_EMAIL_1X_T
+	bool "u8g2_font_open_iconic_email_1x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_EMAIL_2X_T
+	bool "u8g2_font_open_iconic_email_2x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_EMAIL_4X_T
+	bool "u8g2_font_open_iconic_email_4x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_EMAIL_6X_T
+	bool "u8g2_font_open_iconic_email_6x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_EMAIL_8X_T
+	bool "u8g2_font_open_iconic_email_8x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_EMBEDDED_1X_T
+	bool "u8g2_font_open_iconic_embedded_1x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_EMBEDDED_2X_T
+	bool "u8g2_font_open_iconic_embedded_2x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_EMBEDDED_4X_T
+	bool "u8g2_font_open_iconic_embedded_4x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_EMBEDDED_6X_T
+	bool "u8g2_font_open_iconic_embedded_6x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_EMBEDDED_8X_T
+	bool "u8g2_font_open_iconic_embedded_8x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_GUI_1X_T
+	bool "u8g2_font_open_iconic_gui_1x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_GUI_2X_T
+	bool "u8g2_font_open_iconic_gui_2x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_GUI_4X_T
+	bool "u8g2_font_open_iconic_gui_4x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_GUI_6X_T
+	bool "u8g2_font_open_iconic_gui_6x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_GUI_8X_T
+	bool "u8g2_font_open_iconic_gui_8x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_HUMAN_1X_T
+	bool "u8g2_font_open_iconic_human_1x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_HUMAN_2X_T
+	bool "u8g2_font_open_iconic_human_2x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_HUMAN_4X_T
+	bool "u8g2_font_open_iconic_human_4x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_HUMAN_6X_T
+	bool "u8g2_font_open_iconic_human_6x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_HUMAN_8X_T
+	bool "u8g2_font_open_iconic_human_8x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_MIME_1X_T
+	bool "u8g2_font_open_iconic_mime_1x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_MIME_2X_T
+	bool "u8g2_font_open_iconic_mime_2x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_MIME_4X_T
+	bool "u8g2_font_open_iconic_mime_4x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_MIME_6X_T
+	bool "u8g2_font_open_iconic_mime_6x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_MIME_8X_T
+	bool "u8g2_font_open_iconic_mime_8x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_OTHER_1X_T
+	bool "u8g2_font_open_iconic_other_1x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_OTHER_2X_T
+	bool "u8g2_font_open_iconic_other_2x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_OTHER_4X_T
+	bool "u8g2_font_open_iconic_other_4x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_OTHER_6X_T
+	bool "u8g2_font_open_iconic_other_6x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_OTHER_8X_T
+	bool "u8g2_font_open_iconic_other_8x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_PLAY_1X_T
+	bool "u8g2_font_open_iconic_play_1x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_PLAY_2X_T
+	bool "u8g2_font_open_iconic_play_2x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_PLAY_4X_T
+	bool "u8g2_font_open_iconic_play_4x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_PLAY_6X_T
+	bool "u8g2_font_open_iconic_play_6x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_PLAY_8X_T
+	bool "u8g2_font_open_iconic_play_8x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_TEXT_1X_T
+	bool "u8g2_font_open_iconic_text_1x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_TEXT_2X_T
+	bool "u8g2_font_open_iconic_text_2x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_TEXT_4X_T
+	bool "u8g2_font_open_iconic_text_4x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_TEXT_6X_T
+	bool "u8g2_font_open_iconic_text_6x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_TEXT_8X_T
+	bool "u8g2_font_open_iconic_text_8x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_THING_1X_T
+	bool "u8g2_font_open_iconic_thing_1x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_THING_2X_T
+	bool "u8g2_font_open_iconic_thing_2x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_THING_4X_T
+	bool "u8g2_font_open_iconic_thing_4x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_THING_6X_T
+	bool "u8g2_font_open_iconic_thing_6x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_THING_8X_T
+	bool "u8g2_font_open_iconic_thing_8x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_WEATHER_1X_T
+	bool "u8g2_font_open_iconic_weather_1x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_WEATHER_2X_T
+	bool "u8g2_font_open_iconic_weather_2x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_WEATHER_4X_T
+	bool "u8g2_font_open_iconic_weather_4x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_WEATHER_6X_T
+	bool "u8g2_font_open_iconic_weather_6x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_WEATHER_8X_T
+	bool "u8g2_font_open_iconic_weather_8x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_WWW_1X_T
+	bool "u8g2_font_open_iconic_www_1x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_WWW_2X_T
+	bool "u8g2_font_open_iconic_www_2x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_WWW_4X_T
+	bool "u8g2_font_open_iconic_www_4x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_WWW_6X_T
+	bool "u8g2_font_open_iconic_www_6x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OPEN_ICONIC_WWW_8X_T
+	bool "u8g2_font_open_iconic_www_8x_t" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ORDINARYBASIS_T_ALL
+	bool "u8g2_font_ordinarybasis_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ORDINARYBASIS_TF
+	bool "u8g2_font_ordinarybasis_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ORDINARYBASIS_TN
+	bool "u8g2_font_ordinarybasis_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ORDINARYBASIS_TR
+	bool "u8g2_font_ordinarybasis_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSB18_TF
+	bool "u8g2_font_osb18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSB18_TN
+	bool "u8g2_font_osb18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSB18_TR
+	bool "u8g2_font_osb18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSB21_TF
+	bool "u8g2_font_osb21_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSB21_TN
+	bool "u8g2_font_osb21_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSB21_TR
+	bool "u8g2_font_osb21_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSB26_TF
+	bool "u8g2_font_osb26_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSB26_TN
+	bool "u8g2_font_osb26_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSB26_TR
+	bool "u8g2_font_osb26_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSB29_TF
+	bool "u8g2_font_osb29_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSB29_TN
+	bool "u8g2_font_osb29_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSB29_TR
+	bool "u8g2_font_osb29_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSB35_TF
+	bool "u8g2_font_osb35_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSB35_TN
+	bool "u8g2_font_osb35_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSB35_TR
+	bool "u8g2_font_osb35_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSB41_TF
+	bool "u8g2_font_osb41_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSB41_TN
+	bool "u8g2_font_osb41_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSB41_TR
+	bool "u8g2_font_osb41_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSKOOL_TF
+	bool "u8g2_font_oskool_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSKOOL_TN
+	bool "u8g2_font_oskool_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSKOOL_TR
+	bool "u8g2_font_oskool_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSR18_TF
+	bool "u8g2_font_osr18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSR18_TN
+	bool "u8g2_font_osr18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSR18_TR
+	bool "u8g2_font_osr18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSR21_TF
+	bool "u8g2_font_osr21_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSR21_TN
+	bool "u8g2_font_osr21_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSR21_TR
+	bool "u8g2_font_osr21_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSR26_TF
+	bool "u8g2_font_osr26_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSR26_TN
+	bool "u8g2_font_osr26_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSR26_TR
+	bool "u8g2_font_osr26_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSR29_TF
+	bool "u8g2_font_osr29_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSR29_TN
+	bool "u8g2_font_osr29_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSR29_TR
+	bool "u8g2_font_osr29_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSR35_TF
+	bool "u8g2_font_osr35_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSR35_TN
+	bool "u8g2_font_osr35_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSR35_TR
+	bool "u8g2_font_osr35_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSR41_TF
+	bool "u8g2_font_osr41_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSR41_TN
+	bool "u8g2_font_osr41_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_OSR41_TR
+	bool "u8g2_font_osr41_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_P01TYPE_TF
+	bool "u8g2_font_p01type_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_P01TYPE_TN
+	bool "u8g2_font_p01type_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_P01TYPE_TR
+	bool "u8g2_font_p01type_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PCSENIOR_8F
+	bool "u8g2_font_pcsenior_8f" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PCSENIOR_8N
+	bool "u8g2_font_pcsenior_8n" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PCSENIOR_8R
+	bool "u8g2_font_pcsenior_8r" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PCSENIOR_8U
+	bool "u8g2_font_pcsenior_8u" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PEARFONT_TR
+	bool "u8g2_font_pearfont_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PIECEOFCAKE_MEL_TN
+	bool "u8g2_font_pieceofcake_mel_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PIECEOFCAKE_MEL_TR
+	bool "u8g2_font_pieceofcake_mel_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PIXELLE_MICRO_TN
+	bool "u8g2_font_pixelle_micro_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PIXELLE_MICRO_TR
+	bool "u8g2_font_pixelle_micro_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PIXELMORDRED_T_ALL
+	bool "u8g2_font_pixelmordred_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PIXELMORDRED_TF
+	bool "u8g2_font_pixelmordred_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PIXELMORDRED_TN
+	bool "u8g2_font_pixelmordred_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PIXELMORDRED_TR
+	bool "u8g2_font_pixelmordred_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PIXELPOIIZ_TR
+	bool "u8g2_font_pixelpoiiz_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PRESS_MEL_TN
+	bool "u8g2_font_press_mel_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PRESS_MEL_TR
+	bool "u8g2_font_press_mel_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PRESSSTART2P_8F
+	bool "u8g2_font_pressstart2p_8f" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PRESSSTART2P_8N
+	bool "u8g2_font_pressstart2p_8n" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PRESSSTART2P_8R
+	bool "u8g2_font_pressstart2p_8r" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PRESSSTART2P_8U
+	bool "u8g2_font_pressstart2p_8u" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT10_MF
+	bool "u8g2_font_profont10_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT10_MN
+	bool "u8g2_font_profont10_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT10_MR
+	bool "u8g2_font_profont10_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT10_TF
+	bool "u8g2_font_profont10_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT10_TN
+	bool "u8g2_font_profont10_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT10_TR
+	bool "u8g2_font_profont10_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT11_MF
+	bool "u8g2_font_profont11_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT11_MN
+	bool "u8g2_font_profont11_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT11_MR
+	bool "u8g2_font_profont11_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT11_TF
+	bool "u8g2_font_profont11_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT11_TN
+	bool "u8g2_font_profont11_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT11_TR
+	bool "u8g2_font_profont11_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT12_MF
+	bool "u8g2_font_profont12_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT12_MN
+	bool "u8g2_font_profont12_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT12_MR
+	bool "u8g2_font_profont12_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT12_TF
+	bool "u8g2_font_profont12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT12_TN
+	bool "u8g2_font_profont12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT12_TR
+	bool "u8g2_font_profont12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT15_MF
+	bool "u8g2_font_profont15_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT15_MN
+	bool "u8g2_font_profont15_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT15_MR
+	bool "u8g2_font_profont15_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT15_TF
+	bool "u8g2_font_profont15_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT15_TN
+	bool "u8g2_font_profont15_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT15_TR
+	bool "u8g2_font_profont15_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT17_MF
+	bool "u8g2_font_profont17_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT17_MN
+	bool "u8g2_font_profont17_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT17_MR
+	bool "u8g2_font_profont17_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT17_TF
+	bool "u8g2_font_profont17_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT17_TN
+	bool "u8g2_font_profont17_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT17_TR
+	bool "u8g2_font_profont17_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT22_MF
+	bool "u8g2_font_profont22_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT22_MN
+	bool "u8g2_font_profont22_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT22_MR
+	bool "u8g2_font_profont22_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT22_TF
+	bool "u8g2_font_profont22_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT22_TN
+	bool "u8g2_font_profont22_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT22_TR
+	bool "u8g2_font_profont22_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT29_MF
+	bool "u8g2_font_profont29_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT29_MN
+	bool "u8g2_font_profont29_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT29_MR
+	bool "u8g2_font_profont29_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT29_TF
+	bool "u8g2_font_profont29_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT29_TN
+	bool "u8g2_font_profont29_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROFONT29_TR
+	bool "u8g2_font_profont29_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROSPERO_BOLD_NBP_TF
+	bool "u8g2_font_prospero_bold_nbp_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROSPERO_BOLD_NBP_TN
+	bool "u8g2_font_prospero_bold_nbp_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROSPERO_BOLD_NBP_TR
+	bool "u8g2_font_prospero_bold_nbp_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROSPERO_NBP_TF
+	bool "u8g2_font_prospero_nbp_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROSPERO_NBP_TN
+	bool "u8g2_font_prospero_nbp_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PROSPERO_NBP_TR
+	bool "u8g2_font_prospero_nbp_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PX437WYSE700A_MF
+	bool "u8g2_font_px437wyse700a_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PX437WYSE700A_MN
+	bool "u8g2_font_px437wyse700a_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PX437WYSE700A_MR
+	bool "u8g2_font_px437wyse700a_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PX437WYSE700A_TF
+	bool "u8g2_font_px437wyse700a_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PX437WYSE700A_TN
+	bool "u8g2_font_px437wyse700a_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PX437WYSE700A_TR
+	bool "u8g2_font_px437wyse700a_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PX437WYSE700B_MF
+	bool "u8g2_font_px437wyse700b_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PX437WYSE700B_MN
+	bool "u8g2_font_px437wyse700b_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PX437WYSE700B_MR
+	bool "u8g2_font_px437wyse700b_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PX437WYSE700B_TF
+	bool "u8g2_font_px437wyse700b_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PX437WYSE700B_TN
+	bool "u8g2_font_px437wyse700b_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PX437WYSE700B_TR
+	bool "u8g2_font_px437wyse700b_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMCGA_8F
+	bool "u8g2_font_pxplusibmcga_8f" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMCGA_8N
+	bool "u8g2_font_pxplusibmcga_8n" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMCGA_8R
+	bool "u8g2_font_pxplusibmcga_8r" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMCGA_8U
+	bool "u8g2_font_pxplusibmcga_8u" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMCGATHIN_8F
+	bool "u8g2_font_pxplusibmcgathin_8f" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMCGATHIN_8N
+	bool "u8g2_font_pxplusibmcgathin_8n" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMCGATHIN_8R
+	bool "u8g2_font_pxplusibmcgathin_8r" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMCGATHIN_8U
+	bool "u8g2_font_pxplusibmcgathin_8u" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMVGA8_M_ALL
+	bool "u8g2_font_pxplusibmvga8_m_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMVGA8_MF
+	bool "u8g2_font_pxplusibmvga8_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMVGA8_MN
+	bool "u8g2_font_pxplusibmvga8_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMVGA8_MR
+	bool "u8g2_font_pxplusibmvga8_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMVGA8_T_ALL
+	bool "u8g2_font_pxplusibmvga8_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMVGA8_TF
+	bool "u8g2_font_pxplusibmvga8_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMVGA8_TN
+	bool "u8g2_font_pxplusibmvga8_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMVGA8_TR
+	bool "u8g2_font_pxplusibmvga8_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMVGA9_M_ALL
+	bool "u8g2_font_pxplusibmvga9_m_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMVGA9_MF
+	bool "u8g2_font_pxplusibmvga9_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMVGA9_MN
+	bool "u8g2_font_pxplusibmvga9_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMVGA9_MR
+	bool "u8g2_font_pxplusibmvga9_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMVGA9_T_ALL
+	bool "u8g2_font_pxplusibmvga9_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMVGA9_TF
+	bool "u8g2_font_pxplusibmvga9_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMVGA9_TN
+	bool "u8g2_font_pxplusibmvga9_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSIBMVGA9_TR
+	bool "u8g2_font_pxplusibmvga9_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSTANDYNEWTV_8_ALL
+	bool "u8g2_font_pxplustandynewtv_8_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSTANDYNEWTV_8F
+	bool "u8g2_font_pxplustandynewtv_8f" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSTANDYNEWTV_8N
+	bool "u8g2_font_pxplustandynewtv_8n" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSTANDYNEWTV_8R
+	bool "u8g2_font_pxplustandynewtv_8r" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSTANDYNEWTV_8U
+	bool "u8g2_font_pxplustandynewtv_8u" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_PXPLUSTANDYNEWTV_T_ALL
+	bool "u8g2_font_pxplustandynewtv_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_QUESTGIVER_TR
+	bool "u8g2_font_questgiver_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_REPRESS_MEL_TN
+	bool "u8g2_font_repress_mel_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_REPRESS_MEL_TR
+	bool "u8g2_font_repress_mel_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ROBOT_DE_NIRO_TF
+	bool "u8g2_font_robot_de_niro_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ROBOT_DE_NIRO_TN
+	bool "u8g2_font_robot_de_niro_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ROBOT_DE_NIRO_TR
+	bool "u8g2_font_robot_de_niro_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ROENTGEN_NBP_H_ALL
+	bool "u8g2_font_roentgen_nbp_h_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ROENTGEN_NBP_T_ALL
+	bool "u8g2_font_roentgen_nbp_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ROENTGEN_NBP_TF
+	bool "u8g2_font_roentgen_nbp_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ROENTGEN_NBP_TN
+	bool "u8g2_font_roentgen_nbp_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ROENTGEN_NBP_TR
+	bool "u8g2_font_roentgen_nbp_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ROSENCRANTZ_NBP_T_ALL
+	bool "u8g2_font_rosencrantz_nbp_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ROSENCRANTZ_NBP_TF
+	bool "u8g2_font_rosencrantz_nbp_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ROSENCRANTZ_NBP_TN
+	bool "u8g2_font_rosencrantz_nbp_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_ROSENCRANTZ_NBP_TR
+	bool "u8g2_font_rosencrantz_nbp_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SAIKYOSANSBOLD8_8N
+	bool "u8g2_font_saikyosansbold8_8n" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SAIKYOSANSBOLD8_8U
+	bool "u8g2_font_saikyosansbold8_8u" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SAMIM_10_T_ALL
+	bool "u8g2_font_samim_10_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SAMIM_12_T_ALL
+	bool "u8g2_font_samim_12_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SAMIM_14_T_ALL
+	bool "u8g2_font_samim_14_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SAMIM_16_T_ALL
+	bool "u8g2_font_samim_16_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SAMIM_FD_10_T_ALL
+	bool "u8g2_font_samim_fd_10_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SAMIM_FD_12_T_ALL
+	bool "u8g2_font_samim_fd_12_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SAMIM_FD_14_T_ALL
+	bool "u8g2_font_samim_fd_14_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SAMIM_FD_16_T_ALL
+	bool "u8g2_font_samim_fd_16_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SANDYFOREST_TN
+	bool "u8g2_font_sandyforest_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SANDYFOREST_TR
+	bool "u8g2_font_sandyforest_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SANDYFOREST_TU
+	bool "u8g2_font_sandyforest_tu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SECRETARYHAND_T_ALL
+	bool "u8g2_font_secretaryhand_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SECRETARYHAND_TF
+	bool "u8g2_font_secretaryhand_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SECRETARYHAND_TN
+	bool "u8g2_font_secretaryhand_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SECRETARYHAND_TR
+	bool "u8g2_font_secretaryhand_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SERAPHIMB1_TR
+	bool "u8g2_font_seraphimb1_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SHYLOCK_NBP_T_ALL
+	bool "u8g2_font_shylock_nbp_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SHYLOCK_NBP_TF
+	bool "u8g2_font_shylock_nbp_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SHYLOCK_NBP_TN
+	bool "u8g2_font_shylock_nbp_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SHYLOCK_NBP_TR
+	bool "u8g2_font_shylock_nbp_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SIJI_T_6X10
+	bool "u8g2_font_siji_t_6x10" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SIRCLIVE_TN
+	bool "u8g2_font_sirclive_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SIRCLIVE_TR
+	bool "u8g2_font_sirclive_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SIRCLIVETHEBOLD_TN
+	bool "u8g2_font_sirclivethebold_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SIRCLIVETHEBOLD_TR
+	bool "u8g2_font_sirclivethebold_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SMART_PATROL_NBP_TF
+	bool "u8g2_font_smart_patrol_nbp_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SMART_PATROL_NBP_TN
+	bool "u8g2_font_smart_patrol_nbp_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SMART_PATROL_NBP_TR
+	bool "u8g2_font_smart_patrol_nbp_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SQUIRREL_TN
+	bool "u8g2_font_squirrel_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SQUIRREL_TR
+	bool "u8g2_font_squirrel_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SQUIRREL_TU
+	bool "u8g2_font_squirrel_tu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_STICKER_MEL_TN
+	bool "u8g2_font_sticker_mel_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_STICKER_MEL_TR
+	bool "u8g2_font_sticker_mel_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SYNCHRONIZER_NBP_TF
+	bool "u8g2_font_synchronizer_nbp_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SYNCHRONIZER_NBP_TN
+	bool "u8g2_font_synchronizer_nbp_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_SYNCHRONIZER_NBP_TR
+	bool "u8g2_font_synchronizer_nbp_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_11_ME
+	bool "u8g2_font_t0_11_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_11_MF
+	bool "u8g2_font_t0_11_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_11_MN
+	bool "u8g2_font_t0_11_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_11_MR
+	bool "u8g2_font_t0_11_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_11_T_ALL
+	bool "u8g2_font_t0_11_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_11_TE
+	bool "u8g2_font_t0_11_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_11_TF
+	bool "u8g2_font_t0_11_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_11_TN
+	bool "u8g2_font_t0_11_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_11_TR
+	bool "u8g2_font_t0_11_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_11B_ME
+	bool "u8g2_font_t0_11b_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_11B_MF
+	bool "u8g2_font_t0_11b_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_11B_MN
+	bool "u8g2_font_t0_11b_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_11B_MR
+	bool "u8g2_font_t0_11b_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_11B_TE
+	bool "u8g2_font_t0_11b_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_11B_TF
+	bool "u8g2_font_t0_11b_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_11B_TN
+	bool "u8g2_font_t0_11b_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_11B_TR
+	bool "u8g2_font_t0_11b_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_12_ME
+	bool "u8g2_font_t0_12_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_12_MF
+	bool "u8g2_font_t0_12_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_12_MN
+	bool "u8g2_font_t0_12_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_12_MR
+	bool "u8g2_font_t0_12_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_12_TE
+	bool "u8g2_font_t0_12_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_12_TF
+	bool "u8g2_font_t0_12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_12_TN
+	bool "u8g2_font_t0_12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_12_TR
+	bool "u8g2_font_t0_12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_12B_ME
+	bool "u8g2_font_t0_12b_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_12B_MF
+	bool "u8g2_font_t0_12b_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_12B_MN
+	bool "u8g2_font_t0_12b_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_12B_MR
+	bool "u8g2_font_t0_12b_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_12B_TE
+	bool "u8g2_font_t0_12b_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_12B_TF
+	bool "u8g2_font_t0_12b_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_12B_TN
+	bool "u8g2_font_t0_12b_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_12B_TR
+	bool "u8g2_font_t0_12b_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_13_ME
+	bool "u8g2_font_t0_13_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_13_MF
+	bool "u8g2_font_t0_13_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_13_MN
+	bool "u8g2_font_t0_13_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_13_MR
+	bool "u8g2_font_t0_13_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_13_TE
+	bool "u8g2_font_t0_13_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_13_TF
+	bool "u8g2_font_t0_13_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_13_TN
+	bool "u8g2_font_t0_13_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_13_TR
+	bool "u8g2_font_t0_13_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_13B_ME
+	bool "u8g2_font_t0_13b_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_13B_MF
+	bool "u8g2_font_t0_13b_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_13B_MN
+	bool "u8g2_font_t0_13b_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_13B_MR
+	bool "u8g2_font_t0_13b_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_13B_TE
+	bool "u8g2_font_t0_13b_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_13B_TF
+	bool "u8g2_font_t0_13b_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_13B_TN
+	bool "u8g2_font_t0_13b_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_13B_TR
+	bool "u8g2_font_t0_13b_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_14_ME
+	bool "u8g2_font_t0_14_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_14_MF
+	bool "u8g2_font_t0_14_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_14_MN
+	bool "u8g2_font_t0_14_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_14_MR
+	bool "u8g2_font_t0_14_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_14_TE
+	bool "u8g2_font_t0_14_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_14_TF
+	bool "u8g2_font_t0_14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_14_TN
+	bool "u8g2_font_t0_14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_14_TR
+	bool "u8g2_font_t0_14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_14B_ME
+	bool "u8g2_font_t0_14b_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_14B_MF
+	bool "u8g2_font_t0_14b_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_14B_MN
+	bool "u8g2_font_t0_14b_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_14B_MR
+	bool "u8g2_font_t0_14b_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_14B_TE
+	bool "u8g2_font_t0_14b_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_14B_TF
+	bool "u8g2_font_t0_14b_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_14B_TN
+	bool "u8g2_font_t0_14b_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_14B_TR
+	bool "u8g2_font_t0_14b_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_15_ME
+	bool "u8g2_font_t0_15_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_15_MF
+	bool "u8g2_font_t0_15_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_15_MN
+	bool "u8g2_font_t0_15_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_15_MR
+	bool "u8g2_font_t0_15_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_15_TE
+	bool "u8g2_font_t0_15_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_15_TF
+	bool "u8g2_font_t0_15_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_15_TN
+	bool "u8g2_font_t0_15_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_15_TR
+	bool "u8g2_font_t0_15_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_15B_ME
+	bool "u8g2_font_t0_15b_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_15B_MF
+	bool "u8g2_font_t0_15b_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_15B_MN
+	bool "u8g2_font_t0_15b_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_15B_MR
+	bool "u8g2_font_t0_15b_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_15B_TE
+	bool "u8g2_font_t0_15b_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_15B_TF
+	bool "u8g2_font_t0_15b_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_15B_TN
+	bool "u8g2_font_t0_15b_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_15B_TR
+	bool "u8g2_font_t0_15b_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_16_ME
+	bool "u8g2_font_t0_16_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_16_MF
+	bool "u8g2_font_t0_16_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_16_MN
+	bool "u8g2_font_t0_16_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_16_MR
+	bool "u8g2_font_t0_16_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_16_TE
+	bool "u8g2_font_t0_16_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_16_TF
+	bool "u8g2_font_t0_16_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_16_TN
+	bool "u8g2_font_t0_16_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_16_TR
+	bool "u8g2_font_t0_16_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_16B_ME
+	bool "u8g2_font_t0_16b_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_16B_MF
+	bool "u8g2_font_t0_16b_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_16B_MN
+	bool "u8g2_font_t0_16b_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_16B_MR
+	bool "u8g2_font_t0_16b_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_16B_TE
+	bool "u8g2_font_t0_16b_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_16B_TF
+	bool "u8g2_font_t0_16b_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_16B_TN
+	bool "u8g2_font_t0_16b_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_16B_TR
+	bool "u8g2_font_t0_16b_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_17_ME
+	bool "u8g2_font_t0_17_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_17_MF
+	bool "u8g2_font_t0_17_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_17_MN
+	bool "u8g2_font_t0_17_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_17_MR
+	bool "u8g2_font_t0_17_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_17_TE
+	bool "u8g2_font_t0_17_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_17_TF
+	bool "u8g2_font_t0_17_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_17_TN
+	bool "u8g2_font_t0_17_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_17_TR
+	bool "u8g2_font_t0_17_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_17B_ME
+	bool "u8g2_font_t0_17b_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_17B_MF
+	bool "u8g2_font_t0_17b_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_17B_MN
+	bool "u8g2_font_t0_17b_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_17B_MR
+	bool "u8g2_font_t0_17b_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_17B_TE
+	bool "u8g2_font_t0_17b_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_17B_TF
+	bool "u8g2_font_t0_17b_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_17B_TN
+	bool "u8g2_font_t0_17b_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_17B_TR
+	bool "u8g2_font_t0_17b_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_18_ME
+	bool "u8g2_font_t0_18_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_18_MF
+	bool "u8g2_font_t0_18_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_18_MN
+	bool "u8g2_font_t0_18_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_18_MR
+	bool "u8g2_font_t0_18_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_18_TE
+	bool "u8g2_font_t0_18_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_18_TF
+	bool "u8g2_font_t0_18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_18_TN
+	bool "u8g2_font_t0_18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_18_TR
+	bool "u8g2_font_t0_18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_18B_ME
+	bool "u8g2_font_t0_18b_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_18B_MF
+	bool "u8g2_font_t0_18b_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_18B_MN
+	bool "u8g2_font_t0_18b_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_18B_MR
+	bool "u8g2_font_t0_18b_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_18B_TE
+	bool "u8g2_font_t0_18b_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_18B_TF
+	bool "u8g2_font_t0_18b_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_18B_TN
+	bool "u8g2_font_t0_18b_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_18B_TR
+	bool "u8g2_font_t0_18b_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_22_ME
+	bool "u8g2_font_t0_22_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_22_MF
+	bool "u8g2_font_t0_22_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_22_MN
+	bool "u8g2_font_t0_22_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_22_MR
+	bool "u8g2_font_t0_22_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_22_TE
+	bool "u8g2_font_t0_22_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_22_TF
+	bool "u8g2_font_t0_22_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_22_TN
+	bool "u8g2_font_t0_22_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_22_TR
+	bool "u8g2_font_t0_22_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_22B_ME
+	bool "u8g2_font_t0_22b_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_22B_MF
+	bool "u8g2_font_t0_22b_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_22B_MN
+	bool "u8g2_font_t0_22b_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_22B_MR
+	bool "u8g2_font_t0_22b_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_22B_TE
+	bool "u8g2_font_t0_22b_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_22B_TF
+	bool "u8g2_font_t0_22b_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_22B_TN
+	bool "u8g2_font_t0_22b_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_T0_22B_TR
+	bool "u8g2_font_t0_22b_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TALLPIX_TR
+	bool "u8g2_font_tallpix_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TENFATGUYS_T_ALL
+	bool "u8g2_font_tenfatguys_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TENFATGUYS_TF
+	bool "u8g2_font_tenfatguys_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TENFATGUYS_TN
+	bool "u8g2_font_tenfatguys_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TENFATGUYS_TR
+	bool "u8g2_font_tenfatguys_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TENFATGUYS_TU
+	bool "u8g2_font_tenfatguys_tu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TENSTAMPS_MF
+	bool "u8g2_font_tenstamps_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TENSTAMPS_MN
+	bool "u8g2_font_tenstamps_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TENSTAMPS_MR
+	bool "u8g2_font_tenstamps_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TENSTAMPS_MU
+	bool "u8g2_font_tenstamps_mu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TENTHINGUYS_T_ALL
+	bool "u8g2_font_tenthinguys_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TENTHINGUYS_TF
+	bool "u8g2_font_tenthinguys_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TENTHINGUYS_TN
+	bool "u8g2_font_tenthinguys_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TENTHINGUYS_TR
+	bool "u8g2_font_tenthinguys_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TENTHINGUYS_TU
+	bool "u8g2_font_tenthinguys_tu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TENTHINNERGUYS_T_ALL
+	bool "u8g2_font_tenthinnerguys_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TENTHINNERGUYS_TF
+	bool "u8g2_font_tenthinnerguys_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TENTHINNERGUYS_TN
+	bool "u8g2_font_tenthinnerguys_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TENTHINNERGUYS_TR
+	bool "u8g2_font_tenthinnerguys_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TENTHINNERGUYS_TU
+	bool "u8g2_font_tenthinnerguys_tu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMB08_TF
+	bool "u8g2_font_timB08_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMB08_TN
+	bool "u8g2_font_timB08_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMB08_TR
+	bool "u8g2_font_timB08_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMB10_TF
+	bool "u8g2_font_timB10_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMB10_TN
+	bool "u8g2_font_timB10_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMB10_TR
+	bool "u8g2_font_timB10_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMB12_TF
+	bool "u8g2_font_timB12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMB12_TN
+	bool "u8g2_font_timB12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMB12_TR
+	bool "u8g2_font_timB12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMB14_TF
+	bool "u8g2_font_timB14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMB14_TN
+	bool "u8g2_font_timB14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMB14_TR
+	bool "u8g2_font_timB14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMB18_TF
+	bool "u8g2_font_timB18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMB18_TN
+	bool "u8g2_font_timB18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMB18_TR
+	bool "u8g2_font_timB18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMB24_TF
+	bool "u8g2_font_timB24_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMB24_TN
+	bool "u8g2_font_timB24_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMB24_TR
+	bool "u8g2_font_timB24_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMR08_TF
+	bool "u8g2_font_timR08_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMR08_TN
+	bool "u8g2_font_timR08_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMR08_TR
+	bool "u8g2_font_timR08_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMR10_TF
+	bool "u8g2_font_timR10_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMR10_TN
+	bool "u8g2_font_timR10_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMR10_TR
+	bool "u8g2_font_timR10_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMR12_TF
+	bool "u8g2_font_timR12_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMR12_TN
+	bool "u8g2_font_timR12_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMR12_TR
+	bool "u8g2_font_timR12_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMR14_TF
+	bool "u8g2_font_timR14_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMR14_TN
+	bool "u8g2_font_timR14_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMR14_TR
+	bool "u8g2_font_timR14_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMR18_TF
+	bool "u8g2_font_timR18_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMR18_TN
+	bool "u8g2_font_timR18_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMR18_TR
+	bool "u8g2_font_timR18_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMR24_TF
+	bool "u8g2_font_timR24_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMR24_TN
+	bool "u8g2_font_timR24_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TIMR24_TR
+	bool "u8g2_font_timR24_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TINYTIM_TF
+	bool "u8g2_font_tinytim_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TINYTIM_TN
+	bool "u8g2_font_tinytim_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TINYTIM_TR
+	bool "u8g2_font_tinytim_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TOM_THUMB_4X6_ME
+	bool "u8g2_font_tom_thumb_4x6_me" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TOM_THUMB_4X6_MF
+	bool "u8g2_font_tom_thumb_4x6_mf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TOM_THUMB_4X6_MN
+	bool "u8g2_font_tom_thumb_4x6_mn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TOM_THUMB_4X6_MR
+	bool "u8g2_font_tom_thumb_4x6_mr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TOM_THUMB_4X6_T_ALL
+	bool "u8g2_font_tom_thumb_4x6_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TOM_THUMB_4X6_TE
+	bool "u8g2_font_tom_thumb_4x6_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TOM_THUMB_4X6_TF
+	bool "u8g2_font_tom_thumb_4x6_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TOM_THUMB_4X6_TN
+	bool "u8g2_font_tom_thumb_4x6_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TOM_THUMB_4X6_TR
+	bool "u8g2_font_tom_thumb_4x6_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TOOSEORNAMENT_TF
+	bool "u8g2_font_tooseornament_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TOOSEORNAMENT_TN
+	bool "u8g2_font_tooseornament_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TOOSEORNAMENT_TR
+	bool "u8g2_font_tooseornament_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TORUSSANSBOLD8_8N
+	bool "u8g2_font_torussansbold8_8n" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TORUSSANSBOLD8_8R
+	bool "u8g2_font_torussansbold8_8r" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TORUSSANSBOLD8_8U
+	bool "u8g2_font_torussansbold8_8u" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TRIXEL_SQUARE_TF
+	bool "u8g2_font_trixel_square_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TRIXEL_SQUARE_TN
+	bool "u8g2_font_trixel_square_tn" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TRIXEL_SQUARE_TR
+	bool "u8g2_font_trixel_square_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_TWELVEDINGS_T_ALL
+	bool "u8g2_font_twelvedings_t_all" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_U8GLIB_4_HF
+	bool "u8g2_font_u8glib_4_hf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_U8GLIB_4_HR
+	bool "u8g2_font_u8glib_4_hr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_U8GLIB_4_TF
+	bool "u8g2_font_u8glib_4_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_U8GLIB_4_TR
+	bool "u8g2_font_u8glib_4_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_H_SYMBOLS
+	bool "u8g2_font_unifont_h_symbols" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_0_72_73
+	bool "u8g2_font_unifont_t_0_72_73" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_0_75
+	bool "u8g2_font_unifont_t_0_75" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_0_76
+	bool "u8g2_font_unifont_t_0_76" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_0_77
+	bool "u8g2_font_unifont_t_0_77" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_0_78_79
+	bool "u8g2_font_unifont_t_0_78_79" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_0_86
+	bool "u8g2_font_unifont_t_0_86" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_72_73
+	bool "u8g2_font_unifont_t_72_73" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_75
+	bool "u8g2_font_unifont_t_75" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_76
+	bool "u8g2_font_unifont_t_76" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_77
+	bool "u8g2_font_unifont_t_77" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_78_79
+	bool "u8g2_font_unifont_t_78_79" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_86
+	bool "u8g2_font_unifont_t_86" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_ANIMALS
+	bool "u8g2_font_unifont_t_animals" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_ARABIC
+	bool "u8g2_font_unifont_t_arabic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_BENGALI
+	bool "u8g2_font_unifont_t_bengali" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_CARDS
+	bool "u8g2_font_unifont_t_cards" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_CHINESE1
+	bool "u8g2_font_unifont_t_chinese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_CHINESE2
+	bool "u8g2_font_unifont_t_chinese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_CHINESE3
+	bool "u8g2_font_unifont_t_chinese3" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_CYRILLIC
+	bool "u8g2_font_unifont_t_cyrillic" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_DEVANAGARI
+	bool "u8g2_font_unifont_t_devanagari" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_DOMINO
+	bool "u8g2_font_unifont_t_domino" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_EMOTICONS
+	bool "u8g2_font_unifont_t_emoticons" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_EXTENDED
+	bool "u8g2_font_unifont_t_extended" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_GREEK
+	bool "u8g2_font_unifont_t_greek" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_HEBREW
+	bool "u8g2_font_unifont_t_hebrew" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_JAPANESE1
+	bool "u8g2_font_unifont_t_japanese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_JAPANESE2
+	bool "u8g2_font_unifont_t_japanese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_JAPANESE3
+	bool "u8g2_font_unifont_t_japanese3" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_KOREAN1
+	bool "u8g2_font_unifont_t_korean1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_KOREAN2
+	bool "u8g2_font_unifont_t_korean2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_LATIN
+	bool "u8g2_font_unifont_t_latin" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_POLISH
+	bool "u8g2_font_unifont_t_polish" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_SYMBOLS
+	bool "u8g2_font_unifont_t_symbols" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_TIBETAN
+	bool "u8g2_font_unifont_t_tibetan" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_URDU
+	bool "u8g2_font_unifont_t_urdu" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_VIETNAMESE1
+	bool "u8g2_font_unifont_t_vietnamese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_VIETNAMESE2
+	bool "u8g2_font_unifont_t_vietnamese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_T_WEATHER
+	bool "u8g2_font_unifont_t_weather" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_TE
+	bool "u8g2_font_unifont_te" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_TF
+	bool "u8g2_font_unifont_tf" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_UNIFONT_TR
+	bool "u8g2_font_unifont_tr" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_VICTORIABOLD8_8N
+	bool "u8g2_font_victoriabold8_8n" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_VICTORIABOLD8_8R
+	bool "u8g2_font_victoriabold8_8r" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_VICTORIABOLD8_8U
+	bool "u8g2_font_victoriabold8_8u" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_VICTORIAMEDIUM8_8N
+	bool "u8g2_font_victoriamedium8_8n" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_VICTORIAMEDIUM8_8R
+	bool "u8g2_font_victoriamedium8_8r" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_VICTORIAMEDIUM8_8U
+	bool "u8g2_font_victoriamedium8_8u" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY12_T_CHINESE1
+	bool "u8g2_font_wqy12_t_chinese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY12_T_CHINESE2
+	bool "u8g2_font_wqy12_t_chinese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY12_T_CHINESE3
+	bool "u8g2_font_wqy12_t_chinese3" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY12_T_GB2312
+	bool "u8g2_font_wqy12_t_gb2312" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY12_T_GB2312A
+	bool "u8g2_font_wqy12_t_gb2312a" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY12_T_GB2312B
+	bool "u8g2_font_wqy12_t_gb2312b" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY13_T_CHINESE1
+	bool "u8g2_font_wqy13_t_chinese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY13_T_CHINESE2
+	bool "u8g2_font_wqy13_t_chinese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY13_T_CHINESE3
+	bool "u8g2_font_wqy13_t_chinese3" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY13_T_GB2312
+	bool "u8g2_font_wqy13_t_gb2312" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY13_T_GB2312A
+	bool "u8g2_font_wqy13_t_gb2312a" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY13_T_GB2312B
+	bool "u8g2_font_wqy13_t_gb2312b" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY14_T_CHINESE1
+	bool "u8g2_font_wqy14_t_chinese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY14_T_CHINESE2
+	bool "u8g2_font_wqy14_t_chinese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY14_T_CHINESE3
+	bool "u8g2_font_wqy14_t_chinese3" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY14_T_GB2312
+	bool "u8g2_font_wqy14_t_gb2312" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY14_T_GB2312A
+	bool "u8g2_font_wqy14_t_gb2312a" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY14_T_GB2312B
+	bool "u8g2_font_wqy14_t_gb2312b" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY15_T_CHINESE1
+	bool "u8g2_font_wqy15_t_chinese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY15_T_CHINESE2
+	bool "u8g2_font_wqy15_t_chinese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY15_T_CHINESE3
+	bool "u8g2_font_wqy15_t_chinese3" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY15_T_GB2312
+	bool "u8g2_font_wqy15_t_gb2312" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY15_T_GB2312A
+	bool "u8g2_font_wqy15_t_gb2312a" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY15_T_GB2312B
+	bool "u8g2_font_wqy15_t_gb2312b" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY16_T_CHINESE1
+	bool "u8g2_font_wqy16_t_chinese1" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY16_T_CHINESE2
+	bool "u8g2_font_wqy16_t_chinese2" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY16_T_CHINESE3
+	bool "u8g2_font_wqy16_t_chinese3" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY16_T_GB2312
+	bool "u8g2_font_wqy16_t_gb2312" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY16_T_GB2312A
+	bool "u8g2_font_wqy16_t_gb2312a" if !U8G2_FONT_ALL
+
+config U8G2_FONT_U8G2_FONT_WQY16_T_GB2312B
+	bool "u8g2_font_wqy16_t_gb2312b" if !U8G2_FONT_ALL
+

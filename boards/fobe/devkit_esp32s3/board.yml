@@ -1,0 +1,6 @@
+board:
+  name: devkit_esp32s3
+  full_name: DevKit ESP32S3
+  vendor: fobe
+  socs:
+  - name: esp32s3

@@ -1,0 +1,20 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+#
+# FoBE-owned test fixture for ZUI predictive 12-key input.
+
+good 1000
+go 950
+home 900
+gone 800
+hood 700
+hone 600
+goof 500
+hoof 400
+inne 300
+gome 200
+ioof 100
+cat 90
+bat 80
+dog 70
+in 10

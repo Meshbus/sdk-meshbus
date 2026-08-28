@@ -1,0 +1,8 @@
+menu "Subsystems"
+
+rsource "dfu/Kconfig"
+rsource "meshbus/Kconfig"
+rsource "u8g2/Kconfig"
+rsource "zui/Kconfig"
+
+endmenu

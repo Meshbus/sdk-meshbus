@@ -1,0 +1,22 @@
+tests:
+  subsys.meshbus.system.message.endpoint.c2:
+    tags:
+      - meshbus
+      - message
+      - system
+    build_only: true
+    platform_allow:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp
+    integration_platforms:
+      - idea_mesh_tracker_c2/nrf54l15/cpuapp
+  subsys.meshbus.system.message.endpoint.devkit_nrf54l15:
+    tags:
+      - meshbus
+      - meshcore
+      - message
+      - system
+    build_only: true
+    platform_allow:
+      - devkit_nrf54l15/nrf54l15/cpuapp
+    integration_platforms:
+      - devkit_nrf54l15/nrf54l15/cpuapp

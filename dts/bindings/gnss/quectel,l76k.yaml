@@ -1,0 +1,30 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  Quectel L76K GNSS modem based on CASIC AT6558R chipset.
+  Supports GPS, GLONASS, BeiDou, and QZSS constellations.
+
+compatible: quectel,l76k
+
+include:
+  - uart-device.yaml
+
+properties:
+  pps-gpios:
+    type: phandle-array
+    description: |
+      GPIO connected to the PPS (Pulse Per Second) output pin.
+      Used for precise time synchronization.
+
+  reset-gpios:
+    type: phandle-array
+    description: |
+      GPIO connected to the RESET pin.
+      Used for hardware reset of the module.
+
+  wakeup-gpios:
+    type: phandle-array
+    description: |
+      GPIO connected to the WAKEUP pin.
+      Used to wake the module from low power mode.

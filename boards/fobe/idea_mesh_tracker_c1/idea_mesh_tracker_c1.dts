@@ -1,0 +1,13 @@
+/*
+ * Copyright (c) 2025 Chiho Sin
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+#include "idea_mesh_tracker_c1_common.dtsi"
+
+/ {
+	model = "FoBE IDEA Mesh Tracker C1";
+	compatible = "fobe,idea_mesh_tracker_c1";
+};

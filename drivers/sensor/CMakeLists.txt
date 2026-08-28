@@ -1,0 +1,6 @@
+add_subdirectory_ifdef(CONFIG_ANALOG_LIGHT analog_light)
+add_subdirectory_ifdef(CONFIG_COMPASS_COMPOSITE composite)
+add_subdirectory_ifdef(CONFIG_FOBE_LSM6DS3_FAMILY st/lsm6ds3_family)
+add_subdirectory_ifdef(CONFIG_SENSOR ecsense)
+add_subdirectory_ifdef(CONFIG_SENSOR ion)
+add_subdirectory_ifdef(CONFIG_SENSOR qst)

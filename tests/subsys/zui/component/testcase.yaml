@@ -1,0 +1,18 @@
+tests:
+  zui.component:
+    platform_allow: qemu_x86
+    tags:
+      - zui
+      - component
+  zui.component.keypad_disabled:
+    platform_allow: qemu_x86
+    extra_args: CONF_FILE=prj_keypad_disabled.conf
+    tags:
+      - zui
+      - component
+  zui.component.predictive_only:
+    platform_allow: qemu_x86
+    extra_args: CONF_FILE=prj_predictive_only.conf
+    tags:
+      - zui
+      - component
