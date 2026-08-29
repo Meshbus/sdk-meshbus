@@ -111,7 +111,7 @@ config MESHBUS_FIRMWARE_MCUMGR_IMAGE
 	  transport that dispatched it. Each configured SMP transport or adapter
 	  owns its own group-exposure policy. Permanent activation of an image that
 	  has not booted is deliberately disabled; the candidate must boot in test
-	  mode and pass role health before Firmware confirms it.
+	  mode before the application can ask Firmware to confirm it.
 
 config MESHBUS_FIRMWARE_ASSUME_SAFE_POWER
 	bool "Assume a stable external power source"
@@ -121,19 +121,6 @@ config MESHBUS_FIRMWARE_ASSUME_SAFE_POWER
 	  Meshbus Power service or fuel-gauge/charger telemetry. Production
 	  targets should leave this disabled and remain fail-closed until the
 	  Power service reports an online or charging external source.
-
-config MESHBUS_FIRMWARE_COMMON_ENGINEERING_HEALTH_CONFIRM
-	bool "Confirm the qualified repeater DevKit engineering candidate"
-	default n
-	depends on BOARD_DEVKIT_NRF54L15
-	depends on MESHBUS_MESHCORE_ROLE_REPEATER
-	depends on MESHBUS_MESHCORE_RUNTIME
-	depends on MESHBUS_RADIO && MESHBUS_CONTACT
-	help
-	  Enable the narrow, engineering-only role health gate qualified for the
-	  nRF54L15 repeater DevKit fixture. Room, sensor, and C2 product profiles
-	  must provide their own retained-service health evidence before enabling
-	  automatic MCUboot confirmation.
 
 config MESHBUS_FIRMWARE_APPLY_STACK_SIZE
 	int

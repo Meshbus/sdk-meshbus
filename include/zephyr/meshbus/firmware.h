@@ -293,19 +293,19 @@ void meshbus_firmware_power_policy_set(bool safe_to_receive, bool safe_to_apply,
 				    bool shutdown_pending);
 
 /**
- * @brief Report complete role health for the current testing candidate.
+ * @brief Accept or reject the current testing candidate.
  *
  * Confirmation is permitted only in @ref MESHBUS_FIRMWARE_STATE_TESTING and only
  * when the running application version matches the manifest target version.
  *
- * @param healthy True only after every required role-specific health check passes.
+ * @param healthy True when the application accepts the running candidate.
  *
  * @retval 0 Candidate is confirmed and the durable state is updated.
  * @retval -EALREADY The candidate was already confirmed.
  * @retval -EACCES The FIRMWARE lifecycle is not testing a candidate.
  * @retval -EAGAIN Target power or shutdown policy temporarily blocks confirmation.
  * @retval -EXDEV Running application version differs from the manifest target.
- * @retval -EHOSTDOWN Required role health failed.
+ * @retval -EHOSTDOWN The application rejected the running candidate.
  * @retval -ENODEV Persistent state did not load, so the service is fail-closed.
  * @return Another negative errno on MCUboot confirmation or journal failure.
  */

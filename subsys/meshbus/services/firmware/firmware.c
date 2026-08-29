@@ -180,6 +180,18 @@ static int journal_commit(void)
 	return journal_commit_candidate(&candidate);
 }
 
+/* Caller holds operation_lock. */
+static int journal_recover_pending_arm(void)
+{
+	k_mutex_lock(&runtime.state_lock, K_FOREVER);
+	runtime.journal.state = MESHBUS_FIRMWARE_STATE_PENDING_REBOOT;
+	runtime.journal.result = MESHBUS_FIRMWARE_RESULT_OK;
+	runtime.journal.detail = 0;
+	runtime.journal.reboot_intent = 0U;
+	k_mutex_unlock(&runtime.state_lock);
+	return journal_commit();
+}
+
 /* Caller holds operation_lock. Publishes durable progress only after flash succeeds. */
 static int journal_checkpoint(uint32_t durable_received)
 {
@@ -401,6 +413,8 @@ static void apply_handler(struct k_work *work)
 	struct meshbus_firmware_manifest manifest;
 	uint8_t image_public_key[32];
 	enum meshbus_firmware_result power_result = MESHBUS_FIRMWARE_RESULT_OK;
+	bool candidate_armed = false;
+	bool arm_state_uncertain = false;
 	bool power_rejected = false;
 	int rc;
 	int commit_rc;
@@ -460,7 +474,23 @@ static void apply_handler(struct k_work *work)
 		k_mutex_unlock(&runtime.state_lock);
 	}
 	if (rc == 0) {
-		rc = flash_delta_patch_arm();
+		int arm_rc = flash_delta_patch_arm();
+		int swap_type = mcuboot_swap_type();
+
+		candidate_armed = swap_type == BOOT_SWAP_TYPE_TEST;
+		if (candidate_armed) {
+			if (arm_rc != 0) {
+				LOG_WRN("Arm rc=%d but MCUboot swap type=%d",
+					arm_rc, swap_type);
+			}
+			rc = 0;
+		} else if (swap_type == BOOT_SWAP_TYPE_NONE) {
+			rc = arm_rc != 0 ? arm_rc : -EIO;
+		} else {
+			arm_state_uncertain = true;
+			rc = arm_rc != 0 ? arm_rc :
+				(swap_type < 0 ? swap_type : -EIO);
+		}
 	}
 
 	k_mutex_lock(&runtime.state_lock, K_FOREVER);
@@ -471,6 +501,10 @@ static void apply_handler(struct k_work *work)
 	} else if (power_rejected) {
 		runtime.journal.state = MESHBUS_FIRMWARE_STATE_VERIFIED;
 		runtime.journal.result = power_result;
+		runtime.journal.detail = rc;
+	} else if (arm_state_uncertain) {
+		runtime.journal.state = MESHBUS_FIRMWARE_STATE_APPLYING;
+		runtime.journal.result = MESHBUS_FIRMWARE_RESULT_FLASH;
 		runtime.journal.detail = rc;
 	} else {
 		runtime.journal.state = MESHBUS_FIRMWARE_STATE_FAILED;
@@ -488,7 +522,13 @@ static void apply_handler(struct k_work *work)
 	commit_rc = journal_commit();
 	if (commit_rc != 0) {
 		k_mutex_lock(&runtime.state_lock, K_FOREVER);
-		runtime.journal.state = MESHBUS_FIRMWARE_STATE_FAILED;
+		runtime.journal.state = candidate_armed
+			? MESHBUS_FIRMWARE_STATE_PENDING_REBOOT
+			: (arm_state_uncertain ? MESHBUS_FIRMWARE_STATE_APPLYING
+					       : MESHBUS_FIRMWARE_STATE_FAILED);
+		if (candidate_armed) {
+			runtime.journal.reboot_intent = 0U;
+		}
 		runtime.journal.result = MESHBUS_FIRMWARE_RESULT_FLASH;
 		runtime.journal.detail = commit_rc;
 		k_mutex_unlock(&runtime.state_lock);
@@ -514,6 +554,12 @@ static bool update_state_owns_slot(enum meshbus_firmware_state state)
 	       state == MESHBUS_FIRMWARE_STATE_APPLYING ||
 	       state == MESHBUS_FIRMWARE_STATE_PENDING_REBOOT ||
 	       state == MESHBUS_FIRMWARE_STATE_TESTING;
+}
+
+static bool update_state_precedes_health(enum meshbus_firmware_state state)
+{
+	return state == MESHBUS_FIRMWARE_STATE_APPLYING ||
+	       state == MESHBUS_FIRMWARE_STATE_PENDING_REBOOT;
 }
 
 int meshbus_firmware_full_image_upload_admit(
@@ -582,6 +628,7 @@ static void full_image_state_commit(enum meshbus_firmware_state state,
 				    enum meshbus_firmware_result result,
 				    int detail)
 {
+	struct meshbus_firmware_journal candidate;
 	int rc;
 
 	if (!firmware_is_ready()) {
@@ -595,11 +642,18 @@ static void full_image_state_commit(enum meshbus_firmware_state state,
 		k_mutex_unlock(&runtime.operation_lock);
 		return;
 	}
-	runtime.journal.state = state;
-	runtime.journal.result = result;
-	runtime.journal.detail = detail;
+	candidate = runtime.journal;
+	candidate.state = state;
+	candidate.result = result;
+	candidate.detail = detail;
 	k_mutex_unlock(&runtime.state_lock);
-	rc = journal_commit();
+	rc = journal_commit_candidate(&candidate);
+	if (rc != 0) {
+		k_mutex_lock(&runtime.state_lock, K_FOREVER);
+		runtime.journal.result = MESHBUS_FIRMWARE_RESULT_FLASH;
+		runtime.journal.detail = rc;
+		k_mutex_unlock(&runtime.state_lock);
+	}
 	k_mutex_unlock(&runtime.operation_lock);
 	if (rc != 0) {
 		LOG_ERR("Full-image lifecycle checkpoint failed: %d", rc);
@@ -621,7 +675,7 @@ int meshbus_firmware_full_image_state_write_admit(void)
 		   runtime.journal.state != MESHBUS_FIRMWARE_STATE_STAGED) {
 		/* Only a fully received image may be armed for a test boot.  In
 		 * particular, reject active-image confirmation while the candidate is
-		 * TESTING: role health is the sole confirmation authority.
+		 * TESTING: the running application is the sole confirmation authority.
 		 */
 		rc = -EBUSY;
 	}
@@ -1077,6 +1131,9 @@ int meshbus_firmware_delta_apply(const uint8_t transfer_id[MESHBUS_FIRMWARE_TRAN
 	if (!transfer_matches_locked(transfer_id)) {
 		rc = -ENOENT;
 		runtime.journal.result = MESHBUS_FIRMWARE_RESULT_CONFLICT;
+	} else if (runtime.journal.state == MESHBUS_FIRMWARE_STATE_APPLYING &&
+		   runtime.journal.result == MESHBUS_FIRMWARE_RESULT_FLASH) {
+		rc = runtime.journal.detail != 0 ? runtime.journal.detail : -EIO;
 	} else if (runtime.journal.state == MESHBUS_FIRMWARE_STATE_APPLYING ||
 		   runtime.journal.state == MESHBUS_FIRMWARE_STATE_PENDING_REBOOT) {
 		runtime.journal.result = MESHBUS_FIRMWARE_RESULT_OK;
@@ -1318,6 +1375,26 @@ int meshbus_firmware_health_report(bool healthy)
 	k_mutex_lock(&runtime.operation_lock, K_FOREVER);
 	k_mutex_lock(&runtime.state_lock, K_FOREVER);
 	if (runtime.journal.state != MESHBUS_FIRMWARE_STATE_TESTING) {
+		if (healthy &&
+		    runtime.journal.state == MESHBUS_FIRMWARE_STATE_CONFIRMED &&
+		    runtime.journal.result == MESHBUS_FIRMWARE_RESULT_FLASH) {
+			if (shutdown_pending_locked() || !runtime.safe_to_apply) {
+				rc = -EAGAIN;
+				k_mutex_unlock(&runtime.state_lock);
+				goto out_operation;
+			}
+			runtime.journal.result = MESHBUS_FIRMWARE_RESULT_OK;
+			runtime.journal.detail = 0;
+			k_mutex_unlock(&runtime.state_lock);
+			rc = journal_commit();
+			if (rc != 0) {
+				k_mutex_lock(&runtime.state_lock, K_FOREVER);
+				runtime.journal.result = MESHBUS_FIRMWARE_RESULT_FLASH;
+				runtime.journal.detail = rc;
+				k_mutex_unlock(&runtime.state_lock);
+			}
+			goto out_operation;
+		}
 		rc = runtime.journal.state == MESHBUS_FIRMWARE_STATE_CONFIRMED
 			? -EALREADY : -EACCES;
 		k_mutex_unlock(&runtime.state_lock);
@@ -1378,7 +1455,17 @@ int meshbus_firmware_health_report(bool healthy)
 
 persist_failure:
 	if (commit_failure) {
-		(void)journal_commit();
+		int commit_rc = journal_commit();
+
+		if (commit_rc != 0) {
+			LOG_ERR("Failed to persist rejected candidate state: %d",
+				commit_rc);
+			k_mutex_lock(&runtime.state_lock, K_FOREVER);
+			runtime.journal.result = MESHBUS_FIRMWARE_RESULT_FLASH;
+			runtime.journal.detail = commit_rc;
+			k_mutex_unlock(&runtime.state_lock);
+			rc = commit_rc;
+		}
 	}
 
 out_operation:
@@ -1436,6 +1523,9 @@ MESHBUS_POWER_ACTION_CALLBACK_DEFINE(firmware_power_action_cb, NULL);
 
 static int firmware_init(void)
 {
+	uint8_t target_hash[MESHBUS_FIRMWARE_HASH_SIZE] = {0};
+	struct meshbus_firmware_version target_version = {0};
+	bool delta_target_running = false;
 	bool resume_apply = false;
 	bool initial_safe = IS_ENABLED(CONFIG_MESHBUS_FIRMWARE_ASSUME_SAFE_POWER);
 	enum meshbus_firmware_state state = MESHBUS_FIRMWARE_STATE_FAILED;
@@ -1469,47 +1559,99 @@ static int firmware_init(void)
 		k_mutex_lock(&runtime.state_lock, K_FOREVER);
 		state = runtime.journal.state;
 		update_kind = runtime.journal.update_kind;
-		resume_apply = update_kind == MESHBUS_FIRMWARE_UPDATE_KIND_DELTA &&
-			       state == MESHBUS_FIRMWARE_STATE_APPLYING;
+		if (update_kind == MESHBUS_FIRMWARE_UPDATE_KIND_DELTA &&
+		    (state == MESHBUS_FIRMWARE_STATE_APPLYING ||
+		     state == MESHBUS_FIRMWARE_STATE_PENDING_REBOOT ||
+		     state == MESHBUS_FIRMWARE_STATE_TESTING)) {
+			memcpy(target_hash,
+			       runtime.journal.manifest.target_hash,
+			       sizeof(target_hash));
+			target_version =
+				runtime.journal.manifest.target_version;
+		}
+		k_mutex_unlock(&runtime.state_lock);
+
+		if (update_kind == MESHBUS_FIRMWARE_UPDATE_KIND_DELTA &&
+		    (state == MESHBUS_FIRMWARE_STATE_APPLYING ||
+		     state == MESHBUS_FIRMWARE_STATE_PENDING_REBOOT ||
+		     state == MESHBUS_FIRMWARE_STATE_TESTING)) {
+			delta_target_running =
+				source_hash_validate(target_hash) == 0 &&
+				memcmp(&current, &target_version,
+				       sizeof(current)) == 0;
+			if (state == MESHBUS_FIRMWARE_STATE_APPLYING &&
+			    !delta_target_running) {
+				int swap_type = mcuboot_swap_type();
+
+				if (swap_type == BOOT_SWAP_TYPE_NONE) {
+					resume_apply = true;
+				} else if (swap_type == BOOT_SWAP_TYPE_TEST) {
+					rc = journal_recover_pending_arm();
+				} else {
+					rc = swap_type < 0 ? swap_type : -EIO;
+				}
+			}
+		}
 		reconcile = state == MESHBUS_FIRMWARE_STATE_PENDING_REBOOT ||
 			    state == MESHBUS_FIRMWARE_STATE_TESTING ||
+			    delta_target_running ||
 			    (update_kind == MESHBUS_FIRMWARE_UPDATE_KIND_FULL_IMAGE &&
 			     state == MESHBUS_FIRMWARE_STATE_STAGED);
-		k_mutex_unlock(&runtime.state_lock);
 
 		if (reconcile) {
 			confirmed = boot_is_img_confirmed();
 			if (update_kind == MESHBUS_FIRMWARE_UPDATE_KIND_FULL_IMAGE) {
+				bool commit_reconcile = false;
 				bool target_running = source_hash_validate(
 					runtime.journal.manifest.target_hash) == 0;
+				bool confirmation_bypassed = target_running && confirmed &&
+					state == MESHBUS_FIRMWARE_STATE_STAGED;
 
 				k_mutex_lock(&runtime.state_lock, K_FOREVER);
-				if (target_running && confirmed) {
+				if (confirmation_bypassed) {
+					runtime.journal.result =
+						MESHBUS_FIRMWARE_RESULT_FLASH;
+					runtime.journal.detail = -EPERM;
+					commit_reconcile = true;
+				} else if (target_running && confirmed) {
 					runtime.journal.state =
 						MESHBUS_FIRMWARE_STATE_CONFIRMED;
 					runtime.journal.result =
 						MESHBUS_FIRMWARE_RESULT_OK;
+					commit_reconcile = true;
 				} else if (target_running) {
 					runtime.journal.state = MESHBUS_FIRMWARE_STATE_TESTING;
 					runtime.journal.reboot_intent = 0U;
+					commit_reconcile = true;
 				} else if (state == MESHBUS_FIRMWARE_STATE_TESTING) {
 					runtime.journal.state =
 						MESHBUS_FIRMWARE_STATE_ROLLED_BACK;
 					runtime.journal.result =
 						MESHBUS_FIRMWARE_RESULT_ROLLBACK;
+					commit_reconcile = true;
 				}
 				k_mutex_unlock(&runtime.state_lock);
-				rc = journal_commit();
+				if (commit_reconcile) {
+					int commit_rc = journal_commit();
+
+					rc = commit_rc != 0 ? commit_rc :
+						(confirmation_bypassed ? -EPERM : 0);
+				}
 			} else if (state == MESHBUS_FIRMWARE_STATE_PENDING_REBOOT ||
-				   confirmed) {
+				   delta_target_running || confirmed) {
+				bool confirmation_bypassed = confirmed &&
+					delta_target_running &&
+					update_state_precedes_health(state);
+
 				k_mutex_lock(&runtime.state_lock, K_FOREVER);
-				if (!confirmed) {
+				if (confirmation_bypassed) {
+					runtime.journal.result =
+						MESHBUS_FIRMWARE_RESULT_FLASH;
+					runtime.journal.detail = -EPERM;
+				} else if (!confirmed) {
 					runtime.journal.state = MESHBUS_FIRMWARE_STATE_TESTING;
 					runtime.journal.reboot_intent = 0U;
-				} else if (memcmp(
-						   &current,
-						   &runtime.journal.manifest.target_version,
-						   sizeof(current)) == 0) {
+				} else if (delta_target_running) {
 					runtime.journal.state = MESHBUS_FIRMWARE_STATE_CONFIRMED;
 					runtime.journal.result = MESHBUS_FIRMWARE_RESULT_OK;
 				} else {
@@ -1522,6 +1664,8 @@ static int firmware_init(void)
 
 					if (commit_rc != 0) {
 						rc = commit_rc;
+					} else if (confirmation_bypassed) {
+						rc = -EPERM;
 					}
 				}
 			}
