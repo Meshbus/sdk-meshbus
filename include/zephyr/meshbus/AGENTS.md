@@ -1,125 +1,71 @@
-# Meshbus Public Header Rules
+# Meshbus Public API And ABI Rules
 
-Scope: public Meshbus headers under `include/zephyr/meshbus/`.
+Scope: public headers under `include/zephyr/meshbus/`.
 
-Non-scope: service implementation, persistence, shell, mgmt, workqueue,
-settings, and device-runtime policy. Those belong under `subsys/meshbus/`.
+Service runtime, persistence, shell, MCUmgr, workqueue, and device policy belong
+under `subsys/meshbus/services/`.
 
-## 1. Boundary
+## Boundary
 
-- Anything declared here is public API or public ABI.
-- Keep headers stable, minimal, and implementation-neutral.
-- Do not expose private service structs, globals, mutexes, work items, settings
-  descriptors, shell helpers, or mgmt helpers.
-- If a header changes, keep the matching implementation, public tests, and
-  board-facing samples aligned.
+Anything declared here is a public API or ABI contract. Keep headers minimal,
+implementation-neutral, and stable. Do not expose service mutexes, work items,
+settings handlers, transport helpers, or mutable internal state.
 
-## 2. Current Header Map
+When an observable declaration changes, align the implementation and affected
+public tests. Update samples or external consumers when their use changes.
 
-| Header | Public role |
-| --- | --- |
-| `bluetooth.h` | Bluetooth config plus pairing/state channels. |
-| `channel.h` | MeshCore fixed channel-slot store API. |
-| `clock.h` | Clock config API. |
-| `contact.h` | Contact store API plus Contact request/response channels. |
-| `desktop.h` | Desktop app/widget registration, event IDs, handles, registry access. |
-| `display.h` | Display config/active-state API plus state channel. |
-| `gnss.h` | GNSS config/status/cache API plus Compass-widget heading leases and snapshots. |
-| `indicator.h` | Light/buzzer config and playback API. |
-| `input.h` | Key and action event channels. |
-| `llext.h` | LLEXT config/control API, metadata ABI, app launch API, ZBus bridge ABI. |
-| `meshcore.h` | MeshCore config/runtime API plus MeshCore request/response channels. |
-| `meshbus.h` | Reserved Meshbus-wide header; prefer specific service headers. |
-| `message.h` | Message send/receive API plus request/response channels. |
-| `notify.h` | Notify protobuf aliases plus notify channel/publish API. |
-| `power.h` | Power config/status/action API plus fuel-gauge channel. |
-| `radio.h` | Radio config/status/control API plus TX/RX channels and optional stats. |
-| `telemetry.h` | Telemetry config/sample/binding API plus data channel. |
-| `time.h` | Meshbus-wide business timestamp helpers with realtime/uptime fallback. |
+## Header Shape
 
-## 3. Header Shape
+Prefer this order:
 
-Use this order:
+1. File banner and concise Doxygen `@file` description.
+2. Include guard and minimal includes.
+3. `extern "C"` guard.
+4. Forward declarations and typedefs.
+5. Public constants, types, channels, registration macros, and functions.
+6. Language and include-guard closes.
 
-1. File banner and Doxygen `@file`.
-2. Include guard.
-3. Minimal includes.
-4. `extern "C"` guard.
-5. Forward declarations and typedefs.
-6. Public constants/macros.
-7. Public structs/enums.
-8. Public ZBus declarations or iterable-section registration macros.
-9. Public function declarations.
-10. `extern "C"` close and include-guard close.
+Use standard headers before Zephyr headers and generated/local headers. Prefer
+forward declarations when only pointer types are needed. Keep feature-gated
+includes and declarations under matching Kconfig conditions.
 
-Include order:
+## Names And Types
 
-- Standard headers.
-- Zephyr headers.
-- Generated/local headers, for example `"meshbus/radio.pb.h"`.
+- Use `meshbus_<service>_*` for new symbols and `MESHBUS_<SERVICE>_*` for
+  macros.
+- Preserve shipped names and numeric values unless a breaking change is
+  intentional and explicitly scoped.
+- Prefer the service-owned protobuf type for protobuf-backed configuration;
+  avoid parallel public C representations.
+- Treat public struct layouts, enum values, registration descriptors, metadata
+  formats, and bridge/channel numbers as ABI.
+- Append ABI enum values; do not renumber existing values.
 
-Prefer forward declarations when pointer types are enough. Keep feature-gated
-includes and declarations under the same Kconfig condition.
+## Public Channels And Functions
 
-## 4. Public Types
+Declare a public ZBus channel only in its owning service header. Document event
+direction, payload lengths, units, ownership, lifetime, and valid states. Keep
+validators, observers, callbacks, and work handoff in implementation files.
 
-- Use `meshbus_<svc>_*` for new globally visible symbols.
-- Use `MESHBUS_<SVC>_*` for macros.
-- Preserve shipped legacy names unless a breaking change is intentional.
-- For persisted or mgmt-shared config, prefer aliasing the service-owned
-  nanopb type, for example `typedef meshbus_RadioConfig meshbus_radio_config;`.
-- Do not create a parallel public C config struct for a protobuf-backed config.
-- Treat public struct layouts, enum values, macro constants, metadata layouts,
-  and LLEXT bridge channel numbers as ABI.
+Public getters must copy data or document an immutable snapshot contract. For
+configuration APIs, keep get/set/reset behavior and persistence semantics
+consistent across services unless the service has a documented reason to
+differ.
 
-## 5. Public ZBus Channels
+Use concise Doxygen for public functions, types, ABI constants, and channels.
+Document argument ranges, units, buffer sizes, ownership, state-dependent
+errors, and standard negative errno returns.
 
-- Declare public channels only in the matching service header.
-- Use `meshbus_<svc>_<noun>_chan` for channel symbols.
-- Payload structs are public API; document direction, valid lengths, units, and
-  ownership/lifetime.
-- Keep validators, listeners, observer wiring, and work handoff in the service
-  implementation.
-- When exposing a new public channel to LLEXT bridge clients, append to
-  `enum meshbus_llext_zbus_channel`; do not renumber existing values.
+## Sensitive ABI Areas
 
-## 6. Common API Patterns
+Desktop registration/event descriptors and LLEXT metadata, section names,
+limits, restart/state values, and ZBus bridge numbers have external consumers.
+Read the nearest Desktop rules and inspect those consumers before changing
+these surfaces.
 
-For config-backed services, use the established shape unless there is a clear
-reason not to:
+## Completion
 
-- `meshbus_<svc>_config_get(meshbus_<svc>_config *cfg)`
-- `meshbus_<svc>_config_set(const meshbus_<svc>_config *cfg)`
-- `meshbus_<svc>_config_reset(void)`
-
-Document valid ranges, units, persistence behavior, and state-dependent errors.
-
-## 7. Comments And Errors
-
-- Every public function, struct, enum, ABI macro, and ZBus channel should have a
-  concise Doxygen comment.
-- Document pointer ownership, buffer sizes, units, and scaled values.
-- Use standard negative errno values:
-  - `-EINVAL`: invalid argument or config value.
-  - `-ENOENT`: missing object or index out of range.
-  - `-EEXIST`: duplicate object.
-  - `-EBUSY`: state conflict.
-  - `-ENODEV`: service/device unavailable.
-  - `-EIO`: device or bus failure.
-
-## 8. Special ABI Surfaces
-
-- `desktop.h`: app handles, event IDs, registration macros, and iterable-section
-  descriptors are public ABI for desktop modules. Read the desktop `AGENTS.md`
-  files before changing them.
-- `llext.h`: metadata structs, magic/version values, max lengths, section names,
-  icon payload shape, state/restart enums, and ZBus bridge numbers are external
-  ABI. Append values; do not renumber existing values.
-
-## 9. Finish Checklist
-
-- No private implementation type leaked into a public header.
-- Declarations match service implementation and enabled build configurations.
-- Protobuf-backed aliases still match the owning `.proto` schema.
-- Public ZBus payloads match the service channels and tests.
-- Desktop or LLEXT ABI users are updated when their public surface changes.
+Before finishing, verify declarations against enabled implementations,
+generated protobuf schemas, public channel payloads, tests, and any affected
+Desktop/LLEXT consumers. Avoid maintaining a static header inventory here; the
+directory and build metadata are authoritative.

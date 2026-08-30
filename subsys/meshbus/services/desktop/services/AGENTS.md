@@ -1,20 +1,11 @@
-# AGENTS.md - Desktop Local Services
+# Desktop Local Service Rules
 
-This directory contains Desktop-internal services that are not UI screens,
-widgets, or built-in apps.
+Scope: Desktop-internal background/cache services that are not screens, apps,
+or widgets. Parent Desktop and Meshbus service rules also apply.
 
-Use this area for code that continuously observes Meshbus/Zephyr runtime
-signals, commonly through zbus listeners, and maintains shared Desktop state
-for apps or dashboard widgets.
-
-Rules:
-
-- Keep services UI-free. They may expose cached state to apps/widgets, but must
-  not own ZUI screens or draw logic.
-- Keep service APIs private to Desktop. Do not expose them through public
-  Meshbus or ZUI headers.
+- Keep these services UI-free and their APIs private to Desktop.
+- Observe runtime signals and expose bounded cached snapshots to UI consumers.
 - Protect shared mutable state with Zephyr synchronization primitives.
-- Listener callbacks must stay short and non-blocking; defer heavy work to a
-  work item if needed.
-- Name files by the shared state they provide, for example `messages_cache.*`,
-  instead of by a UI consumer.
+- Keep listener callbacks short and non-blocking; defer heavier work.
+- Define teardown so listeners/work cannot update state after shutdown.
+- Name a service after the shared state it provides, not one current consumer.
