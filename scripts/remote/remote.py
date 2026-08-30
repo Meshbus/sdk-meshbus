@@ -27,15 +27,15 @@ from remote_twister import TwisterCommand
 
 HELP_EPILOG = """\
 Examples:
-  west remote serial build-host.example.com /dev/tty.usbmodem211201
-  west remote serial build-host.example.com /dev/tty.usbmodem211201 --rfc2217-only
   west remote doctor build-host.example.com:/srv/zephyr-workspace
-  west remote session build-host.example.com:/srv/zephyr-workspace abc.test
-  west remote session build-host.example.com:/srv/zephyr-workspace abc.test --source /path/to/sdk-meshbus
-  west remote build build-host.example.com:/srv/zephyr-workspace abc.test -- -b qemu_x86 sdk-meshbus/tests/subsys/zui
+  west remote session build-host.example.com:/srv/zephyr-workspace abc.test --source /path/to/sdk-checkout
+  west remote build build-host.example.com:/srv/zephyr-workspace abc.test --source /path/to/sdk-checkout -- -b qemu_x86 tests/subsys/zui
+  west remote twister build-host.example.com:/srv/zephyr-workspace abc.test --source /path/to/sdk-checkout -- -T tests/subsys/zui -p qemu_x86
   west remote flash -s build-host.example.com -d /srv/zephyr-workspace/build/app -r pyocd
-  west remote twister build-host.example.com:/srv/zephyr-workspace abc.test -- -T sdk-meshbus/tests/subsys/zui -p qemu_x86
   west remote gdb build-host.example.com --target nrf54l
+  west remote serial build-host.example.com /dev/tty.usbmodem...
+
+See scripts/remote/README.md for workspace modes and authorization boundaries.
 """
 
 

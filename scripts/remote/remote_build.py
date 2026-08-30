@@ -38,27 +38,26 @@ from remote_session import (
 
 HELP_EPILOG = """\
 Examples:
-  west remote build build-host.example.com:/srv/zephyr-workspace abc.test -- \\
-    -p auto -b qemu_x86 sdk-meshbus/tests/subsys/meshbus/services/clock
-  west remote build build-host.example.com:/srv/zephyr-workspace abc.test --source /path/to/sdk-meshbus -- \\
-    -p auto -b qemu_x86 sdk-meshbus/tests/subsys/meshbus/services/clock
-  west remote build build-host.example.com:/srv/zephyr-workspace abc.test --sync zephyr -- \\
-    -p auto -b tracker_t1000_e sdk-meshbus/samples/drivers/lora/send
-  west remote build build-host.example.com:/srv/zephyr-workspace abc.test --fetch -- \\
-    -p auto -b qemu_x86 sdk-meshbus/tests/subsys/meshbus/services/clock
-  west remote build build-host.example.com:/srv/zephyr-workspace abc.test --no-sync -- \\
-    -d sdk-meshbus/tests/subsys/meshbus/services/clock/build -b qemu_x86 \\
-    sdk-meshbus/tests/subsys/meshbus/services/clock
+  west remote build build-host.example.com:/srv/zephyr-workspace abc.test \\
+    --source /path/to/sdk-checkout -- \\
+    -p auto -b qemu_x86 tests/subsys/meshbus/services/clock
+  west remote build build-host.example.com:/srv/zephyr-workspace abc.test \\
+    --source /path/to/sdk-checkout --sync zephyr -- \\
+    -p auto -b tracker_t1000_e samples/drivers/lora/send
+  west remote build build-host.example.com:/srv/zephyr-workspace abc.test \\
+    --source /path/to/sdk-checkout --fetch -- \\
+    -p auto -b qemu_x86 tests/subsys/meshbus/services/clock
+  west remote build build-host.example.com:/srv/zephyr-workspace abc.test \\
+    --source /path/to/sdk-checkout --no-sync -- \\
+    -d build/clock -b qemu_x86 tests/subsys/meshbus/services/clock
 
-The command creates or reuses <remote-workspace>/.remote/<session-id>, syncs
-the local manifest repository to <session>/<manifest.path> unless --no-sync is
-used, maps manifest paths such as sdk-meshbus/... to that session repository, and runs
-west build remotely with -DEXTRA_ZEPHYR_MODULES=<session>/<manifest.path>.
-Extra workspace-relative directories passed with --sync are copied to the same
-relative paths under the session unless --no-sync is used. With --no-sync they
-are treated as already present in the session for path mapping and environment
-setup. When --sync zephyr is used, the remote build runs with
-ZEPHYR_BASE=<session>/zephyr.
+The command creates or reuses <remote-workspace>/.remote/<session-id>. It syncs
+the selected source checkout to <session>/<manifest.path> unless --no-sync is
+used, maps paths below that checkout, and runs west build remotely with
+-DEXTRA_ZEPHYR_MODULES=<session>/<manifest.path>. If --source is omitted, the
+source is <local-west-topdir>/<manifest.path>. Extra workspace-relative roots
+passed with --sync are copied to matching session paths. With --sync zephyr,
+the remote build uses ZEPHYR_BASE=<session>/zephyr.
 """
 
 FETCH_CORE_FILES = (
@@ -108,7 +107,7 @@ class BuildCommand:
             "--source",
             default=None,
             help=(
-                "Local manifest repository to sync and use for path rewrites "
+                "Local SDK/manifest checkout to sync and use for path rewrites "
                 "(default: <local-west-topdir>/<manifest.path>)"
             ),
         )

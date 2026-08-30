@@ -30,27 +30,22 @@ from remote_session import (
 
 HELP_EPILOG = """\
 Examples:
-  west remote twister build-host.example.com:/srv/zephyr-workspace abc.test -- \\
-    -T sdk-meshbus/tests/subsys/meshbus/services/clock -p qemu_x86 --inline-logs -v
-  west remote twister build-host.example.com:/srv/zephyr-workspace abc.test --source /path/to/sdk-meshbus -- \\
-    -T sdk-meshbus/tests/subsys/meshbus/services/clock -p qemu_x86 --inline-logs -v
-  west remote twister build-host.example.com:/srv/zephyr-workspace abc.test --sync zephyr -- \\
-    -T sdk-meshbus/samples/drivers/lora -p tracker_t1000_e --inline-logs -v -c
-  west remote twister build-host.example.com:/srv/zephyr-workspace abc.test --no-sync -- \\
-    -T sdk-meshbus/samples/subsys/meshbus/combine -p idea_mesh_tracker_c2/nrf54l15/cpuapp -b
-  west remote twister build-host.example.com:/srv/zephyr-workspace abc.test -- \\
-    -O twister.combine -T sdk-meshbus/samples/subsys/meshbus/combine -p idea_mesh_tracker_c2/nrf54l15/cpuapp
+  west remote twister build-host.example.com:/srv/zephyr-workspace abc.test \\
+    --source /path/to/sdk-checkout -- \\
+    -T tests/subsys/meshbus/services/clock -p qemu_x86 --inline-logs -v -c
+  west remote twister build-host.example.com:/srv/zephyr-workspace abc.test \\
+    --source /path/to/sdk-checkout --sync zephyr -- \\
+    -T samples/drivers/lora -p tracker_t1000_e --inline-logs -v -c
+  west remote twister build-host.example.com:/srv/zephyr-workspace abc.test \\
+    --source /path/to/sdk-checkout --no-sync -- \\
+    -O twister-clock -T tests/subsys/meshbus/services/clock -p qemu_x86 -c
 
-The command creates or reuses <remote-workspace>/.remote/<session-id>, syncs
-the local manifest repository to <session>/<manifest.path> unless --no-sync is
-used, maps manifest paths such as sdk-meshbus/... to that session repository, and runs
-west twister remotely with -x EXTRA_ZEPHYR_MODULES=<session>/<manifest.path>.
-The remote Twister process also receives EXTRA_ZEPHYR_MODULES in its
-environment so platform discovery can see boards from the session copy. Extra
-workspace-relative directories passed with --sync are copied to the same
-relative paths under the session unless --no-sync is used. With --no-sync they
-are treated as already present in the session for path mapping and environment
-setup. When --sync zephyr is used, the remote Twister run uses
+The command creates or reuses <remote-workspace>/.remote/<session-id>. It syncs
+the selected source checkout to <session>/<manifest.path> unless --no-sync is
+used, maps paths below that checkout, and runs west twister with the session
+copy in EXTRA_ZEPHYR_MODULES. If --source is omitted, the source is
+<local-west-topdir>/<manifest.path>. Extra workspace-relative roots passed with
+--sync are copied to matching session paths. With --sync zephyr, Twister uses
 ZEPHYR_BASE=<session>/zephyr.
 """
 
@@ -85,7 +80,7 @@ class TwisterCommand:
             "--source",
             default=None,
             help=(
-                "Local manifest repository to sync and use for path rewrites "
+                "Local SDK/manifest checkout to sync and use for path rewrites "
                 "(default: <local-west-topdir>/<manifest.path>)"
             ),
         )

@@ -18,18 +18,18 @@ from west import log
 
 HELP_EPILOG = """\
 Examples:
-  west remote session build-host.example.com:/srv/zephyr-workspace abc.test
-  west remote session build-host.example.com:/srv/zephyr-workspace abc.test --source /path/to/sdk-meshbus
+  west remote session build-host.example.com:/srv/zephyr-workspace abc.test \\
+    --source /path/to/sdk-checkout
   west remote session build-host.example.com:/srv/zephyr-workspace abc.test --no-sync
   west remote session list build-host.example.com:/srv/zephyr-workspace
   west remote session delete build-host.example.com:/srv/zephyr-workspace abc.test
 
-The default form creates or reuses <remote-workspace>/.remote/<session-id>.
-It syncs the local manifest repository into
-<remote-workspace>/.remote/<session-id>/<manifest.path>, excluding .git and
-paths ignored by .gitignore. Extra workspace-relative directories can be synced
-with --sync, for example --sync zephyr. The list and delete forms inspect or
-remove whole session directories under <remote-workspace>/.remote.
+The default form creates or reuses <remote-workspace>/.remote/<session-id> and
+syncs the selected source checkout into <session>/<manifest.path>, excluding
+.git and ignored paths. If --source is omitted, the source is
+<local-west-topdir>/<manifest.path>. Extra workspace-relative roots can be
+synced with --sync. The list and delete forms inspect or remove whole session
+directories under <remote-workspace>/.remote.
 """
 
 SESSION_ID_RE = re.compile(r"^[A-Za-z0-9._-]+$")
@@ -72,7 +72,7 @@ class SessionCommand:
             "--source",
             default=None,
             help=(
-                "Local manifest repository to sync "
+                "Local SDK/manifest checkout to sync "
                 "(default: <local-west-topdir>/<manifest.path>)"
             ),
         )
