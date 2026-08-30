@@ -8,6 +8,7 @@ import datetime as dt
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 import time
@@ -18,7 +19,11 @@ try:
     import serial
     from serial.tools import list_ports
 except ImportError as exc:  # pragma: no cover - exercised on hosts without pyserial
-    print("pyserial is required: python3 -m pip install pyserial", file=sys.stderr)
+    print(
+        "pyserial is required; use the shared Zephyr environment Python at "
+        "~/.zephyr/env/bin/python",
+        file=sys.stderr,
+    )
     raise SystemExit(127) from exc
 
 
@@ -39,9 +44,7 @@ DEFAULT_BAD_PATTERNS = [
     r"\busage fault\b",
     r"\bmemmanage fault\b",
     r"\bfatal\b",
-    r"\bfail(?:ed|ure)?\b",
     r"(?:^|\s)<err>",
-    r"\berror\b",
 ]
 
 
@@ -165,7 +168,10 @@ def apply_reset(ser: serial.Serial, args: argparse.Namespace) -> None:
         return
 
     if args.reset_command:
-        subprocess.run(args.reset_command, shell=True, check=True)
+        command = shlex.split(args.reset_command)
+        if not command:
+            raise ValueError("reset command must not be empty")
+        subprocess.run(command, check=True)
 
     if args.reset in {"dtr", "both"}:
         ser.dtr = False
@@ -549,7 +555,10 @@ def add_serial_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--reset-pulse", type=float, default=0.2)
     parser.add_argument(
         "--reset-command",
-        help="Shell command to run before reading, for explicit reset workflows",
+        help=(
+            "Executable command to run before reading for an explicitly authorized "
+            "reset; parsed without a shell"
+        ),
     )
     parser.add_argument(
         "--allow-shared-port",

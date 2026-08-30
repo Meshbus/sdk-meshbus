@@ -1,4 +1,4 @@
 interface:
   display_name: "Serial Use"
-  short_description: "Operate Zephyr serial consoles"
-  default_prompt: "Use $serial-use to monitor a Zephyr device serial console and check for boot or fault logs."
+  short_description: "Capture and classify Zephyr serial evidence"
+  default_prompt: "Use $serial-use to passively monitor a Zephyr serial console, save a transcript, and classify boot or fault logs."
