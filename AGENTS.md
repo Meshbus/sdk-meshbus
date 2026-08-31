@@ -15,6 +15,10 @@ Do not preserve a stale command or inventory merely because it appears in an
 agent guide. Follow the current source of truth, report the drift, and change
 guidance only when it is part of the task.
 
+Write all prompt-related documents in English, including `AGENTS.md`,
+`PLANS.md`, agent guides, plans, and skill instructions. Conversation may
+follow the user's language.
+
 ## Repository And Workspace
 
 Treat the root returned by `git rev-parse --show-toplevel` as the writable SDK

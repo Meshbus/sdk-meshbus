@@ -2,12 +2,14 @@
 
 `sdk-meshbus` is the Zephyr module that provides the reusable Meshbus platform
 layer. It contains the Meshbus and DFU subsystems, the embedded U8G2 and ZUI
-graphics stack, supported boards and drivers, samples, tests, and host-side
-packaging/device tools.
+graphics stack, supported boards and drivers, samples and subsystem tests.
 
 Product firmware is intentionally not part of this repository. The separate
 Meshbus firmware repository owns its single `app/`, board role variants,
-role-service matrix, sysbuild policy, signing policy, and release images.
+role-service matrix, sysbuild policy, signing policy, and release images. It
+also owns the standalone Rust `meshbus` CLI, EDK and DFOTA packaging, and
+client distribution. Install that CLI to consume a released EDK; SDK samples
+do not require the firmware source checkout.
 
 ## Zephyr integration
 
@@ -38,7 +40,7 @@ depend on Meshbus service Kconfig symbols.
 - `subsys/u8g2/` and `subsys/zui/`: embedded display/UI components
 - `boards/`, `drivers/`, and `dts/`: SDK hardware integration
 - `samples/` and `tests/`: reusable SDK validation surfaces
-- `scripts/`: west extensions and standalone host tooling
+- `scripts/`: SDK build helpers and general zui/mklfs/remote west extensions
 
 Run Zephyr commands from the west workspace root. For example:
 
