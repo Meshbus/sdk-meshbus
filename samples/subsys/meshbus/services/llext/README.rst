@@ -25,112 +25,47 @@ From workspace root::
     -d build.meshbus_llext_service_hw \
     -s sdk-meshbus/samples/subsys/meshbus/services/llext
 
-The host firmware build is the image you flash to the device. ``west meshbus llext``
-uses this same build directory for EDK generation, EDK extraction, and service
-extension outputs.
+The SDK sample can be built without a Firmware source checkout. Host tools
+are provided by the separately installed Rust ``meshbus`` CLI.
 
-Build Service Extension
-***********************
-
-Build the sample services with the west helper command::
-
-  west meshbus llext -d build.meshbus_llext_service_hw \
-    sdk-meshbus/samples/subsys/meshbus/services/llext/services/blinky
-
-  west meshbus llext -d build.meshbus_llext_service_hw \
-    sdk-meshbus/samples/subsys/meshbus/services/llext/services/beeper
-
-On first use, ``west meshbus llext`` runs the host build's ``llext-edk`` target,
-copies the EDK tarball to ``build.meshbus_llext_service_hw/zephyr/llext/``,
-and extracts it to
-``build.meshbus_llext_service_hw/zephyr/llext/llext-edk``. Repeated builds
-reuse this managed EDK cache.
-
-Each package records the metadata format version, the EDK version used for the
-build, the exact target, and estimated heap requirements. EDK version is build
-provenance, not a runtime compatibility gate.
-
-Expected artifact:
-
-- ``build.meshbus_llext_service_hw/zephyr/llext/blinky.mbs``
-- ``build.meshbus_llext_service_hw/zephyr/llext/beeper.mbs``
-
-Build Desktop App Extension
+Build Extensions From An EDK
 ***************************
 
-Desktop apps use ``type: app`` metadata, the ``.mba`` suffix, and are installed
-under ``/extra/apps``. They are not scanned at boot; Desktop scans the app
-directory when the app menu opens. Build these apps against a Desktop-capable
-host firmware from the separate Meshbus ``app/`` so the required ZUI
-exports are present.
+Use an immutable EDK exported for the exact host target and profile. Set
+``ZEPHYR_SDK_INSTALL_DIR`` to an externally installed compatible Zephyr SDK;
+CMake and Ninja must also be on PATH. No Firmware checkout, host build,
+Python, west or protoc is needed to consume a released EDK.
 
-Build the Desktop-capable host firmware first::
+A service-profile EDK is required for the boot-service examples::
 
-  west build -p auto -b ${BOARD} \
-    -d build.meshbus_llext_desktop_host \
-    -s app
+  meshbus llext --llext-sdk /path/to/service-edk.tar.xz -o build/llext \
+    sdk-meshbus/samples/subsys/meshbus/services/llext/services/blinky
 
-Build the sample apps with a Desktop host firmware build directory::
+  meshbus llext --llext-sdk /path/to/service-edk.tar.xz -o build/llext \
+    sdk-meshbus/samples/subsys/meshbus/services/llext/services/beeper
 
-  west meshbus llext -d build.meshbus_llext_desktop_host \
+The outputs are ``build/llext/blinky.mbs`` and ``build/llext/beeper.mbs``.
+A service EDK must come from a service-enabled build; the current C2 product
+EDK has the app profile and cannot substitute for it.
+
+Desktop apps require an app-profile EDK from Desktop-capable firmware::
+
+  meshbus llext --llext-sdk /path/to/app-edk.tar.xz -o build/llext \
     sdk-meshbus/samples/subsys/meshbus/services/llext/apps/snake
 
-  west meshbus llext -d build.meshbus_llext_desktop_host \
-    sdk-meshbus/samples/subsys/meshbus/services/llext/apps/rtttl
-
-  west meshbus llext -d build.meshbus_llext_desktop_host \
+  meshbus llext --llext-sdk /path/to/app-edk.tar.xz -o build/llext \
     sdk-meshbus/samples/subsys/meshbus/services/llext/apps/cxx_hello
 
-  west meshbus llext -d build.meshbus_llext_desktop_host \
-    sdk-meshbus/samples/subsys/meshbus/services/llext/apps/microcity
+Other examples under ``apps/`` use the same command with their own source
+directory. Outputs are ``build/llext/<id>.mba`` and are installed under
+``/extra/apps``. Desktop scans that directory when the app menu opens.
 
-  west meshbus llext -d build.meshbus_llext_desktop_host \
-    sdk-meshbus/samples/subsys/meshbus/services/llext/apps/castleboy
-
-  west meshbus llext -d build.meshbus_llext_desktop_host \
-    sdk-meshbus/samples/subsys/meshbus/services/llext/apps/ard_drivin
-
-  west meshbus llext -d build.meshbus_llext_desktop_host \
-    sdk-meshbus/samples/subsys/meshbus/services/llext/apps/arduboy3d
-
-  west meshbus llext -d build.meshbus_llext_desktop_host \
-    sdk-meshbus/samples/subsys/meshbus/services/llext/apps/hollow
-
-  west meshbus llext -d build.meshbus_llext_desktop_host \
-    sdk-meshbus/samples/subsys/meshbus/services/llext/apps/hopper
-
-Expected artifacts:
-
-- ``build.meshbus_llext_desktop_host/zephyr/llext/snake.mba``
-- ``build.meshbus_llext_desktop_host/zephyr/llext/rtttl.mba``
-- ``build.meshbus_llext_desktop_host/zephyr/llext/cxx_hello.mba``
-- ``build.meshbus_llext_desktop_host/zephyr/llext/microcity.mba``
-- ``build.meshbus_llext_desktop_host/zephyr/llext/castleboy.mba``
-- ``build.meshbus_llext_desktop_host/zephyr/llext/ard_drivin.mba``
-- ``build.meshbus_llext_desktop_host/zephyr/llext/arduboy3d.mba``
-- ``build.meshbus_llext_desktop_host/zephyr/llext/hollow.mba``
-- ``build.meshbus_llext_desktop_host/zephyr/llext/hopper.mba``
-
-Release EDK Consumption
-***********************
-
-The host-managed EDK used by plain
-``west meshbus llext -d <host-build>`` is a local development convenience.
-Public packages must be built from an immutable, extracted release EDK with
-the separately installed ``meshbus-cli`` package. A consumer does not need the
-private firmware checkout or host build::
-
-  meshbus llext --llext-sdk <extracted-release-edk>/llext-edk \
-    -o build/release-llext \
-    sdk-meshbus/samples/subsys/meshbus/services/llext/apps/snake
-
-Set ``ZEPHYR_SDK_INSTALL_DIR`` or pass ``--zephyr-sdk`` when needed. The
-packager verifies the EDK's SDK digest, requires the package to use the EDK's
-``app`` or ``service`` profile, and injects the EDK version, metadata format
-version, and exact target. Firmware version equality is deliberately not a
-package compatibility gate. The authoritative firmware build, repeated EDK
-export, official-package qualification, checksum, and publication procedure is
-``subsys/meshbus/services/llext/EDK_RELEASE.md``.
+The CLI verifies the EDK digest and profile and injects metadata format
+version, EDK version, exact target and estimated heap requirements. EDK
+version records build provenance; it is not a runtime version-equality gate.
+The authoritative export and distribution procedure is in the
+meshbus-firmware repository's ``docs/distribution.md``. The SDK does not
+import tools or source directories from that repository.
 
 Package Publication
 *******************
@@ -156,7 +91,7 @@ C++ Desktop App Pattern
 ***********************
 
 ``apps/cxx_hello`` demonstrates the supported C++ ``.mba`` pattern. It still
-produces one ``.llext`` object that ``west meshbus llext`` renames to ``.mba``
+produces one ``.llext`` object that ``meshbus llext`` renames to ``.mba``
 and then annotates with metadata. The sample compiles with
 ``arm-zephyr-eabi-g++`` and
 filters C-only standard flags from the EDK-provided compile flags.
@@ -185,33 +120,20 @@ game ports.
 Runtime Validation
 ******************
 
-Install extensions into a LittleFS image for the ``extra`` partition. If
-services and Desktop apps are installed together, build every extension against
-the same host build directory so metadata matches the running firmware. The
-example below assumes ``blinky.mbs`` and ``beeper.mbs`` were also rebuilt with
-``-d build.meshbus_llext_desktop_host``::
+Install packages only into the locations supported by the running host:
+``/extra/svcs`` for boot services and ``/extra/apps`` for Desktop apps.
+Use packages built with an EDK matching that host's target and profile.
+Services are discovered after reboot. Device upload, reset and flash operations
+require separate authorization and the host's own storage/partition procedure;
+this SDK sample does not prescribe product flash addresses.
 
-  python -m pip install --target /tmp/littlefs-python-pkg littlefs-python
-  PYTHONPATH=/tmp/littlefs-python-pkg west mklfs \
-    -d build.meshbus_llext_desktop_host \
-    -o /tmp/meshbus-extra-lfs.bin \
-    --file build.meshbus_llext_desktop_host/zephyr/llext/blinky.mbs:/svcs/blinky.mbs \
-    --file build.meshbus_llext_desktop_host/zephyr/llext/beeper.mbs:/svcs/beeper.mbs \
-    --file build.meshbus_llext_desktop_host/zephyr/llext/snake.mba:/apps/games/snake.mba \
-    --file build.meshbus_llext_desktop_host/zephyr/llext/rtttl.mba:/apps/tools/rtttl.mba
+Then check the device boot log or device shell commands::
 
-Flash the generated partition image and reboot::
+  meshbus llext service list
+  meshbus llext service status blinky
+  meshbus llext service status beeper
 
-  pyocd commander -t nrf54l -M halt \
-    -c "load /tmp/meshbus-extra-lfs.bin 0x146000" \
-    -c reset \
-    -c exit
-
-Then check the boot log or run shell commands::
-
-     meshbus llext service list
-     meshbus llext service status blinky
-     meshbus llext service status beeper
+These are device shell commands, not host CLI subcommands.
 
 LLEXT Metadata Contract
 ***********************
@@ -228,7 +150,7 @@ Service author metadata comes from ``llext.yaml``:
    entry-point: blink_thread_entry
    stack-size: 2048
 
-``west meshbus llext`` injects metadata format version, EDK version, exact
+``meshbus llext`` injects metadata format version, EDK version, exact
 target, and heap estimate into section ``.meshbus.llext.meta`` (``non-alloc``,
 no ``SHF_ALLOC``).
 
@@ -241,7 +163,7 @@ The manager expects ``struct meshbus_llext_service_metadata`` with:
 - optional ``description``
 - non-empty ``edk_version`` build provenance
 - ``target`` matching the running firmware exactly
-- ``heap-size`` estimated by ``west meshbus llext`` from the built ELF
+- ``heap-size`` estimated by ``meshbus llext`` from the built ELF
 - ``stack-size`` required and greater than zero
 
 The helper reads target, profile, metadata format version, and EDK version from
@@ -265,7 +187,7 @@ Desktop app author metadata is intentionally smaller:
    entry-point: snake_app_main
    stack-size: 4096
 
-``west meshbus llext`` injects ``metadata-version``, ``edk-version``, ``target``,
+``meshbus llext`` injects ``metadata-version``, ``edk-version``, ``target``,
 ``heap-size``, and ``icon-data``. App source directories may contain a
 fixed-name ``icon.png``;
 when present it must convert to exactly 10x10 raw mono bitmap data. Missing

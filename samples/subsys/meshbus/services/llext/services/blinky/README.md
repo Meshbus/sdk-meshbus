@@ -3,61 +3,41 @@
 `blinky` is a Meshbus boot service extension packaged as `.mbs`.
 
 The service logic is in `src/main.c`. Author metadata is defined in
-`llext.yaml`; `west meshbus llext` injects metadata format version, EDK version, exact
+`llext.yaml`; `meshbus llext` injects metadata format version, EDK version, exact
 `target`, and heap estimate into ELF section `.meshbus.llext.meta`
 (`struct meshbus_llext_service_metadata`).
 
 Generated artifact:
 
-- `build.meshbus_llext_service_hw/zephyr/llext/blinky.mbs`
+- `build/llext/blinky.mbs`
 
 Target runtime location:
 
 - `/extra/svcs/blinky.mbs`
 
-## 1) Build host firmware
+## Build the service extension
 
-Run from workspace root (`meshbus/..`):
+Install the Rust `meshbus` CLI, CMake, Ninja and a compatible Zephyr SDK.
+Use an EDK with the `service` profile for the intended host; the C2 product's
+app-profile EDK cannot substitute for a service-profile EDK.
 
-```bash
-source ~/.zephyr/env/bin/activate
-BOARD=idea_mesh_tracker_c2/nrf54l15/cpuapp
-
-west build -p auto -b ${BOARD} \
-  -d build.meshbus_llext_service_hw \
-  -s sdk-meshbus/samples/subsys/meshbus/services/llext
-```
-
-The host firmware build is the image you flash to the device. `west meshbus llext`
-uses this same build directory for EDK generation, EDK extraction, and service
-extension outputs.
-
-## 2) Build `blinky` service extension
-
-Run from workspace root (`meshbus/..`):
-
-```bash
-west meshbus llext -d build.meshbus_llext_service_hw \
+```sh
+meshbus llext --llext-sdk /path/to/service-edk.tar.xz \
+  --zephyr-sdk /path/to/zephyr-sdk -o build/llext \
   sdk-meshbus/samples/subsys/meshbus/services/llext/services/blinky
 ```
 
-On first use, `west meshbus llext` runs the host build's `llext-edk` target, copies
-the EDK tarball to `build.meshbus_llext_service_hw/zephyr/llext/`, and extracts
-it to `build.meshbus_llext_service_hw/zephyr/llext/llext-edk`. Repeated builds
-reuse this managed EDK cache.
+No Firmware source checkout or complete Zephyr workspace is needed to build
+this extension. See the parent sample README for building the SDK test host.
 
-Expected output:
+## Upload service package to device
 
-- `build.meshbus_llext_service_hw/zephyr/llext/blinky.mbs`
-
-## 3) Upload service package to device
-
-- `build.meshbus_llext_service_hw/zephyr/llext/blinky.mbs` ->
+- `build/llext/blinky.mbs` ->
   `/extra/svcs/blinky.mbs`
 
 Reboot the device after upload. Services are only discovered during boot.
 
-## 4) Validate service status from shell
+## Validate service status from the device shell
 
 ```text
 meshbus llext service list
@@ -76,7 +56,7 @@ meshbus llext service status blinky
 - `entry-point` must be a valid C symbol name and exported by
   `LL_EXTENSION_SYMBOL(...)`.
 - `stack-size` is required and must be greater than zero.
-- `west meshbus llext` injects metadata and sets
+- `meshbus llext` injects metadata and sets
   `.meshbus.llext.meta=contents,readonly` so metadata is scanned from ELF but
   not loaded into service RAM.
 - `heap-size` is an estimated LLEXT heap requirement. The manager sums all valid

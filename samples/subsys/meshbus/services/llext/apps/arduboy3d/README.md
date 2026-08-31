@@ -26,13 +26,15 @@ Port boundaries:
   file.
 - The full 3D renderer and C++ relocation metadata are large. The C2
   `meshbus_client` host must reserve at least the heap size reported by
-  `west meshbus llext`; this port keeps its app stack at 4096 bytes and does not adjust
+  `meshbus llext`; this port keeps its app stack at 4096 bytes and does not adjust
   host heap policy locally.
 
-Build with a Desktop-capable host firmware build directory:
+Build with the installed Rust `meshbus` CLI and a released app-profile EDK
+for the intended Desktop host. Set `ZEPHYR_SDK_INSTALL_DIR` and install CMake
+and Ninja; no Firmware source checkout is required:
 
 ```sh
-west meshbus llext -d build.arduboy3d-host \
+meshbus llext --llext-sdk /path/to/app-edk.tar.xz -o build/llext \
   sdk-meshbus/samples/subsys/meshbus/services/llext/apps/arduboy3d
 ```
 

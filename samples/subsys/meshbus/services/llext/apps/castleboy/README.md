@@ -28,10 +28,12 @@ Current limitations:
   estimates about 72 KB of LLEXT heap and therefore needs the C2 host app
   reserve to be larger than the earlier 64 KB MicroCity-only setting.
 
-Build with a Desktop-capable host firmware build directory:
+Build with the installed Rust `meshbus` CLI and a released app-profile EDK
+for the intended Desktop host. Set `ZEPHYR_SDK_INSTALL_DIR` and install CMake
+and Ninja; no Firmware source checkout is required:
 
 ```sh
-west meshbus llext -d build.microcity-host-codex \
+meshbus llext --llext-sdk /path/to/app-edk.tar.xz -o build/llext \
   sdk-meshbus/samples/subsys/meshbus/services/llext/apps/castleboy
 ```
 

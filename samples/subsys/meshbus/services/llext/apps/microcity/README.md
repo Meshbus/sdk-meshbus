@@ -27,10 +27,12 @@ Port boundaries:
 - Long BACK/MENU/HOME or long T9 `*` exits through the app screen action-state
   handler; short BACK remains MicroCity's B button.
 
-Build with a Desktop-capable host firmware build directory:
+Build with the installed Rust `meshbus` CLI and a released app-profile EDK
+for the intended Desktop host. Set `ZEPHYR_SDK_INSTALL_DIR` and install CMake
+and Ninja; no Firmware source checkout is required:
 
 ```sh
-west meshbus llext -d build.microcity-host \
+meshbus llext --llext-sdk /path/to/app-edk.tar.xz -o build/llext \
   sdk-meshbus/samples/subsys/meshbus/services/llext/apps/microcity
 ```
 
@@ -38,7 +40,7 @@ Install the generated app in the extra partition under `/apps`, for example:
 
 ```sh
 west mklfs -d build.microcity-host -o /tmp/microcity-extra-lfs.bin \
-  --file build.microcity-host/zephyr/llext/microcity.mba:/apps/games/microcity.mba
+  --file build/llext/microcity.mba:/apps/games/microcity.mba
 ```
 
 Manual validation checklist:
