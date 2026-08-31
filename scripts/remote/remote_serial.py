@@ -8,7 +8,6 @@ from __future__ import annotations
 import argparse
 import contextlib
 import os
-import re
 import shlex
 import signal
 import socket
@@ -19,11 +18,18 @@ import termios
 import threading
 import time
 import tty
-import unicodedata
 from collections import deque
 from pathlib import Path, PurePosixPath
 
 from west import log
+
+from terminal_format import (
+    _cell_len,
+    _fit_ansi,
+    _fit_plain,
+    _format_age,
+    _visible_len,
+)
 
 try:
     import serial
@@ -46,7 +52,6 @@ RFC2217_SOCKET_BUFFER_SIZE = 256 * 1024
 SERIAL_RECONNECT_INTERVAL_SECONDS = 0.5
 ESP_USB_JTAG_RESET_SUPPRESS_SECONDS = 2.0
 ESP_USB_JTAG_RESET_SEQUENCE = "R0|D0|W0.1|D1|R0|W0.1|R1|D0|R1|W0.1|D0|R0"
-ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 C_RESET = "\033[0m"
 C_DIM = "\033[2m"
@@ -871,20 +876,6 @@ def _format_rate(value: float) -> str:
     return _format_bytes(int(value)) + "/s"
 
 
-def _format_age(value) -> str:
-    if value is None:
-        return "-"
-    if value < 1:
-        return f"{value * 1000:.0f}ms"
-    if value < 60:
-        return f"{value:.1f}s"
-    minutes, seconds = divmod(int(value), 60)
-    if minutes < 60:
-        return f"{minutes}m{seconds:02d}s"
-    hours, minutes = divmod(minutes, 60)
-    return f"{hours}h{minutes:02d}m"
-
-
 def _format_serial_mode(settings: dict) -> str:
     bytesize = settings.get("bytesize") or 8
     parity = settings.get("parity") or "N"
@@ -906,69 +897,6 @@ def _format_tristate(value) -> str:
     if value is None:
         return "-"
     return "1" if bool(value) else "0"
-
-
-def _strip_ansi(text: str) -> str:
-    return ANSI_RE.sub("", text)
-
-
-def _visible_len(text: str) -> int:
-    return _cell_len(_strip_ansi(text))
-
-
-def _cell_len(text: str) -> int:
-    return sum(_cell_width(ch) for ch in text)
-
-
-def _cell_width(ch: str) -> int:
-    if not ch:
-        return 0
-    code = ord(ch)
-    if unicodedata.combining(ch):
-        return 0
-    if code < 32 or 0x7F <= code < 0xA0:
-        return 0
-    if 0xE000 <= code <= 0xF8FF:
-        return 2
-    if unicodedata.east_asian_width(ch) in {"F", "W"}:
-        return 2
-    return 1
-
-
-def _fit_plain(text: str, width: int) -> str:
-    if width <= 0:
-        return ""
-    if _cell_len(text) <= width:
-        return text
-    if width == 1:
-        return "…"
-    return _take_cells(text, width - 1) + "…"
-
-
-def _fit_ansi(text: str, width: int) -> str:
-    if width <= 0:
-        return ""
-    visible = _visible_len(text)
-    if visible <= width:
-        return text + (" " * (width - visible))
-    plain = _strip_ansi(text)
-    if width == 1:
-        return "…"
-    return _take_cells(plain, width - 1) + "…"
-
-
-def _take_cells(text: str, width: int) -> str:
-    if width <= 0:
-        return ""
-    cells = 0
-    chars: list[str] = []
-    for ch in text:
-        ch_width = _cell_width(ch)
-        if cells + ch_width > width:
-            break
-        chars.append(ch)
-        cells += ch_width
-    return "".join(chars)
 
 
 def _bar(rate: float, width: int, color: str) -> str:

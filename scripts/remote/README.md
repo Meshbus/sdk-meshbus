@@ -1,107 +1,115 @@
-# West Remote Helpers
+# West Remote Hardware Transports
 
-The `west remote` extension supports remote build/Twister compute and selected
-local-hardware transports. This is an operational reference; load it only when
-a task explicitly requires remote execution.
+`west remote` provides only `gdb` and `serial`. It forwards debug probes and
+serial ports attached to the machine running the command to an SSH development
+host. It does not synchronize sources, build, run Twister, manage workspaces,
+or download artifacts.
 
-## Safety
+## Host Roles
 
-Remote checks are non-mutating by default, but these actions require explicit
-user authorization:
+- **Device host:** the machine with the USB probes and serial devices. Run
+  `west remote gdb` and `west remote serial` here.
+- **Development host:** the SSH destination passed to those commands. Run
+  your editor/Codex, ordinary `west build`, debugger, flash runner, and serial
+  client here, using the forwarded loopback endpoints.
 
-- `doctor --fix` or `doctor --fix --update`
-- session deletion or cleanup of remote outputs
-- flash, GDB, reset, serial forwarding, or physical-device operations
-- syncing parent-workspace or sibling-project changes
+These roles do not depend on where Codex runs. For example, Codex and the build
+workspace can live on a remote Linux computer while several devices are plugged
+into your local Mac. Run the forwarding commands on the Mac, targeting Linux.
+If the USB devices are on the remote computer and development is local, run
+the forwarding commands there, targeting the local computer's SSH server.
+The device host must be able to SSH into the development host in either case.
 
-Never place credentials, private keys, or live host/device maps in committed
-commands or documentation.
-
-## Preflight
-
-```sh
-source ~/.zephyr/env/bin/activate
-sdk_root="$(git rev-parse --show-toplevel)"
-west topdir
-west config manifest.path
-west remote --help
+```text
+Development host                    Device host
+GDB / flash / serial client          USB debug probes / UARTs
+        |                                   ^
+        +--- loopback endpoint --- SSH -----+
+                                   reverse tunnel initiated by device host
 ```
 
-The SDK may be the active manifest repository or an imported project. Remote
-build/session/Twister commands default to the active `manifest.path`. When
-working from a consuming workspace whose manifest repository is not this SDK,
-pass the SDK checkout explicitly:
+This is GDB/RFC2217 forwarding, not arbitrary USB passthrough.
+
+## Requirements And Safety
+
+- On the device host: a west workspace exposing this SDK, SSH, and pyOCD for
+  GDB or pyserial for serial forwarding, with permission to access the devices.
+- On the development host: an SSH server accepting reverse forwarding. Python
+  is needed for automatic remote port allocation; the PTY bridge also requires
+  pyserial. Fixed ports with `--rfc2217-only` avoid the remote Python bridge.
+- Debug, flash, reset, and serial forwarding require explicit authorization.
+  Serial clients can change DTR/RTS and cause resets; forwarding is not a
+  passive observation guarantee.
+- Endpoints request loopback binding. Treat both hosts and other users on the
+  development host as trusted; forwarded endpoints have no per-client login.
+- Never commit credentials, keys, or live host/device maps.
+
+Read `west remote gdb --help` or `west remote serial --help` before use.
+
+## GDB And Flashing
+
+Run one process per probe on the **device host**, selecting the probe explicitly
+when several are connected. Example placeholders below must be replaced:
 
 ```sh
---source "$sdk_root"
+west remote gdb dev-host.example.com --target nrf54l --probe <probe-a> --port 57065 --pyocd-opt=--telnet-port=0
+west remote gdb dev-host.example.com --target nrf54l --probe <probe-b> --port 57066 --pyocd-opt=--telnet-port=0
 ```
 
-With `--source`, pass SDK source paths relative to that checkout, for example
-`tests/subsys/...` rather than a hardcoded west project basename. The remote
-session still uses the active workspace's `<manifest.path>` as its synchronized
-module destination.
+Run each command in its own terminal. The extra pyOCD option chooses a free
+semihosting telnet port so concurrent servers do not share its default port.
+Omit `--port` to allocate GDB ports automatically and use the printed endpoints.
+For different local and remote port numbers, use `--local-gdb-port` and
+`--remote-gdb-port` instead.
 
-## Check The Remote Workspace
+On the **development host**, connect GDB with
+`target extended-remote 127.0.0.1:57065`, or flash a selected build:
 
 ```sh
-west remote doctor <host>:/absolute/remote/west-workspace
+west flash --no-rebuild -d <build-dir> -r gdb -- --gdb-port 57065
 ```
 
-Use `--fix` only when repair is requested. Use `--fix --update` only when the
-user accepts remote reset/pull, west update, package/toolchain setup, and blob
-fetch effects.
+The SDK's GDB runner remains available through `west flash`; there is no
+separate `remote flash` subcommand. The runner loads the selected ELF. It does
+not replace product-specific signed-image, partition, or multi-image flashing
+requirements. Keep the build/artifact-to-probe mapping explicit.
 
-## Build
+By default, pyOCD starts only when a GDB client connects and stops on disconnect.
+`--persistent-pyocd` keeps it running and may hold or halt the target. Ctrl-C
+stops the forwarding process.
+
+## Serial Monitoring And Serial Flashing
+
+For RFC2217 clients, run one process per UART on the **device host**:
 
 ```sh
-west remote build <host>:/absolute/remote/west-workspace <session> \
-  --source "$sdk_root" -- \
-  -p auto -b qemu_x86 tests/subsys/meshbus/services/clock
+west remote serial dev-host.example.com /dev/tty.usbmodemA --rfc2217-only --remote-rfc2217-port 49221
+west remote serial dev-host.example.com /dev/tty.usbmodemB --rfc2217-only --remote-rfc2217-port 49222
 ```
 
-Useful options:
-
-- `--no-sync`: reuse an existing session
-- `--sync <workspace-relative-path>`: include an explicitly scoped sibling tree
-- `--fetch`: retrieve a runner/debug bundle
-- `--clean`: delete successful remote build output
-- `--local-build-dir <path>`: choose the fetched bundle destination
-
-Build directories passed after `--` must be relative and remain inside the
-remote session.
-
-## Twister
+The **development host** can open `rfc2217://127.0.0.1:49221` or
+`rfc2217://127.0.0.1:49222` with a compatible monitor or serial flash tool.
+For example, use a pyserial monitor or a compatible ESP build's flash runner:
 
 ```sh
-west remote twister <host>:/absolute/remote/west-workspace <session> \
-  --source "$sdk_root" -- \
-  -T tests/subsys/meshbus/services/clock \
-  -p qemu_x86 --inline-logs -v -c
+python -m serial.tools.miniterm rfc2217://127.0.0.1:49221 115200
+west flash --no-rebuild -d <esp-build-dir> --esp-device rfc2217://127.0.0.1:49221
 ```
 
-Use `--no-delete` only when remote-only session files must survive source sync.
-Use `--clean` to remove successful Twister output; failed output is retained for
-diagnosis.
+Use one client per UART at a time; a new direct connection preempts the old one.
+ESP USB Serial/JTAG reset handling is selected by `--esp-reset-strategy`.
 
-## Sessions
+Without `--rfc2217-only`, the tool creates a PTY on the development host with a
+symlink matching the device path (or `--remote-serial`). This requires permission
+to create that `/dev` link. Existing symlinks are replaced by default; use
+`--no-replace-symlink` to refuse replacement. The PTY supports logs and shell
+access, but not transparent DTR/RTS control. Use RFC2217 directly for flashing.
+After direct-client preemption the bridge recreates the PTY; a monitor that
+held the old PTY may need to reopen it.
 
-```sh
-west remote session <host>:/absolute/remote/west-workspace <session> \
-  --source "$sdk_root"
-west remote session list <host>:/absolute/remote/west-workspace
-west remote session delete <host>:/absolute/remote/west-workspace <session>
-```
+The device host retries opening the same serial path after a disconnect. A
+changed device path requires restarting with the new path. Ctrl-C stops the
+forwarding and removes the PTY link created by that process.
 
-A session lives under `<remote-workspace>/.remote/<session>`. Deletion removes
-the whole named session, including diagnostic output.
-
-## Hardware Transports
-
-`remote flash`, `remote gdb`, and `remote serial` are separate hardware-facing
-operations. Read each subcommand's `--help` immediately before authorized use.
-A successful transport command proves only that operation; collect separate
-serial, instrument, or manual evidence for runtime behavior.
-
-Use `west remote <subcommand> --help` as the detailed option contract. Keep this
-README focused on stable workflow boundaries instead of duplicating every CLI
-flag.
+Transport startup alone is not runtime or hardware validation. Save separate
+serial logs and record the device and artifact for each authorized operation.

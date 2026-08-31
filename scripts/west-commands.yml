@@ -1,10 +1,4 @@
 west-commands:
-  - file: scripts/meshbus/meshbus.py
-    commands:
-      - name: meshbus
-        class: Meshbus
-        help: Meshbus packaging and device utilities
-
   - file: scripts/zui/zui.py
     commands:
       - name: zui
@@ -21,4 +15,4 @@ west-commands:
     commands:
       - name: remote
         class: Remote
-        help: remote helper commands
+        help: forward USB debug probes and serial ports to a development host
