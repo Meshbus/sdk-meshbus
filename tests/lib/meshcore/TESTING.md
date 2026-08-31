@@ -200,11 +200,14 @@ python3 tests/lib/meshcore/protocol/tools/check_protocol_api_map.py \
   --map tests/lib/meshcore/protocol/protocol_api_map.json
 ```
 
-The same check is wired into `protocol/api_map`, so a normal protocol Twister
-run fails during CMake configure if the SDK map is stale. The MeshCore
-module's own native/CI checks own source-manifest and sync-report validation;
-The SDK protocol inventory test only checks that the SDK compatibility ledger
-still matches the external module and upstream evidence.
+Run this host check separately from protocol Twister suites. It exits nonzero
+when the SDK map is stale or the required upstream reference is unavailable;
+no Zephyr build or QEMU application is needed. Use the reference revision from
+the external MeshCore module's `upstream.lock`, and do not omit evidence checks
+when that checkout is missing. The module's own native/CI checks own
+source-manifest and sync-report validation. The SDK protocol inventory check
+only checks that the SDK compatibility ledger still matches the external
+module and upstream evidence.
 
 This check prevents inventory drift: missing upstream methods, stale mapped C
 symbols, overload-count changes, and undocumented exclusions. It is not a
@@ -357,10 +360,12 @@ python3 tests/lib/meshcore/runtime/tools/check_runtime_api_map.py \
   --map tests/lib/meshcore/runtime/runtime_api_map.json
 ```
 
-The same check is wired into `runtime/api_map`, so a normal runtime Twister run
-fails during CMake configure if a public runtime API is missing coverage
-classification, references stale ZTEST names, or points at missing upstream
-evidence files.
+Run this host check separately from runtime Twister suites. It exits nonzero
+if a public runtime API is missing coverage classification, references stale
+ZTEST names, or points at missing upstream evidence files. Missing reference
+files remain a validation dependency failure, not a reason to downgrade the
+map's coverage classifications. This check does not build or run a Zephyr
+application and does not replace the runtime behavior suites.
 
 ## Layer 3: `boundary/` Tests
 
