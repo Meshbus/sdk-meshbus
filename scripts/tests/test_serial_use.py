@@ -11,7 +11,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-SCRIPT_DIR = Path(__file__).resolve().parents[1] / "scripts"
+SCRIPT_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCRIPT_DIR))
 
 import serial_use  # noqa: E402

@@ -11,7 +11,9 @@ Sources of truth
 
 Use the existing Zephyr surfaces directly:
 
-* ``tests/subsys/meshbus/AGENTS.md`` defines test design and claim boundaries.
+* The consuming Meshbus Spec Kit project's
+  ``.specify/memory/standards/verification.md`` defines test design and claim
+  boundaries; the SDK root ``AGENTS.md`` identifies that project.
 * The nearest ``testcase.yaml`` defines runnable scenarios, platforms,
   fixtures, harnesses, and configuration variants.
 * ``CMakeLists.txt``, ``prj.conf``, overlays, and test sources define the

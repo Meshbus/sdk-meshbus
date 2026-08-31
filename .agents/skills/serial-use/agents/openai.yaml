@@ -1,4 +1,0 @@
-interface:
-  display_name: "Serial Use"
-  short_description: "Capture and classify Zephyr serial evidence"
-  default_prompt: "Use $serial-use to passively monitor a Zephyr serial console, save a transcript, and classify boot or fault logs."

@@ -54,6 +54,17 @@ west twister -T sdk-meshbus/tests/subsys/meshbus/services/clock \
 The exact boards and test platforms supported by each sample or suite are
 declared by its local `sample.yaml` or `testcase.yaml`.
 
+## Development workflow
+
+Within the Meshbus product workspace, firmware and SDK changes use the single
+Spec Kit project in the firmware root. The [SDK entry guide](AGENTS.md) explains
+how to locate that project's constitution and standards. Source ownership and
+Git history remain separate; SDK-only work does not create a second planning
+system here. Existing standalone sample builds still use their own metadata.
+
+The serial console helper is an ordinary SDK tool at `scripts/serial_use.py`;
+its device-free regression tests are in `scripts/tests/test_serial_use.py`.
+
 ## Licensing and provenance
 
 Unless a file or subtree states otherwise, this repository is licensed under
