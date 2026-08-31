@@ -40,12 +40,6 @@ config ZUI_DISPLAY_HEIGHT
 	help
 	  Height of the display in pixels.
 
-config ZUI_HAND_ORIENTATION
-	bool "Left-handed orientation"
-	default n
-	help
-	  Enable left-handed screen orientation (flip display).
-
 config ZUI_TEXT_UTF8
 	bool "Enable UTF-8 text layout"
 	default n
@@ -177,15 +171,6 @@ config ZUI_TEXT_EDITOR_PREDICTIVE_SOURCE_LICENSE
 	  Human-readable license note embedded in the generated dictionary
 	  source. Use only clearly compatible word sources.
 
-config ZUI_ROUTER_EVENT_QUEUE_SIZE
-	int "ZUI router event queue size"
-	default 16
-	range 4 32
-	help
-	  Maximum number of input/custom events that can be queued for routing.
-	  This value is used as the capacity for both the input queue and the
-	  custom-event queue.
-
 config ZUI_ROUTER_MAX_SCREENS
 	int "ZUI router max registered screens"
 	default 16
@@ -253,12 +238,6 @@ config ZUI_ICON_DECODE_BUFFER_SIZE
 	depends on ZUI_COMPRESS_ICONS
 	help
 	  Size of the buffer used for decompressing icons.
-
-config ZUI_STORAGE_MOUNT_POINT
-	string "Storage mount point path"
-	default "/root"
-	help
-	  Default filesystem mount point path used by ZUI file picker components.
 
 config ZUI_FILE_PICKER_MAX_ENTRIES
 	int "File picker cached entry count"
