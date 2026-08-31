@@ -134,14 +134,15 @@ static int meshbus_bluetooth_mgmt_status(struct smp_streamer *ctxt)
 				    MESHBUS_BLUETOOTH_MGMT_PROTO_RSP_MAX_SIZE);
 }
 
-MB_MGMT_CONFIG_GET_HANDLER_DEFINE(meshbus_bluetooth_mgmt_config_get, meshbus_BluetoothConfigGetRequest,
-				      meshbus_BluetoothConfigGetResponse, meshbus_bluetooth_config, meshbus_bluetooth_config_get,
-				      meshbus_BluetoothConfigGetRequest_fields,
-				      meshbus_BluetoothConfigGetResponse_fields, MESHBUS_BLUETOOTH_MGMT_PROTO_RSP_MAX_SIZE);
+MB_MGMT_CONFIG_GET_HANDLER_DEFINE(
+	meshbus_bluetooth_mgmt_config_get, meshbus_BluetoothConfigGetRequest,
+	meshbus_BluetoothConfigGetResponse, meshbus_bluetooth_config_get,
+	meshbus_BluetoothConfigGetRequest_fields, meshbus_BluetoothConfigGetResponse_fields,
+	MESHBUS_BLUETOOTH_MGMT_PROTO_RSP_MAX_SIZE);
 
-MB_MGMT_CONFIG_SET_HANDLER_DEFINE_NO_VALIDATE(
+MB_MGMT_CONFIG_SET_HANDLER_DEFINE(
 	meshbus_bluetooth_mgmt_config_set, meshbus_BluetoothConfigSetRequest,
-	meshbus_BluetoothConfigSetResponse, meshbus_bluetooth_config, meshbus_bluetooth_config_set,
+	meshbus_BluetoothConfigSetResponse, meshbus_bluetooth_config_set,
 	meshbus_BluetoothConfigSetRequest_fields, meshbus_BluetoothConfigSetResponse_fields,
 	MESHBUS_BLUETOOTH_MGMT_PROTO_RSP_MAX_SIZE);
 
@@ -176,10 +177,11 @@ static int meshbus_bluetooth_mgmt_enable(struct smp_streamer *ctxt)
 				    MESHBUS_BLUETOOTH_MGMT_PROTO_RSP_MAX_SIZE);
 }
 
-MB_MGMT_CONFIG_RESET_HANDLER_DEFINE(meshbus_bluetooth_mgmt_config_reset, meshbus_BluetoothConfigResetRequest,
-					meshbus_BluetoothConfigResetResponse, meshbus_bluetooth_config, meshbus_bluetooth_config_reset,
-					meshbus_bluetooth_config_get, meshbus_BluetoothConfigResetRequest_fields,
-					meshbus_BluetoothConfigResetResponse_fields, MESHBUS_BLUETOOTH_MGMT_PROTO_RSP_MAX_SIZE);
+MB_MGMT_CONFIG_RESET_HANDLER_DEFINE(
+	meshbus_bluetooth_mgmt_config_reset, meshbus_BluetoothConfigResetRequest,
+	meshbus_BluetoothConfigResetResponse, meshbus_bluetooth_config_reset,
+	meshbus_bluetooth_config_get, meshbus_BluetoothConfigResetRequest_fields,
+	meshbus_BluetoothConfigResetResponse_fields, MESHBUS_BLUETOOTH_MGMT_PROTO_RSP_MAX_SIZE);
 
 static const struct mgmt_handler meshbus_bluetooth_mgmt_group_handlers[] = {
 	[meshbus_BluetoothMgmtCommandId_BLUETOOTH_MGMT_COMMAND_ID_STATUS] =

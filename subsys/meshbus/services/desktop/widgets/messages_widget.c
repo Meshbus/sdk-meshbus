@@ -22,7 +22,7 @@ LOG_MODULE_DECLARE(meshbus_desktop, CONFIG_MESHBUS_DESKTOP_LOG_LEVEL);
 #define MESSAGES_WIDGET_HEADER_BOTTOM 25
 
 struct messages_widget_model {
-	struct desktop_messages_cache_key key;
+	uint64_t entry_id;
 	uint64_t timestamp_ms;
 	uint32_t cache_seq;
 	uint32_t scroll_ticks;
@@ -35,7 +35,7 @@ struct messages_widget_model {
 };
 
 struct messages_widget_row {
-	struct desktop_messages_cache_key key;
+	uint64_t entry_id;
 	uint64_t timestamp_ms;
 	bool unread;
 	bool timestamp_realtime;
@@ -48,11 +48,10 @@ struct messages_widget_state {
 	struct zui_screen *screen;
 	struct messages_widget_model model;
 	struct messages_widget_row rows[CONFIG_MESHBUS_DESKTOP_MESSAGE_CACHE_COUNT];
-	struct desktop_messages_cache_key latest_key;
+	uint64_t latest_entry_id;
 	uint32_t selected_position;
 	uint32_t received_count;
 	uint32_t row_cache_seq;
-	bool latest_key_valid;
 };
 
 static struct messages_widget_state messages_widget;
@@ -309,7 +308,7 @@ static void messages_widget_row_from_entry(struct messages_widget_row *row,
 		return;
 	}
 
-	row->key = entry->key;
+	row->entry_id = entry->entry_id;
 	row->timestamp_ms = entry->message.timestamp;
 	row->unread = entry->unread;
 	row->timestamp_realtime = entry->timestamp_realtime;
@@ -328,7 +327,7 @@ static bool messages_widget_model_equal_row(const struct messages_widget_model *
 	}
 
 	return model->cache_seq == cache_seq &&
-	       desktop_messages_cache_key_equal(&model->key, &row->key) &&
+	       model->entry_id == row->entry_id &&
 	       model->timestamp_ms == row->timestamp_ms && model->unread == row->unread &&
 	       model->timestamp_realtime == row->timestamp_realtime &&
 	       strcmp(model->source, row->source) == 0 &&
@@ -364,7 +363,7 @@ static bool messages_widget_apply_row(struct messages_widget_model *model,
 
 	scroll_ticks = reset_scroll ? 0U : model->scroll_ticks;
 	memset(model, 0, sizeof(*model));
-	model->key = row->key;
+	model->entry_id = row->entry_id;
 	model->timestamp_ms = row->timestamp_ms;
 	model->cache_seq = cache_seq;
 	model->scroll_ticks = scroll_ticks;
@@ -409,15 +408,13 @@ static bool messages_widget_refresh(struct messages_widget_state *state)
 
 	if (state->received_count == 0U) {
 		state->selected_position = 0U;
-		state->latest_key_valid = false;
+		state->latest_entry_id = 0U;
 		return messages_widget_apply_row(&state->model, NULL, cache_seq, false);
 	}
 
-	if (!state->latest_key_valid ||
-	    !desktop_messages_cache_key_equal(&state->latest_key, &state->rows[0].key)) {
+	if (state->latest_entry_id != state->rows[0].entry_id) {
 		LOG_DBG("messages widget: latest cache entry changed");
-		state->latest_key = state->rows[0].key;
-		state->latest_key_valid = true;
+		state->latest_entry_id = state->rows[0].entry_id;
 		state->selected_position = 0U;
 		reset_scroll = true;
 	}
@@ -726,10 +723,10 @@ static void messages_widget_toggle_read_state(struct messages_widget_state *stat
 
 	unread = !state->model.unread;
 	if (unread) {
-		desktop_messages_cache_mark_unread(&state->model.key);
+		desktop_messages_cache_mark_unread(state->model.entry_id);
 		LOG_DBG("messages widget: desktop_messages_cache_mark_unread() -> 0");
 	} else {
-		desktop_messages_cache_mark_read(&state->model.key);
+		desktop_messages_cache_mark_read(state->model.entry_id);
 		LOG_DBG("messages widget: desktop_messages_cache_mark_read() -> 0");
 	}
 

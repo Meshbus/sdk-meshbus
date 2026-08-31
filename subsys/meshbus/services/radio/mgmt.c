@@ -87,9 +87,9 @@ static int meshbus_radio_mgmt_config_get(struct smp_streamer *ctxt)
 				    MESHBUS_RADIO_MGMT_PROTO_RSP_MAX_SIZE);
 }
 
-MB_MGMT_CONFIG_SET_HANDLER_DEFINE_NO_VALIDATE(
+MB_MGMT_CONFIG_SET_HANDLER_DEFINE(
 	meshbus_radio_mgmt_config_set, meshbus_RadioConfigSetRequest,
-	meshbus_RadioConfigSetResponse, meshbus_radio_config, meshbus_radio_config_set,
+	meshbus_RadioConfigSetResponse, meshbus_radio_config_set,
 	meshbus_RadioConfigSetRequest_fields, meshbus_RadioConfigSetResponse_fields,
 	MESHBUS_RADIO_MGMT_PROTO_RSP_MAX_SIZE);
 

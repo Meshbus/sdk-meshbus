@@ -72,7 +72,7 @@ LOG_MODULE_REGISTER(meshbus_desktop_messages, CONFIG_MESHBUS_DESKTOP_LOG_LEVEL);
 #define MESSAGES_DETAIL_TRAILING_PAD_THRESHOLD 32U
 
 struct messages_entry {
-	struct desktop_messages_cache_key key;
+	uint64_t entry_id;
 	meshbus_message_content message;
 	bool unread;
 	bool timestamp_realtime;
@@ -1230,7 +1230,7 @@ static void messages_append_cached_entry(struct messages_app *app,
 	}
 
 	app->entries[app->entry_count] = (struct messages_entry){
-		.key = entry->key,
+		.entry_id = entry->entry_id,
 		.message = entry->message,
 		.unread = entry->unread,
 		.timestamp_realtime = entry->timestamp_realtime,
@@ -1239,16 +1239,15 @@ static void messages_append_cached_entry(struct messages_app *app,
 	app->entry_count++;
 }
 
-static bool messages_find_entry_index_by_key(struct messages_app *app,
-					     const struct desktop_messages_cache_key *key,
-					     size_t *index_out)
+static bool messages_find_entry_index_by_id(struct messages_app *app,
+					   uint64_t entry_id, size_t *index_out)
 {
-	if (app == NULL || key == NULL || index_out == NULL) {
+	if (app == NULL || entry_id == 0U || index_out == NULL) {
 		return false;
 	}
 
 	for (size_t i = 0U; i < app->entry_count; i++) {
-		if (desktop_messages_cache_key_equal(&app->entries[i].key, key)) {
+		if (app->entries[i].entry_id == entry_id) {
 			*index_out = i;
 			return true;
 		}
@@ -1262,7 +1261,7 @@ static void messages_load_cached_received(struct messages_app *app, bool preserv
 	uint32_t count;
 	uint32_t copy_count;
 	int64_t start_ms;
-	struct desktop_messages_cache_key selected_key = {0};
+	uint64_t selected_id = 0U;
 	size_t selected_index = 0U;
 	bool had_selected = false;
 
@@ -1271,7 +1270,7 @@ static void messages_load_cached_received(struct messages_app *app, bool preserv
 	}
 
 	if (preserve_selected && app->selected_entry_valid && app->selected_entry < app->entry_count) {
-		selected_key = app->entries[app->selected_entry].key;
+		selected_id = app->entries[app->selected_entry].entry_id;
 		had_selected = true;
 	}
 
@@ -1291,7 +1290,7 @@ static void messages_load_cached_received(struct messages_app *app, bool preserv
 	app->cache_update_seq = desktop_messages_cache_update_seq();
 
 	if (had_selected &&
-	    messages_find_entry_index_by_key(app, &selected_key, &selected_index)) {
+	    messages_find_entry_index_by_id(app, selected_id, &selected_index)) {
 		app->selected_entry = selected_index;
 		app->selected_entry_valid = true;
 	}
@@ -1605,7 +1604,7 @@ static void messages_prepare_detail(struct messages_app *app)
 		if (entry->unread) {
 			entry->unread = false;
 			messages_prepare_entry_row(entry);
-			desktop_messages_cache_mark_read(&entry->key);
+			desktop_messages_cache_mark_read(entry->entry_id);
 			LOG_DBG("messages app: desktop_messages_cache_mark_read() -> 0");
 		}
 		messages_detail_payload_text(app->detail_text, sizeof(app->detail_text),

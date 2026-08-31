@@ -36,9 +36,6 @@ config MESHBUS_DESKTOP_THREAD_STACK_SIZE
 config ZUI_INPUT_QUEUE_SIZE
 	default 32
 
-config ZUI_ROUTER_EVENT_QUEUE_SIZE
-	default 32
-
 config ZUI_ROUTER_MAX_SCREENS
 	default 18
 

@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/services/nus.h>
 #include <zephyr/init.h>
 #include <zephyr/kernel.h>
@@ -46,6 +47,11 @@ struct companion_bluetooth_tx_frame {
 };
 
 static atomic_t companion_bluetooth_connected = ATOMIC_INIT(0);
+/* Serializes TX admission/purge/dequeue only; never held over NUS or callbacks. */
+static struct k_spinlock companion_bluetooth_tx_lock;
+static uint32_t companion_bluetooth_tx_session;
+static struct bt_conn *companion_bluetooth_conn;
+static const struct bt_gatt_attr *companion_bluetooth_tx_attr;
 COMPANION_BLUETOOTH_TEST_VISIBLE atomic_t companion_bluetooth_drop_count = ATOMIC_INIT(0);
 COMPANION_BLUETOOTH_TEST_VISIBLE atomic_t companion_bluetooth_rx_count = ATOMIC_INIT(0);
 COMPANION_BLUETOOTH_TEST_VISIBLE atomic_t companion_bluetooth_tx_count = ATOMIC_INIT(0);
@@ -66,10 +72,13 @@ K_MSGQ_DEFINE(companion_bluetooth_tx_msgq, sizeof(struct companion_bluetooth_tx_
 
 static void companion_bluetooth_rx_work_handler(struct k_work *work);
 static void companion_bluetooth_tx_work_handler(struct k_work *work);
+static void companion_bluetooth_connection_work_handler(struct k_work *work);
 static void companion_bluetooth_received(struct bt_conn *conn, const void *data,
 					 uint16_t len, void *ctx);
 static void companion_bluetooth_notif_enabled(bool enabled, void *ctx);
 static void companion_bluetooth_state_listener_cb(const struct zbus_channel *chan);
+static K_WORK_DEFINE(companion_bluetooth_connection_work,
+		     companion_bluetooth_connection_work_handler);
 
 static bool companion_bluetooth_ready(void)
 {
@@ -91,27 +100,128 @@ static int companion_bluetooth_schedule_tx(k_timeout_t delay)
 	return 0;
 }
 
-static void companion_bluetooth_set_connected(bool connected)
+/* Consumes conn's reference. A lifecycle callback may invalidate an in-progress scan. */
+static void companion_bluetooth_set_connection(struct bt_conn *conn, uint32_t session)
 {
-	if (connected) {
-		if (atomic_cas(&companion_bluetooth_connected, 0, 1)) {
-			meshcore_companion_adapter_connected();
+	k_spinlock_key_t key;
+	struct bt_conn *old_conn;
+
+	key = k_spin_lock(&companion_bluetooth_tx_lock);
+	if (session != companion_bluetooth_tx_session || conn == companion_bluetooth_conn) {
+		k_spin_unlock(&companion_bluetooth_tx_lock, key);
+		if (conn != NULL) {
+			bt_conn_unref(conn);
 		}
 		return;
 	}
 
-	if (!atomic_cas(&companion_bluetooth_connected, 1, 0)) {
+	old_conn = companion_bluetooth_conn;
+	companion_bluetooth_conn = conn;
+	/* Keep admission closed until the serialized adapter cleanup finishes. */
+	atomic_clear(&companion_bluetooth_connected);
+	companion_bluetooth_tx_session++;
+	k_msgq_purge(&companion_bluetooth_tx_msgq);
+	k_spin_unlock(&companion_bluetooth_tx_lock, key);
+	if (old_conn != NULL) {
+		bt_conn_unref(old_conn);
+	}
+	(void)k_work_submit(&companion_bluetooth_connection_work);
+}
+
+static void companion_bluetooth_connection_work_handler(struct k_work *work)
+{
+	k_spinlock_key_t key = k_spin_lock(&companion_bluetooth_tx_lock);
+	uint32_t session = companion_bluetooth_tx_session;
+	bool connected = companion_bluetooth_conn != NULL;
+
+	ARG_UNUSED(work);
+	/* A setter may submit late, after a newer transition has already finished. */
+	if (atomic_get(&companion_bluetooth_connected) != 0) {
+		k_spin_unlock(&companion_bluetooth_tx_lock, key);
 		return;
 	}
-
+	k_spin_unlock(&companion_bluetooth_tx_lock, key);
+	/* Only this system work item changes adapter lifecycle state. */
 	k_msgq_purge(&companion_bluetooth_rx_msgq);
-	k_msgq_purge(&companion_bluetooth_tx_msgq);
 	(void)k_work_cancel(&companion_bluetooth_rx_work);
 	(void)k_work_cancel_delayable(&companion_bluetooth_tx_work);
 	meshcore_companion_adapter_disconnected();
+	if (connected) {
+		meshcore_companion_adapter_connected();
+	}
+
+	key = k_spin_lock(&companion_bluetooth_tx_lock);
+	if (session == companion_bluetooth_tx_session) {
+		atomic_set(&companion_bluetooth_connected,
+			   connected && meshbus_bluetooth_meshcore_companion_enabled());
+		k_spin_unlock(&companion_bluetooth_tx_lock, key);
+		return;
+	}
+	k_spin_unlock(&companion_bluetooth_tx_lock, key);
+	/* A callback replaced the session during cleanup; process the latest one first. */
+	(void)k_work_submit(&companion_bluetooth_connection_work);
 }
 
-static int companion_bluetooth_notify_frame(const uint8_t *frame, size_t len)
+static void companion_bluetooth_find_connection(struct bt_conn *conn, void *data)
+{
+	struct bt_conn **selected = data;
+	struct bt_conn_info info;
+
+	if (*selected == NULL && bt_conn_get_info(conn, &info) == 0 &&
+	    info.state == BT_CONN_STATE_CONNECTED &&
+	    meshbus_bluetooth_connection_is_authorized(conn)) {
+		*selected = bt_conn_ref(conn);
+	}
+}
+
+static void companion_bluetooth_refresh_connection(void)
+{
+	k_spinlock_key_t key = k_spin_lock(&companion_bluetooth_tx_lock);
+	uint32_t session = companion_bluetooth_tx_session;
+	struct bt_conn *conn = NULL;
+
+	k_spin_unlock(&companion_bluetooth_tx_lock, key);
+	if (meshbus_bluetooth_meshcore_companion_enabled()) {
+		bt_conn_foreach(BT_CONN_TYPE_LE, companion_bluetooth_find_connection, &conn);
+	}
+	companion_bluetooth_set_connection(conn, session);
+}
+
+static void companion_bluetooth_disconnected(struct bt_conn *conn, uint8_t reason)
+{
+	k_spinlock_key_t key = k_spin_lock(&companion_bluetooth_tx_lock);
+	uint32_t session = companion_bluetooth_tx_session;
+
+	ARG_UNUSED(reason);
+	if (companion_bluetooth_conn != conn) {
+		if (companion_bluetooth_conn == NULL) {
+			/* Prevent a scan of this closing connection from establishing a session. */
+			companion_bluetooth_tx_session++;
+		}
+		k_spin_unlock(&companion_bluetooth_tx_lock, key);
+		return;
+	}
+	k_spin_unlock(&companion_bluetooth_tx_lock, key);
+	companion_bluetooth_set_connection(NULL, session);
+}
+
+static void companion_bluetooth_security_changed(struct bt_conn *conn, bt_security_t level,
+						 enum bt_security_err err)
+{
+	if (err != BT_SECURITY_ERR_SUCCESS || level < BT_SECURITY_L4) {
+		companion_bluetooth_disconnected(conn, 0);
+		return;
+	}
+	companion_bluetooth_refresh_connection();
+}
+
+BT_CONN_CB_DEFINE(meshbus_meshcore_companion_conn_cbs) = {
+	.disconnected = companion_bluetooth_disconnected,
+	.security_changed = companion_bluetooth_security_changed,
+};
+
+static int companion_bluetooth_notify_frame(struct bt_conn *conn,
+					   const uint8_t *frame, size_t len)
 {
 	int rc;
 
@@ -119,11 +229,17 @@ static int companion_bluetooth_notify_frame(const uint8_t *frame, size_t len)
 		return -EINVAL;
 	}
 
-	if (!companion_bluetooth_ready()) {
+	if (!companion_bluetooth_ready() || !meshbus_bluetooth_connection_is_authorized(conn) ||
+	    !bt_gatt_is_subscribed(conn, companion_bluetooth_tx_attr, BT_GATT_CCC_NOTIFY)) {
 		return -ENOTCONN;
 	}
 
-	rc = bt_nus_send(NULL, frame, (uint16_t)len);
+	/* The worker owns this reference, even if disconnect replaces the active session. */
+	rc = bt_nus_send(conn, frame, (uint16_t)len);
+	if (rc == -EINVAL &&
+	    !bt_gatt_is_subscribed(conn, companion_bluetooth_tx_attr, BT_GATT_CCC_NOTIFY)) {
+		return -ENOTCONN;
+	}
 	if (rc == 0) {
 		atomic_inc(&companion_bluetooth_tx_count);
 	}
@@ -134,6 +250,7 @@ static int companion_bluetooth_transport_send(const uint8_t *frame, size_t len,
 					      void *user_data)
 {
 	struct companion_bluetooth_tx_frame queued = {0};
+	k_spinlock_key_t key;
 	int rc;
 
 	ARG_UNUSED(user_data);
@@ -142,14 +259,16 @@ static int companion_bluetooth_transport_send(const uint8_t *frame, size_t len,
 		return -EINVAL;
 	}
 
-	if (!companion_bluetooth_ready()) {
-		return -ENOTCONN;
-	}
-
 	queued.len = len;
 	memcpy(queued.data, frame, len);
 
+	key = k_spin_lock(&companion_bluetooth_tx_lock);
+	if (!companion_bluetooth_ready()) {
+		k_spin_unlock(&companion_bluetooth_tx_lock, key);
+		return -ENOTCONN;
+	}
 	rc = k_msgq_put(&companion_bluetooth_tx_msgq, &queued, K_NO_WAIT);
+	k_spin_unlock(&companion_bluetooth_tx_lock, key);
 	if (rc != 0) {
 		atomic_inc(&companion_bluetooth_drop_count);
 		LOG_DBG("Companion Bluetooth TX queue full: len=%u rc=%d",
@@ -233,16 +352,34 @@ static void companion_bluetooth_tx_work_handler(struct k_work *work)
 
 	ARG_UNUSED(work);
 
-	while (k_msgq_peek(&companion_bluetooth_tx_msgq, &frame) == 0) {
+	while (true) {
+		k_spinlock_key_t key = k_spin_lock(&companion_bluetooth_tx_lock);
+		uint32_t session = companion_bluetooth_tx_session;
+		struct bt_conn *conn;
 		int rc;
 
-		if (!companion_bluetooth_ready()) {
+		if (!companion_bluetooth_ready() ||
+		    k_msgq_peek(&companion_bluetooth_tx_msgq, &frame) != 0) {
+			k_spin_unlock(&companion_bluetooth_tx_lock, key);
 			return;
 		}
+		conn = bt_conn_ref(companion_bluetooth_conn);
+		k_spin_unlock(&companion_bluetooth_tx_lock, key);
 
-		rc = companion_bluetooth_notify_frame(frame.data, frame.len);
-		if (rc == 0) {
+		rc = companion_bluetooth_notify_frame(conn, frame.data, frame.len);
+		bt_conn_unref(conn);
+		key = k_spin_lock(&companion_bluetooth_tx_lock);
+		if (session != companion_bluetooth_tx_session) {
+			/* An old in-flight send must not consume or retry the new queue. */
+			k_spin_unlock(&companion_bluetooth_tx_lock, key);
+			continue;
+		}
+		if (rc == 0 || (rc != -ENOTCONN && rc != -EAGAIN && rc != -EBUSY &&
+				rc != -ENOMEM && rc != -ENOBUFS)) {
 			(void)k_msgq_get(&companion_bluetooth_tx_msgq, &frame, K_NO_WAIT);
+		}
+		k_spin_unlock(&companion_bluetooth_tx_lock, key);
+		if (rc == 0) {
 			continue;
 		}
 
@@ -260,7 +397,6 @@ static void companion_bluetooth_tx_work_handler(struct k_work *work)
 			atomic_inc(&companion_bluetooth_drop_count);
 			LOG_DBG("Companion Bluetooth TX drop: len=%u rc=%d",
 				(unsigned int)frame.len, rc);
-			(void)k_msgq_get(&companion_bluetooth_tx_msgq, &frame, K_NO_WAIT);
 			break;
 		}
 	}
@@ -279,8 +415,8 @@ static void companion_bluetooth_state_listener_cb(const struct zbus_channel *cha
 		return;
 	}
 
-	companion_bluetooth_set_connected(event->state == MESHBUS_BLUETOOTH_STATE_CONNECTED &&
-					  meshbus_bluetooth_meshcore_companion_enabled());
+	/* Native callbacks invalidate sessions even when consecutive state events merge. */
+	companion_bluetooth_refresh_connection();
 }
 
 ZBUS_LISTENER_DEFINE(meshbus_meshcore_companion_bluetooth_state_listener,
@@ -295,6 +431,11 @@ static int meshbus_meshcore_companion_bluetooth_init(void)
 		.user_data = NULL,
 	};
 	int rc;
+
+	companion_bluetooth_tx_attr = bt_gatt_find_by_uuid(NULL, 0, BT_UUID_NUS_TX_CHAR);
+	if (companion_bluetooth_tx_attr == NULL) {
+		return -ENOENT;
+	}
 
 	if (!companion_bluetooth_workq_started) {
 		k_work_queue_start(&companion_bluetooth_workq, companion_bluetooth_workq_stack,

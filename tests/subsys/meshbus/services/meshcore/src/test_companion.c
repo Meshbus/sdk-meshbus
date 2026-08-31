@@ -139,6 +139,7 @@ struct captured_tx {
 };
 
 static struct captured_tx captured;
+static K_SEM_DEFINE(captured_tx_changed, 0, TEST_CAPTURED_FRAME_COUNT);
 static uint8_t test_public_key[32];
 static uint64_t captured_set_time_ms;
 static uint8_t captured_node_prefix[CONFIG_MESHBUS_CONTACT_PREFIX_BYTES];
@@ -191,6 +192,7 @@ static int capture_send(const uint8_t *frame, size_t len, void *user_data)
 {
 	struct captured_tx *tx = user_data;
 
+	/* Capture final transport admission; no driver I/O takes place here. */
 	zassert_not_null(frame, "frame must be set");
 	zassert_not_null(tx, "capture must be set");
 	zassert_true(len <= MESHCORE_COMPANION_MAX_FRAME_SIZE, "frame too large");
@@ -204,6 +206,7 @@ static int capture_send(const uint8_t *frame, size_t len, void *user_data)
 	tx->len[tx->count] = len;
 	memcpy(tx->frame[tx->count], frame, len);
 	tx->count++;
+	k_sem_give(&captured_tx_changed);
 
 	return 0;
 }
@@ -712,6 +715,7 @@ static void reset_adapter(bool connected)
 	meshcore_companion_adapter_disconnected();
 	meshcore_companion_adapter_flush();
 	memset(&captured, 0, sizeof(captured));
+	k_sem_reset(&captured_tx_changed);
 	memset(captured_node_prefix, 0, sizeof(captured_node_prefix));
 	memset(captured_payload, 0, sizeof(captured_payload));
 	captured_payload_len = 0U;
@@ -769,10 +773,11 @@ static void reset_adapter(bool connected)
 
 static void drain_companion_work_until(size_t expected_count)
 {
-	for (size_t i = 0U; i < 16U && captured.count < expected_count; i++) {
-		k_sleep(K_MSEC(CONFIG_MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_WORK_DELAY_MS +
-			       10));
-		meshcore_companion_adapter_flush();
+	k_timepoint_t deadline = sys_timepoint_calc(K_SECONDS(1));
+
+	while (captured.count < expected_count) {
+		zassert_ok(k_sem_take(&captured_tx_changed, sys_timepoint_timeout(deadline)),
+			   "timed out waiting for frame %u", (unsigned int)expected_count);
 	}
 }
 
@@ -1493,7 +1498,6 @@ ZTEST(meshbus_meshcore_companion_contract, test_mesh_request_commands_and_push_f
 	trace_resp.out_path_snr[1] = 4;
 	zassert_ok(zbus_chan_pub(&meshbus_contact_trace_path_response_chan, &trace_resp, K_NO_WAIT));
 
-	k_sleep(K_MSEC(CONFIG_MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_WORK_DELAY_MS + 10));
 	meshcore_companion_adapter_flush();
 
 	zassert_equal(captured.frame[5][0], TEST_PUSH_CODE_PATH_DISCOVERY,
@@ -1534,7 +1538,6 @@ ZTEST(meshbus_meshcore_companion_contract, test_mesh_request_commands_and_push_f
 	path.path_hash_size = 2U;
 	zassert_ok(zbus_chan_pub(&meshbus_contact_path_response_chan, &path, K_NO_WAIT));
 
-	k_sleep(K_MSEC(CONFIG_MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_WORK_DELAY_MS + 10));
 	meshcore_companion_adapter_flush();
 
 	zassert_equal(captured.frame[7][0], TEST_PUSH_CODE_PATH_DISCOVERY,
@@ -1567,7 +1570,6 @@ ZTEST(meshbus_meshcore_companion_contract, test_mesh_request_commands_and_push_f
 	tel.payload[1] = 0xbbU;
 	zassert_ok(zbus_chan_pub(&meshbus_contact_telemetry_response_chan, &tel, K_NO_WAIT));
 
-	k_sleep(K_MSEC(CONFIG_MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_WORK_DELAY_MS + 10));
 	meshcore_companion_adapter_flush();
 
 	zassert_equal(captured.frame[8][0], TEST_PUSH_CODE_MSG_WAITING,
@@ -1677,7 +1679,6 @@ ZTEST(meshbus_meshcore_companion_contract, test_status_request_maps_to_upstream_
 	binary.payload_len = sizeof(status_payload);
 	memcpy(binary.payload, status_payload, sizeof(status_payload));
 	zassert_ok(zbus_chan_pub(&meshbus_contact_binary_response_chan, &binary, K_NO_WAIT));
-	k_sleep(K_MSEC(CONFIG_MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_WORK_DELAY_MS + 10));
 	meshcore_companion_adapter_flush();
 
 	zassert_equal(captured.count, 2U, "status push count");
@@ -1715,13 +1716,11 @@ ZTEST(meshbus_meshcore_companion_contract, test_status_requests_keep_tag_prefix_
 	binary.payload_len = 1U;
 	binary.payload[0] = 0xb0U;
 	zassert_ok(zbus_chan_pub(&meshbus_contact_binary_response_chan, &binary, K_NO_WAIT));
-	k_sleep(K_MSEC(CONFIG_MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_WORK_DELAY_MS + 10));
 	meshcore_companion_adapter_flush();
 
 	binary.tag = tag_a;
 	binary.payload[0] = 0xa0U;
 	zassert_ok(zbus_chan_pub(&meshbus_contact_binary_response_chan, &binary, K_NO_WAIT));
-	k_sleep(K_MSEC(CONFIG_MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_WORK_DELAY_MS + 10));
 	meshcore_companion_adapter_flush();
 
 	zassert_equal(captured.count, 4U, "status response count");
@@ -2543,7 +2542,6 @@ ZTEST(meshbus_meshcore_companion_contract, test_low_level_meshcore_response_push
 	binary.payload[0] = 0xaaU;
 	binary.payload[1] = 0xbbU;
 	zassert_ok(zbus_chan_pub(&meshbus_contact_binary_response_chan, &binary, K_NO_WAIT));
-	k_sleep(K_MSEC(CONFIG_MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_WORK_DELAY_MS + 10));
 	meshcore_companion_adapter_flush();
 	zassert_equal(captured.count, 1U, "binary push count");
 	zassert_equal(captured.frame[0][0], TEST_PUSH_CODE_BINARY_RESPONSE,
@@ -2560,7 +2558,6 @@ ZTEST(meshbus_meshcore_companion_contract, test_low_level_meshcore_response_push
 	raw.has_rx_snr = true;
 	raw.rx_snr_q4 = 8;
 	zassert_ok(zbus_chan_pub(&meshbus_meshcore_raw_data_response_chan, &raw, K_NO_WAIT));
-	k_sleep(K_MSEC(CONFIG_MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_WORK_DELAY_MS + 10));
 	meshcore_companion_adapter_flush();
 	zassert_equal(captured.count, 2U, "raw push count");
 	zassert_equal(captured.frame[1][0], TEST_PUSH_CODE_RAW_DATA, "raw push code");
@@ -2577,7 +2574,6 @@ ZTEST(meshbus_meshcore_companion_contract, test_low_level_meshcore_response_push
 	control.rx_snr_q4 = -4;
 	zassert_ok(zbus_chan_pub(&meshbus_meshcore_control_data_response_chan,
 				 &control, K_NO_WAIT));
-	k_sleep(K_MSEC(CONFIG_MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_WORK_DELAY_MS + 10));
 	meshcore_companion_adapter_flush();
 	zassert_equal(captured.count, 3U, "control push count");
 	zassert_equal(captured.frame[2][0], TEST_PUSH_CODE_CONTROL_DATA,
@@ -2596,7 +2592,6 @@ ZTEST(meshbus_meshcore_companion_contract, test_low_level_meshcore_response_push
 	channel.rx_snr_q4 = 7;
 	zassert_ok(zbus_chan_pub(&meshbus_meshcore_channel_data_response_chan,
 				 &channel, K_NO_WAIT));
-	k_sleep(K_MSEC(CONFIG_MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_WORK_DELAY_MS + 10));
 	meshcore_companion_adapter_flush();
 	zassert_equal(captured.count, 4U, "channel data push count");
 	zassert_equal(captured.frame[3][0], TEST_RESP_CODE_CHANNEL_DATA_RECV,
@@ -2628,7 +2623,6 @@ ZTEST(meshbus_meshcore_companion_contract, test_advert_push_matches_arduino_wire
 	event.longitude = 7654321;
 
 	zassert_ok(zbus_chan_pub(&meshbus_contact_advert_chan, &event, K_NO_WAIT));
-	k_sleep(K_MSEC(CONFIG_MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_WORK_DELAY_MS + 10));
 	meshcore_companion_adapter_flush();
 
 	zassert_equal(captured.count, 1U, "existing advert push count mismatch");
@@ -2642,7 +2636,6 @@ ZTEST(meshbus_meshcore_companion_contract, test_advert_push_matches_arduino_wire
 	reset_adapter(true);
 	event.is_new = true;
 	zassert_ok(zbus_chan_pub(&meshbus_contact_advert_chan, &event, K_NO_WAIT));
-	k_sleep(K_MSEC(CONFIG_MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_WORK_DELAY_MS + 10));
 	meshcore_companion_adapter_flush();
 
 	zassert_equal(captured.count, 1U, "new advert push count mismatch");
@@ -2685,7 +2678,6 @@ ZTEST(meshbus_meshcore_companion_contract, test_path_updated_push_matches_arduin
 	event.key_prefix[3] = 0x44U;
 
 	zassert_ok(zbus_chan_pub(&meshbus_contact_path_response_chan, &event, K_NO_WAIT));
-	k_sleep(K_MSEC(CONFIG_MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_WORK_DELAY_MS + 10));
 	meshcore_companion_adapter_flush();
 
 	zassert_equal(captured.count, 1U, "path updated push count mismatch");
@@ -2725,7 +2717,6 @@ ZTEST(meshbus_meshcore_companion_contract, test_ack_push_matches_sent_ack_token)
 	ack.attempt = 7U;
 	zassert_ok(zbus_chan_pub(&meshbus_message_ack_response_chan, &ack, K_NO_WAIT));
 
-	k_sleep(K_MSEC(CONFIG_MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_WORK_DELAY_MS + 10));
 	meshcore_companion_adapter_flush();
 
 	zassert_equal(captured.len[1], 9U, "ACK push length mismatch");
@@ -2810,7 +2801,7 @@ ZTEST(meshbus_meshcore_companion_contract, test_rx_requires_connected_transport)
 	zassert_equal(captured.count, 0U, "disconnected RX should not emit TX");
 }
 
-ZTEST(meshbus_meshcore_companion_contract, test_async_queue_uses_work_context)
+ZTEST(meshbus_meshcore_companion_contract, test_async_queue_reports_transport_admission)
 {
 	const uint8_t push_frame[] = {0x80, 0x01, 0x02};
 
@@ -2818,18 +2809,20 @@ ZTEST(meshbus_meshcore_companion_contract, test_async_queue_uses_work_context)
 
 	zassert_ok(meshcore_companion_adapter_queue_frame(push_frame, sizeof(push_frame)),
 		   "queue frame failed");
-	zassert_equal(captured.count, 0U, "queued frame was sent synchronously");
-
-	k_sleep(K_MSEC(CONFIG_MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_WORK_DELAY_MS + 10));
-	meshcore_companion_adapter_flush();
-
-	zassert_equal(captured.count, 1U, "queued frame was not sent");
+	zassert_equal(captured.count, 1U, "transport did not accept the frame");
 	zassert_equal(captured.len[0], sizeof(push_frame), "queued frame length mismatch");
 	zassert_mem_equal(captured.frame[0], push_frame, sizeof(push_frame),
 			  "queued frame payload mismatch");
+
+	capture_fail_code = push_frame[0];
+	capture_fail_rc = -ENOSPC;
+	capture_fail_remaining = 1U;
+	zassert_equal(meshcore_companion_adapter_queue_frame(push_frame, sizeof(push_frame)),
+		      -ENOSPC, "transport backpressure did not reach the producer");
+	zassert_equal(captured.count, 1U, "rejected frame was accepted");
 }
 
-ZTEST(meshbus_meshcore_companion_contract, test_disconnect_clears_pending_async_state)
+ZTEST(meshbus_meshcore_companion_contract, test_disconnect_rejects_async_frames)
 {
 	const uint8_t push_frame[] = {0x80, 0x03};
 
@@ -2838,10 +2831,11 @@ ZTEST(meshbus_meshcore_companion_contract, test_disconnect_clears_pending_async_
 	zassert_ok(meshcore_companion_adapter_queue_frame(push_frame, sizeof(push_frame)),
 		   "queue frame failed");
 	meshcore_companion_adapter_disconnected();
-	k_sleep(K_MSEC(CONFIG_MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_WORK_DELAY_MS + 10));
 	meshcore_companion_adapter_flush();
 
-	zassert_equal(captured.count, 0U, "disconnect should drop pending async TX");
+	zassert_equal(meshcore_companion_adapter_queue_frame(push_frame, sizeof(push_frame)),
+		      -ENOTCONN, "disconnected producer was accepted");
+	zassert_equal(captured.count, 1U, "disconnected frame reached the transport");
 }
 
 ZTEST_SUITE(meshbus_meshcore_companion_contract, NULL, NULL, NULL, NULL, NULL);

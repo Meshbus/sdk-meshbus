@@ -17,6 +17,13 @@ extern "C" {
 #define MESHCORE_COMPANION_MAX_FRAME_SIZE 172U
 
 struct meshcore_companion_transport {
+	/*
+	 * Copy a complete frame into the transport's bounded TX queue without
+	 * waiting for space or performing I/O. Called from both command handlers
+	 * and event listeners, with no adapter lock held. Return 0 only after
+	 * accepting the frame, or -ENOSPC when full. The transport owns delivery,
+	 * retry, and discarding pending frames on disconnect or reinitialization.
+	 */
 	int (*send)(const uint8_t *frame, size_t len, void *user_data);
 	void *user_data;
 };

@@ -68,21 +68,23 @@ static int meshbus_clock_mgmt_status(struct smp_streamer *ctxt)
 				    MESHBUS_CLOCK_MGMT_PROTO_RSP_MAX_SIZE);
 }
 
-MB_MGMT_CONFIG_GET_HANDLER_DEFINE(meshbus_clock_mgmt_config_get, meshbus_ClockConfigGetRequest,
-				      meshbus_ClockConfigGetResponse, meshbus_clock_config, meshbus_clock_config_get,
-				      meshbus_ClockConfigGetRequest_fields,
-				      meshbus_ClockConfigGetResponse_fields, MESHBUS_CLOCK_MGMT_PROTO_RSP_MAX_SIZE);
+MB_MGMT_CONFIG_GET_HANDLER_DEFINE(
+	meshbus_clock_mgmt_config_get, meshbus_ClockConfigGetRequest,
+	meshbus_ClockConfigGetResponse, meshbus_clock_config_get,
+	meshbus_ClockConfigGetRequest_fields, meshbus_ClockConfigGetResponse_fields,
+	MESHBUS_CLOCK_MGMT_PROTO_RSP_MAX_SIZE);
 
-MB_MGMT_CONFIG_SET_HANDLER_DEFINE_NO_VALIDATE(
+MB_MGMT_CONFIG_SET_HANDLER_DEFINE(
 	meshbus_clock_mgmt_config_set, meshbus_ClockConfigSetRequest,
-	meshbus_ClockConfigSetResponse, meshbus_clock_config, meshbus_clock_config_set,
+	meshbus_ClockConfigSetResponse, meshbus_clock_config_set,
 	meshbus_ClockConfigSetRequest_fields, meshbus_ClockConfigSetResponse_fields,
 	MESHBUS_CLOCK_MGMT_PROTO_RSP_MAX_SIZE);
 
-MB_MGMT_CONFIG_RESET_HANDLER_DEFINE(meshbus_clock_mgmt_config_reset, meshbus_ClockConfigResetRequest,
-					meshbus_ClockConfigResetResponse, meshbus_clock_config, meshbus_clock_config_reset,
-					meshbus_clock_config_get, meshbus_ClockConfigResetRequest_fields,
-					meshbus_ClockConfigResetResponse_fields, MESHBUS_CLOCK_MGMT_PROTO_RSP_MAX_SIZE);
+MB_MGMT_CONFIG_RESET_HANDLER_DEFINE(
+	meshbus_clock_mgmt_config_reset, meshbus_ClockConfigResetRequest,
+	meshbus_ClockConfigResetResponse, meshbus_clock_config_reset, meshbus_clock_config_get,
+	meshbus_ClockConfigResetRequest_fields, meshbus_ClockConfigResetResponse_fields,
+	MESHBUS_CLOCK_MGMT_PROTO_RSP_MAX_SIZE);
 
 static int meshbus_clock_mgmt_time_set(struct smp_streamer *ctxt)
 {

@@ -209,11 +209,6 @@ static size_t telemetry_provider_count;
 static struct telemetry_binding telemetry_bindings[TELEMETRY_LIST_MAX];
 static size_t telemetry_binding_count;
 
-/* Provider -> bindings index table (built once at init). */
-static uint16_t telemetry_provider_binding_first[TELEMETRY_LIST_MAX];
-static uint16_t telemetry_provider_binding_count[TELEMETRY_LIST_MAX];
-static uint16_t telemetry_provider_binding_indices[TELEMETRY_LIST_MAX];
-
 /* Serialize periodic sampling and synchronous channel reads owned by Telemetry. */
 static K_MUTEX_DEFINE(telemetry_sensor_io_mutex);
 
@@ -255,7 +250,6 @@ static int settings_handler_apply(const meshbus_telemetry_config *cfg, bool pers
 static void telemetry_sample_work_handler(struct k_work *work);
 
 static void telemetry_runtime_map_build(void);
-static void telemetry_provider_index_build(void);
 
 /* -------------------------------------------------------------------------- */
 /* Validation And Helpers                                                     */
@@ -558,58 +552,6 @@ static size_t telemetry_binding_find_idx(enum sensor_channel chan)
 	return SIZE_MAX;
 }
 
-static void telemetry_provider_index_build(void)
-{
-	/* Build a dense table to avoid scanning all bindings for each provider. */
-	if (telemetry_provider_count == 0U || telemetry_binding_count == 0U) {
-		memset(telemetry_provider_binding_first, 0,
-		       sizeof(telemetry_provider_binding_first));
-		memset(telemetry_provider_binding_count, 0,
-		       sizeof(telemetry_provider_binding_count));
-		return;
-	}
-
-	memset(telemetry_provider_binding_first, 0, sizeof(telemetry_provider_binding_first));
-	memset(telemetry_provider_binding_count, 0, sizeof(telemetry_provider_binding_count));
-
-	/* Count bindings per provider. */
-	for (size_t i = 0; i < telemetry_binding_count; i++) {
-		uint16_t p = telemetry_bindings[i].provider_idx;
-
-		if (p < telemetry_provider_count) {
-			telemetry_provider_binding_count[p]++;
-		}
-	}
-
-	/* Prefix sum: compute first offsets. */
-	uint16_t running = 0U;
-	for (size_t p = 0; p < telemetry_provider_count; p++) {
-		uint16_t count = telemetry_provider_binding_count[p];
-
-		telemetry_provider_binding_first[p] = running;
-		running = (uint16_t)(running + count);
-
-		/* Reuse as cursor in the fill pass. */
-		telemetry_provider_binding_count[p] = 0U;
-	}
-
-	/* Fill indices. Cursor is stored in provider_binding_count temporarily. */
-	for (size_t i = 0; i < telemetry_binding_count; i++) {
-		uint16_t p = telemetry_bindings[i].provider_idx;
-
-		if (p >= telemetry_provider_count) {
-			continue;
-		}
-
-		uint16_t pos = (uint16_t)(telemetry_provider_binding_first[p] +
-					  telemetry_provider_binding_count[p]);
-		if (pos < ARRAY_SIZE(telemetry_provider_binding_indices)) {
-			telemetry_provider_binding_indices[pos] = (uint16_t)i;
-			telemetry_provider_binding_count[p]++;
-		}
-	}
-}
-
 static void telemetry_runtime_map_build(void)
 {
 	telemetry_provider_count = 0U;
@@ -668,8 +610,6 @@ static void telemetry_runtime_map_build(void)
 			LOG_DBG("       power-domain: %s", dt_entry->power_domain->name);
 		}
 	}
-
-	telemetry_provider_index_build();
 
 	LOG_DBG("Telemetry providers: %zu, bindings: %zu", telemetry_provider_count,
 		telemetry_binding_count);
@@ -975,15 +915,13 @@ static void telemetry_sample_work_handler(struct k_work *work)
 			continue;
 		}
 
-		uint16_t first = telemetry_provider_binding_first[p];
-		uint16_t count = telemetry_provider_binding_count[p];
-		for (uint16_t k = 0; k < count; k++) {
-			uint16_t i = telemetry_provider_binding_indices[(uint16_t)(first + k)];
-			if (i >= telemetry_binding_count) {
+		for (size_t i = 0; i < telemetry_binding_count; i++) {
+			struct telemetry_binding *binding = &telemetry_bindings[i];
+
+			if (binding->provider_idx != p) {
 				continue;
 			}
 
-			struct telemetry_binding *binding = &telemetry_bindings[i];
 			struct sensor_value vals[MESHBUS_TELEMETRY_MAX_VALUES] = {0};
 			struct meshbus_telemetry_data_event event = {
 				.timestamp = timestamp,

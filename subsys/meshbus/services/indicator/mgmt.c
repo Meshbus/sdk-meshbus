@@ -66,21 +66,23 @@ static int meshbus_indicator_mgmt_status(struct smp_streamer *ctxt)
 				    MESHBUS_INDICATOR_MGMT_PROTO_RSP_MAX_SIZE);
 }
 
-MB_MGMT_CONFIG_GET_HANDLER_DEFINE(meshbus_indicator_mgmt_config_get, meshbus_IndicatorConfigGetRequest,
-				      meshbus_IndicatorConfigGetResponse, meshbus_indicator_config, meshbus_indicator_config_get,
-				      meshbus_IndicatorConfigGetRequest_fields,
-				      meshbus_IndicatorConfigGetResponse_fields, MESHBUS_INDICATOR_MGMT_PROTO_RSP_MAX_SIZE);
+MB_MGMT_CONFIG_GET_HANDLER_DEFINE(
+	meshbus_indicator_mgmt_config_get, meshbus_IndicatorConfigGetRequest,
+	meshbus_IndicatorConfigGetResponse, meshbus_indicator_config_get,
+	meshbus_IndicatorConfigGetRequest_fields, meshbus_IndicatorConfigGetResponse_fields,
+	MESHBUS_INDICATOR_MGMT_PROTO_RSP_MAX_SIZE);
 
-MB_MGMT_CONFIG_SET_HANDLER_DEFINE_NO_VALIDATE(
+MB_MGMT_CONFIG_SET_HANDLER_DEFINE(
 	meshbus_indicator_mgmt_config_set, meshbus_IndicatorConfigSetRequest,
-	meshbus_IndicatorConfigSetResponse, meshbus_indicator_config, meshbus_indicator_config_set,
+	meshbus_IndicatorConfigSetResponse, meshbus_indicator_config_set,
 	meshbus_IndicatorConfigSetRequest_fields, meshbus_IndicatorConfigSetResponse_fields,
 	MESHBUS_INDICATOR_MGMT_PROTO_RSP_MAX_SIZE);
 
-MB_MGMT_CONFIG_RESET_HANDLER_DEFINE(meshbus_indicator_mgmt_config_reset, meshbus_IndicatorConfigResetRequest,
-					meshbus_IndicatorConfigResetResponse, meshbus_indicator_config, meshbus_indicator_config_reset,
-					meshbus_indicator_config_get, meshbus_IndicatorConfigResetRequest_fields,
-					meshbus_IndicatorConfigResetResponse_fields, MESHBUS_INDICATOR_MGMT_PROTO_RSP_MAX_SIZE);
+MB_MGMT_CONFIG_RESET_HANDLER_DEFINE(
+	meshbus_indicator_mgmt_config_reset, meshbus_IndicatorConfigResetRequest,
+	meshbus_IndicatorConfigResetResponse, meshbus_indicator_config_reset,
+	meshbus_indicator_config_get, meshbus_IndicatorConfigResetRequest_fields,
+	meshbus_IndicatorConfigResetResponse_fields, MESHBUS_INDICATOR_MGMT_PROTO_RSP_MAX_SIZE);
 
 static int meshbus_indicator_mgmt_stop(struct smp_streamer *ctxt)
 {

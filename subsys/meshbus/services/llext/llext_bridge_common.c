@@ -20,21 +20,6 @@ static uint64_t mb_llext_bridge_valid_mask(size_t channel_count)
 	return BIT64(channel_count) - 1ULL;
 }
 
-static int mb_llext_bridge_take_first_bit(uint64_t *mask, size_t *bit_out)
-{
-	for (size_t bit = 0U; bit < MB_LLEXT_BRIDGE_MAX_CHANNELS; bit++) {
-		uint64_t bit_mask = BIT64(bit);
-
-		if ((*mask & bit_mask) != 0ULL) {
-			*mask &= ~bit_mask;
-			*bit_out = bit;
-			return 0;
-		}
-	}
-
-	return -ENOMSG;
-}
-
 static void mb_llext_bridge_notify_work_handler(struct k_work *work)
 {
 	struct mb_llext_bridge *bridge = CONTAINER_OF(work, struct mb_llext_bridge, notify_work);
@@ -173,13 +158,14 @@ int mb_llext_bridge_unsubscribe(struct mb_llext_bridge *bridge, struct k_event *
 
 int mb_llext_bridge_take_pending(struct mb_llext_bridge *bridge,
 				 struct k_event *evt,
-				 size_t *channel_id)
+				 uint64_t *pending_mask)
 {
 	int rc = -ENOENT;
 
-	if (evt == NULL || channel_id == NULL) {
+	if (evt == NULL || pending_mask == NULL) {
 		return -EINVAL;
 	}
+	*pending_mask = 0ULL;
 
 	k_mutex_lock(&bridge->mutex, K_FOREVER);
 	for (size_t i = 0U; i < bridge->subscribers_len; i++) {
@@ -189,7 +175,9 @@ int mb_llext_bridge_take_pending(struct mb_llext_bridge *bridge,
 			continue;
 		}
 
-		rc = mb_llext_bridge_take_first_bit(&sub->pending_mask, channel_id);
+		*pending_mask = sub->pending_mask;
+		sub->pending_mask = 0ULL;
+		rc = *pending_mask != 0ULL ? 0 : -ENOMSG;
 		break;
 	}
 	k_mutex_unlock(&bridge->mutex);

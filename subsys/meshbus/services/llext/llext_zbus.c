@@ -365,28 +365,17 @@ int meshbus_llext_zbus_unsubscribe(struct k_event *evt)
 
 int meshbus_llext_zbus_take_pending(struct k_event *evt, uint64_t *pending_mask)
 {
-	size_t channel_id;
 	int rc;
 
 	if (evt == NULL || pending_mask == NULL) {
 		return -EINVAL;
 	}
 
-	*pending_mask = 0ULL;
-	for (;;) {
-		rc = mb_llext_bridge_take_pending(&zbus_bridge, evt, &channel_id);
-		if (rc == -ENOMSG) {
-			break;
-		}
-		if (rc != 0) {
-			return rc;
-		}
-
-		if (channel_id < MESHBUS_LLEXT_ZBUS_CHANNEL_COUNT &&
-		    zbus_descs[channel_id].chan != NULL) {
-			*pending_mask |= MESHBUS_LLEXT_ZBUS_CH_BIT(channel_id);
-		}
+	rc = mb_llext_bridge_take_pending(&zbus_bridge, evt, pending_mask);
+	if (rc != 0) {
+		return rc;
 	}
+	*pending_mask &= meshbus_llext_zbus_available_mask();
 
 	return (*pending_mask != 0ULL) ? 0 : -ENOMSG;
 }

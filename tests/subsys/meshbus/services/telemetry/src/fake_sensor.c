@@ -18,6 +18,9 @@ static atomic_t pm_suspend_count;
 static atomic_t sample_fetch_count;
 static atomic_t ambient_temp_get_count;
 static atomic_t press_get_count;
+static atomic_t second_fetch_count;
+static atomic_t second_accel_get_count;
+static atomic_t second_temp_get_count;
 static atomic_t pm_suspend_error;
 static atomic_t block_sample_fetch;
 static atomic_t reject_all_sample_fetch;
@@ -50,7 +53,21 @@ void fake_sensor_io_counts_reset(void)
 	atomic_set(&sample_fetch_count, 0);
 	atomic_set(&ambient_temp_get_count, 0);
 	atomic_set(&press_get_count, 0);
+	atomic_set(&second_fetch_count, 0);
+	atomic_set(&second_accel_get_count, 0);
+	atomic_set(&second_temp_get_count, 0);
 	atomic_clear(&reject_all_sample_fetch);
+}
+
+atomic_val_t fake_second_sensor_fetch_count(void)
+{
+	return atomic_get(&second_fetch_count);
+}
+
+atomic_val_t fake_second_sensor_get_count(enum sensor_channel chan)
+{
+	return atomic_get(chan == SENSOR_CHAN_ACCEL_XYZ ? &second_accel_get_count :
+			  &second_temp_get_count);
 }
 
 atomic_val_t fake_sensor_sample_fetch_count(void)
@@ -122,12 +139,13 @@ static int fake_sensor_init(const struct device *dev)
 
 static int fake_sensor_sample_fetch(const struct device *dev, enum sensor_channel chan)
 {
-	ARG_UNUSED(dev);
-	atomic_inc(&sample_fetch_count);
+	bool primary = dev == DEVICE_DT_GET(DT_NODELABEL(fake_sensor));
+
+	atomic_inc(primary ? &sample_fetch_count : &second_fetch_count);
 	if (chan == SENSOR_CHAN_ALL && atomic_get(&reject_all_sample_fetch) != 0) {
 		return -ENOTSUP;
 	}
-	if (atomic_get(&block_sample_fetch) != 0) {
+	if (primary && atomic_get(&block_sample_fetch) != 0) {
 		k_sem_give(&sample_fetch_entered);
 		(void)k_sem_take(&sample_fetch_release, K_FOREVER);
 	}
@@ -137,10 +155,20 @@ static int fake_sensor_sample_fetch(const struct device *dev, enum sensor_channe
 static int fake_sensor_channel_get(const struct device *dev, enum sensor_channel chan,
 				   struct sensor_value *val)
 {
-	ARG_UNUSED(dev);
-
 	if (val == NULL) {
 		return -EINVAL;
+	}
+	if (dev == DEVICE_DT_GET(DT_NODELABEL(second_sensor))) {
+		if (chan == SENSOR_CHAN_ACCEL_XYZ) {
+			atomic_inc(&second_accel_get_count);
+			for (size_t i = 0; i < 3; i++) {
+				val[i] = (struct sensor_value){.val1 = 100 + i, .val2 = 2000};
+			}
+		} else {
+			atomic_inc(&second_temp_get_count);
+			*val = (struct sensor_value){.val1 = -100, .val2 = 0};
+		}
+		return 0;
 	}
 	if (chan == SENSOR_CHAN_AMBIENT_TEMP) {
 		atomic_inc(&ambient_temp_get_count);

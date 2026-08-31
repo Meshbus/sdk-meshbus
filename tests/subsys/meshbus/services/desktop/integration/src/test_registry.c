@@ -27,10 +27,21 @@ static meshbus_desktop_app_handle_t app_b_handle;
 static meshbus_desktop_app_handle_t expected_active_handle;
 static bool active_when_exit_requested;
 static int external_cleanup_count;
+static void *expected_user_data;
 
 static void short_app_main(void *arg)
 {
-	ARG_UNUSED(arg);
+	struct meshbus_desktop_app_args *args = arg;
+	const struct meshbus_desktop_app_desc *desc;
+
+	zassert_ok(meshbus_desktop_app_registry_resolve_handle(expected_active_handle, &desc));
+	zassert_not_null(args);
+	zassert_equal(args->host, test_desktop.host);
+	zassert_equal(args->user_data, expected_user_data);
+	zassert_str_equal(args->app_id, desc->id);
+	zassert_str_equal(args->display_name, desc->display_name);
+	/* The mutable app arguments do not transfer cleanup-context ownership. */
+	args->user_data = NULL;
 }
 
 MESHBUS_DESKTOP_APP_DEFINE("registry-test-a", "Registry test A", short_app_main,
@@ -133,6 +144,7 @@ static void desktop_registry_before(void *fixture)
 	ARG_UNUSED(fixture);
 
 	active_when_exit_requested = false;
+	expected_user_data = NULL;
 	k_sem_reset(&exit_requested_sem);
 	k_sem_reset(&allow_thread_return_sem);
 }
@@ -160,6 +172,13 @@ static void external_cleanup(void *user_data)
 	int *cleanup_count = user_data;
 
 	(*cleanup_count)++;
+	zassert_true(desktop_app_registry_is_running(expected_active_handle));
+	zassert_equal(desktop_app_registry_complete_exit(expected_active_handle, K_NO_WAIT),
+		      -EBUSY, "a second reaper entered cleanup");
+	zassert_equal(desktop_app_registry_start(&test_desktop, app_b_handle), -EBUSY,
+		      "another app started before cleanup finished");
+	zassert_equal(desktop_app_registry_external_release(expected_active_handle), -EBUSY,
+		      "external descriptor was freed during cleanup");
 }
 
 ZTEST(desktop_registry_lifecycle, test_public_registry_and_handle_boundaries)
@@ -268,7 +287,7 @@ ZTEST(desktop_registry_lifecycle, test_widget_registry_filters_duplicates_and_so
 
 ZTEST(desktop_registry_lifecycle, test_app_remains_active_until_thread_is_joined)
 {
-	int wait_ret;
+	int join_ret;
 	int second_start_ret = -ECANCELED;
 
 	expected_active_handle = app_a_handle;
@@ -277,16 +296,19 @@ ZTEST(desktop_registry_lifecycle, test_app_remains_active_until_thread_is_joined
 	zassert_ok(k_sem_take(&exit_requested_sem, K_SECONDS(1)),
 		   "app A did not reach exit request");
 
-	wait_ret = desktop_app_registry_wait_exit(app_a_handle, K_NO_WAIT);
-	if (active_when_exit_requested && wait_ret != 0) {
+	join_ret = desktop_app_registry_complete_exit(app_a_handle, K_NO_WAIT);
+	if (active_when_exit_requested && join_ret != 0) {
 		second_start_ret = desktop_app_registry_start(&test_desktop, app_b_handle);
 	}
+	zassert_equal(desktop_app_registry_start(&test_desktop, app_a_handle), -EALREADY);
+	zassert_false(desktop_app_registry_is_running(app_b_handle));
+	zassert_ok(desktop_app_registry_complete_exit(app_b_handle, K_NO_WAIT));
 	k_sem_give(&allow_thread_return_sem);
 
 	zassert_true(active_when_exit_requested,
 		     "app became idle while its thread still owned the shared stack");
-	zassert_not_equal(wait_ret, 0,
-			  "wait completed before the app thread returned");
+	zassert_not_equal(join_ret, 0,
+			  "join completed before the app thread returned");
 	zassert_equal(second_start_ret, -EBUSY,
 		      "app B reused the stack before app A was joined");
 	zassert_equal(desktop_app_registry_detach_desktop_all(&test_desktop), -EBUSY,
@@ -295,12 +317,28 @@ ZTEST(desktop_registry_lifecycle, test_app_remains_active_until_thread_is_joined
 		   "failed to join app A");
 	zassert_false(desktop_app_registry_is_running(app_a_handle),
 		      "app A remained active after join");
-	zassert_ok(desktop_app_registry_wait_exit(app_a_handle, K_NO_WAIT),
-		   "wait did not complete after join");
+	zassert_ok(desktop_app_registry_complete_exit(app_a_handle, K_NO_WAIT),
+		   "completing an idle app did not remain idempotent");
 
 	for (int i = 0; i < 8; i++) {
 		start_and_complete((i & 1) == 0 ? app_b_handle : app_a_handle);
 	}
+}
+
+ZTEST(desktop_registry_lifecycle, test_start_failure_keeps_session_available)
+{
+	k_thread_stack_t *stack = test_desktop.app_shared_stack;
+	size_t stack_size = test_desktop.app_shared_stack_size;
+
+	test_desktop.app_shared_stack = NULL;
+	zassert_equal(desktop_app_registry_start(&test_desktop, app_a_handle), -ENOMEM);
+	zassert_false(desktop_app_registry_is_running(app_a_handle));
+	test_desktop.app_shared_stack = stack;
+	test_desktop.app_shared_stack_size = TEST_APP_STACK_SIZE - 1U;
+	zassert_equal(desktop_app_registry_start(&test_desktop, app_a_handle), -EINVAL);
+	zassert_false(desktop_app_registry_is_running(app_a_handle));
+	test_desktop.app_shared_stack_size = stack_size;
+	start_and_complete(app_a_handle);
 }
 
 ZTEST(desktop_registry_lifecycle, test_external_cleanup_and_release_follow_join)
@@ -316,10 +354,12 @@ ZTEST(desktop_registry_lifecycle, test_external_cleanup_and_release_follow_join)
 	};
 
 	external_cleanup_count = 0;
+	start_and_complete(app_a_handle);
 	zassert_ok(desktop_app_registry_external_prepare(&desc, &handle),
 		   "failed to prepare external app");
 
 	expected_active_handle = handle;
+	expected_user_data = &external_cleanup_count;
 	zassert_ok(desktop_app_registry_start(&test_desktop, handle),
 		   "failed to start external app");
 	zassert_ok(k_sem_take(&exit_requested_sem, K_SECONDS(1)),
@@ -336,6 +376,8 @@ ZTEST(desktop_registry_lifecycle, test_external_cleanup_and_release_follow_join)
 		      "external cleanup did not run exactly once after join");
 	zassert_ok(desktop_app_registry_external_release(handle),
 		   "failed to release joined external app");
+	expected_user_data = NULL;
+	start_and_complete(app_b_handle);
 }
 
 ZTEST_SUITE(desktop_registry_lifecycle, NULL, desktop_registry_setup,

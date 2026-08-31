@@ -89,6 +89,8 @@ void fake_sensor_pm_suspend_error_set(int error);
 void fake_sensor_io_counts_reset(void);
 atomic_val_t fake_sensor_sample_fetch_count(void);
 atomic_val_t fake_sensor_channel_get_count(enum sensor_channel chan);
+atomic_val_t fake_second_sensor_fetch_count(void);
+atomic_val_t fake_second_sensor_get_count(enum sensor_channel chan);
 void fake_sensor_sample_fetch_block(void);
 void fake_sensor_reject_all_fetch(bool reject);
 int fake_sensor_sample_fetch_wait_entered(k_timeout_t timeout);
@@ -324,14 +326,16 @@ ZTEST(meshbus_telemetry_contract, test_sample_trigger_and_binding_boundaries)
 
 	zassert_ok(meshbus_telemetry_config_set(&disabled_cfg));
 	zassert_equal(meshbus_telemetry_sample_trigger(), -ENODEV);
-	zassert_equal(meshbus_telemetry_bindings_count(), 2);
+	zassert_equal(meshbus_telemetry_bindings_count(), 3);
 	zassert_equal(meshbus_telemetry_binding_get(0, NULL), -EINVAL);
 	zassert_ok(meshbus_telemetry_binding_get(0, &binding));
 	zassert_equal(binding.chan, SENSOR_CHAN_AMBIENT_TEMP);
 	zassert_not_null(binding.sensor_name);
 	zassert_ok(meshbus_telemetry_binding_get(1, &binding));
+	zassert_equal(binding.chan, SENSOR_CHAN_ACCEL_XYZ);
+	zassert_ok(meshbus_telemetry_binding_get(2, &binding));
 	zassert_equal(binding.chan, SENSOR_CHAN_PRESS);
-	zassert_equal(meshbus_telemetry_binding_get(2, &binding), -ENOENT);
+	zassert_equal(meshbus_telemetry_binding_get(3, &binding), -ENOENT);
 	zassert_equal(meshbus_telemetry_channel_get(SENSOR_CHAN_AMBIENT_TEMP, NULL), -EINVAL);
 	zassert_equal(meshbus_telemetry_channel_get((enum sensor_channel)-1, &value), -EINVAL);
 	zassert_equal(meshbus_telemetry_channel_get(SENSOR_CHAN_PRIV_START, &value), -EINVAL);
@@ -343,30 +347,62 @@ ZTEST(meshbus_telemetry_contract, test_sample_trigger_and_binding_boundaries)
 	zassert_equal(value.val1, SENSOR_CHAN_AMBIENT_TEMP);
 }
 
-ZTEST(meshbus_telemetry_contract, test_shared_provider_fetches_once_for_all_channels)
+static struct meshbus_telemetry_data_event sampled_events[3];
+static size_t sampled_event_count;
+K_SEM_DEFINE(sampled_event_ready, 0, ARRAY_SIZE(sampled_events));
+
+static void sample_listener_cb(const struct zbus_channel *chan)
+{
+	if (sampled_event_count < ARRAY_SIZE(sampled_events)) {
+		sampled_events[sampled_event_count++] =
+			*(const struct meshbus_telemetry_data_event *)zbus_chan_const_msg(chan);
+		k_sem_give(&sampled_event_ready);
+	}
+}
+
+ZBUS_LISTENER_DEFINE(sample_listener, sample_listener_cb);
+
+ZTEST(meshbus_telemetry_contract, test_providers_fetch_once_and_keep_binding_order)
 {
 	meshbus_telemetry_config cfg = valid_telemetry_config(false);
 
 	zassert_ok(meshbus_telemetry_config_set(&cfg));
 	fake_sensor_io_counts_reset();
+	sampled_event_count = 0;
+	k_sem_reset(&sampled_event_ready);
+	zassert_ok(zbus_chan_add_obs(&meshbus_telemetry_data_chan, &sample_listener,
+				    K_MSEC(100)));
 	cfg.enabled = true;
 	cfg.sample_interval = 60000U;
 	zassert_ok(meshbus_telemetry_config_set(&cfg));
 	zassert_ok(meshbus_telemetry_sample_trigger());
 
-	for (size_t i = 0; i < 100U; i++) {
-		if (fake_sensor_channel_get_count(SENSOR_CHAN_PRESS) != 0) {
-			break;
-		}
-		k_sleep(K_MSEC(10));
+	for (size_t i = 0; i < ARRAY_SIZE(sampled_events); i++) {
+		zassert_ok(k_sem_take(&sampled_event_ready, K_SECONDS(1)));
 	}
 
 	cfg.enabled = false;
 	zassert_ok(meshbus_telemetry_config_set(&cfg));
+	zassert_ok(zbus_chan_rm_obs(&meshbus_telemetry_data_chan, &sample_listener,
+				   K_MSEC(100)));
 	zassert_equal(fake_sensor_sample_fetch_count(), 1,
 		      "shared provider was fetched more than once");
 	zassert_equal(fake_sensor_channel_get_count(SENSOR_CHAN_AMBIENT_TEMP), 1);
 	zassert_equal(fake_sensor_channel_get_count(SENSOR_CHAN_PRESS), 1);
+	zassert_equal(fake_second_sensor_fetch_count(), 1);
+	zassert_equal(fake_second_sensor_get_count(SENSOR_CHAN_ACCEL_XYZ), 1);
+	zassert_equal(fake_second_sensor_get_count(SENSOR_CHAN_AMBIENT_TEMP), 0,
+		      "duplicate channel must retain the first provider");
+	/* Provider order, then that provider's binding order (interleaved in DT). */
+	zassert_equal(sampled_events[0].chan, SENSOR_CHAN_AMBIENT_TEMP);
+	zassert_equal(sampled_events[0].values[0].val1, SENSOR_CHAN_AMBIENT_TEMP);
+	zassert_equal(sampled_events[1].chan, SENSOR_CHAN_PRESS);
+	zassert_equal(sampled_events[2].chan, SENSOR_CHAN_ACCEL_XYZ);
+	zassert_equal(sampled_events[2].value_count, 3);
+	for (size_t i = 0; i < 3; i++) {
+		zassert_equal(sampled_events[2].values[i].val1, 100 + i);
+		zassert_equal(sampled_events[2].values[i].val2, 2000);
+	}
 }
 
 ZTEST(meshbus_telemetry_contract, test_channel_scoped_fetch_fallback)

@@ -225,23 +225,6 @@ config MESHBUS_MESHCORE_COMPANION_PROTOCOL
 
 if MESHBUS_MESHCORE_COMPANION_PROTOCOL
 
-config MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_QUEUE_DEPTH
-	int "Companion protocol TX queue depth"
-	default 2
-	range 1 16
-	help
-	  Maximum number of response or push frames that can wait for transport
-	  delivery from asynchronous Meshbus event context.
-
-config MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_WORK_DELAY_MS
-	int "Companion protocol TX work delay"
-	default 0
-	range 0 1000
-	help
-	  Delay before queued asynchronous TX frames are processed. Production
-	  builds should normally keep this at 0. Tests may set a non-zero value
-	  to prove event-context enqueue behavior without racing the workqueue.
-
 config MESHBUS_MESHCORE_COMPANION_PROTOCOL_CLOCK_SET
 	bool "Enable Companion set-time command"
 	default MESHBUS_CLOCK
@@ -299,11 +282,12 @@ config MESHBUS_MESHCORE_COMPANION_BLUETOOTH_RX_QUEUE_DEPTH
 
 config MESHBUS_MESHCORE_COMPANION_BLUETOOTH_TX_QUEUE_DEPTH
 	int "MeshCore Companion Bluetooth TX queue depth"
-	default 2
+	default 4
 	range 1 8
 	depends on MESHBUS_MESHCORE_COMPANION_BLUETOOTH
 	help
-	  Number of complete Companion Bluetooth frames that can wait for NUS
-	  notification delivery or retry.
+	  Number of complete response and push frames accepted for NUS delivery
+	  or retry, including the frame currently being sent. This is the only
+	  Companion TX queue; a full queue rejects either frame type immediately.
 
 endif # MESHBUS_MESHCORE

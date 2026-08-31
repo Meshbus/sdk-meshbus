@@ -48,6 +48,6 @@ int mb_llext_bridge_unsubscribe(struct mb_llext_bridge *bridge, struct k_event *
 
 int mb_llext_bridge_take_pending(struct mb_llext_bridge *bridge,
 				 struct k_event *evt,
-				 size_t *channel_id);
+				 uint64_t *pending_mask);
 
 #endif /* MESHBUS_LLEXT_BRIDGE_COMMON_H_ */

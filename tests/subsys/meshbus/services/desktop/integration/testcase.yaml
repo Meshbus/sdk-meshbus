@@ -18,8 +18,6 @@ tests:
     harness: ztest
     extra_configs:
       - CONFIG_ZTEST_SHUFFLE=y
-      - CONFIG_ZTEST_SHUFFLE_SUITE_REPEAT_COUNT=1
-      - CONFIG_ZTEST_SHUFFLE_TEST_REPEAT_COUNT=1
       - CONFIG_TIMER_RANDOM_INITIAL_STATE=610839776
     platform_allow:
       - qemu_x86

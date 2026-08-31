@@ -1934,6 +1934,33 @@ ZTEST(meshbus_contact_contract, test_config_change_keeps_runtime_contact_state)
 	zassert_ok(rc, "contact_get should keep runtime contact before reboot, rc=%d", rc);
 }
 
+ZTEST(meshbus_contact_contract, test_unchanged_update_ignores_unused_bytes_and_skips_write)
+{
+	meshbus_contact contact;
+	meshbus_contact got;
+
+	build_contact(&contact, 0x59, "unchanged");
+	zassert_ok(create_contact(&contact));
+	zassert_ok(meshbus_contact_find_by_key(contact.public_key.bytes, &contact));
+	zassert_equal(contact.out_path.size, 0);
+	zassert_equal(contact.management_secret.size, 0);
+	memset(contact.out_path.bytes, 0xa5, sizeof(contact.out_path.bytes));
+	memset(contact.management_secret.bytes, 0x5a, sizeof(contact.management_secret.bytes));
+
+	contact_blob_save_fail_once();
+	zassert_ok(meshbus_contact_set(contact.public_key.bytes, &contact));
+	zassert_equal(atomic_get(&contact_blob_save_fail_next), 1,
+		      "unchanged update must not attempt persistence");
+
+	strcpy(contact.alias, "changed");
+	zassert_equal(meshbus_contact_set(contact.public_key.bytes, &contact), -EIO);
+	zassert_ok(meshbus_contact_find_by_key(contact.public_key.bytes, &got));
+	zassert_equal(strcmp(got.alias, "unchanged"), 0);
+	zassert_ok(meshbus_contact_set(contact.public_key.bytes, &contact));
+	zassert_ok(meshbus_contact_find_by_key(contact.public_key.bytes, &got));
+	zassert_equal(strcmp(got.alias, "changed"), 0);
+}
+
 ZTEST(meshbus_contact_contract, test_contact_alias_default_and_name_update_ignored)
 {
 	const uint64_t target_unix_ms = 1893456899000ULL;

@@ -46,14 +46,15 @@ static bool mgmt_display_device_ready(void)
 #endif
 }
 
-MB_MGMT_CONFIG_GET_HANDLER_DEFINE(meshbus_display_mgmt_config_get, meshbus_DisplayConfigGetRequest,
-				      meshbus_DisplayConfigGetResponse, meshbus_display_config, meshbus_display_config_get,
-				      meshbus_DisplayConfigGetRequest_fields,
-				      meshbus_DisplayConfigGetResponse_fields, MESHBUS_DISPLAY_MGMT_PROTO_RSP_MAX_SIZE);
+MB_MGMT_CONFIG_GET_HANDLER_DEFINE(
+	meshbus_display_mgmt_config_get, meshbus_DisplayConfigGetRequest,
+	meshbus_DisplayConfigGetResponse, meshbus_display_config_get,
+	meshbus_DisplayConfigGetRequest_fields, meshbus_DisplayConfigGetResponse_fields,
+	MESHBUS_DISPLAY_MGMT_PROTO_RSP_MAX_SIZE);
 
-MB_MGMT_CONFIG_SET_HANDLER_DEFINE_NO_VALIDATE(
+MB_MGMT_CONFIG_SET_HANDLER_DEFINE(
 	meshbus_display_mgmt_config_set, meshbus_DisplayConfigSetRequest,
-	meshbus_DisplayConfigSetResponse, meshbus_display_config, meshbus_display_config_set,
+	meshbus_DisplayConfigSetResponse, meshbus_display_config_set,
 	meshbus_DisplayConfigSetRequest_fields, meshbus_DisplayConfigSetResponse_fields,
 	MESHBUS_DISPLAY_MGMT_PROTO_RSP_MAX_SIZE);
 
@@ -101,10 +102,11 @@ static int meshbus_display_mgmt_active_set(struct smp_streamer *ctxt)
 				    MESHBUS_DISPLAY_MGMT_PROTO_RSP_MAX_SIZE);
 }
 
-MB_MGMT_CONFIG_RESET_HANDLER_DEFINE(meshbus_display_mgmt_config_reset, meshbus_DisplayConfigResetRequest,
-					meshbus_DisplayConfigResetResponse, meshbus_display_config, meshbus_display_config_reset,
-					meshbus_display_config_get, meshbus_DisplayConfigResetRequest_fields,
-					meshbus_DisplayConfigResetResponse_fields, MESHBUS_DISPLAY_MGMT_PROTO_RSP_MAX_SIZE);
+MB_MGMT_CONFIG_RESET_HANDLER_DEFINE(
+	meshbus_display_mgmt_config_reset, meshbus_DisplayConfigResetRequest,
+	meshbus_DisplayConfigResetResponse, meshbus_display_config_reset,
+	meshbus_display_config_get, meshbus_DisplayConfigResetRequest_fields,
+	meshbus_DisplayConfigResetResponse_fields, MESHBUS_DISPLAY_MGMT_PROTO_RSP_MAX_SIZE);
 
 static const struct mgmt_handler meshbus_display_mgmt_group_handlers[] = {
 	[meshbus_DisplayMgmtCommandId_DISPLAY_MGMT_COMMAND_ID_CONFIG] =

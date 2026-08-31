@@ -40,4 +40,6 @@ target_link_libraries(zephyr_interface INTERFACE
   "-Wl,--wrap=bt_gatt_get_mtu"
   "-Wl,--wrap=bt_gatt_is_subscribed"
   "-Wl,--wrap=bt_gatt_notify_cb"
+  "-Wl,--wrap=bt_nus_inst_send"
+  "-Wl,--wrap=meshcore_companion_adapter_disconnected"
 )

@@ -37,21 +37,23 @@ static int meshbus_telemetry_mgmt_translate_error_code(uint16_t err)
 }
 #endif
 
-MB_MGMT_CONFIG_GET_HANDLER_DEFINE(meshbus_telemetry_mgmt_config_get, meshbus_TelemetryConfigGetRequest,
-				      meshbus_TelemetryConfigGetResponse, meshbus_telemetry_config, meshbus_telemetry_config_get,
-				      meshbus_TelemetryConfigGetRequest_fields,
-				      meshbus_TelemetryConfigGetResponse_fields, MESHBUS_TELEMETRY_MGMT_PROTO_RSP_MAX_SIZE);
+MB_MGMT_CONFIG_GET_HANDLER_DEFINE(
+	meshbus_telemetry_mgmt_config_get, meshbus_TelemetryConfigGetRequest,
+	meshbus_TelemetryConfigGetResponse, meshbus_telemetry_config_get,
+	meshbus_TelemetryConfigGetRequest_fields, meshbus_TelemetryConfigGetResponse_fields,
+	MESHBUS_TELEMETRY_MGMT_PROTO_RSP_MAX_SIZE);
 
-MB_MGMT_CONFIG_SET_HANDLER_DEFINE_NO_VALIDATE(
+MB_MGMT_CONFIG_SET_HANDLER_DEFINE(
 	meshbus_telemetry_mgmt_config_set, meshbus_TelemetryConfigSetRequest,
-	meshbus_TelemetryConfigSetResponse, meshbus_telemetry_config, meshbus_telemetry_config_set,
+	meshbus_TelemetryConfigSetResponse, meshbus_telemetry_config_set,
 	meshbus_TelemetryConfigSetRequest_fields, meshbus_TelemetryConfigSetResponse_fields,
 	MESHBUS_TELEMETRY_MGMT_PROTO_RSP_MAX_SIZE);
 
-MB_MGMT_CONFIG_RESET_HANDLER_DEFINE(meshbus_telemetry_mgmt_config_reset, meshbus_TelemetryConfigResetRequest,
-					meshbus_TelemetryConfigResetResponse, meshbus_telemetry_config, meshbus_telemetry_config_reset,
-					meshbus_telemetry_config_get, meshbus_TelemetryConfigResetRequest_fields,
-					meshbus_TelemetryConfigResetResponse_fields, MESHBUS_TELEMETRY_MGMT_PROTO_RSP_MAX_SIZE);
+MB_MGMT_CONFIG_RESET_HANDLER_DEFINE(
+	meshbus_telemetry_mgmt_config_reset, meshbus_TelemetryConfigResetRequest,
+	meshbus_TelemetryConfigResetResponse, meshbus_telemetry_config_reset,
+	meshbus_telemetry_config_get, meshbus_TelemetryConfigResetRequest_fields,
+	meshbus_TelemetryConfigResetResponse_fields, MESHBUS_TELEMETRY_MGMT_PROTO_RSP_MAX_SIZE);
 
 static int meshbus_telemetry_mgmt_status(struct smp_streamer *ctxt)
 {

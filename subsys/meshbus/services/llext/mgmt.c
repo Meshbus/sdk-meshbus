@@ -91,24 +91,20 @@ static void llext_service_summary_to_proto(
 
 MB_MGMT_CONFIG_GET_HANDLER_DEFINE(
 	meshbus_llext_mgmt_config_get, meshbus_LlextConfigGetRequest,
-	meshbus_LlextConfigGetResponse, meshbus_llext_config,
-	meshbus_llext_config_get, meshbus_LlextConfigGetRequest_fields,
-	meshbus_LlextConfigGetResponse_fields,
+	meshbus_LlextConfigGetResponse, meshbus_llext_config_get,
+	meshbus_LlextConfigGetRequest_fields, meshbus_LlextConfigGetResponse_fields,
 	MESHBUS_LLEXT_MGMT_PROTO_RSP_MAX_SIZE);
 
-MB_MGMT_CONFIG_SET_HANDLER_DEFINE_NO_VALIDATE(
+MB_MGMT_CONFIG_SET_HANDLER_DEFINE(
 	meshbus_llext_mgmt_config_set, meshbus_LlextConfigSetRequest,
-	meshbus_LlextConfigSetResponse, meshbus_llext_config,
-	meshbus_llext_config_set, meshbus_LlextConfigSetRequest_fields,
-	meshbus_LlextConfigSetResponse_fields,
+	meshbus_LlextConfigSetResponse, meshbus_llext_config_set,
+	meshbus_LlextConfigSetRequest_fields, meshbus_LlextConfigSetResponse_fields,
 	MESHBUS_LLEXT_MGMT_PROTO_RSP_MAX_SIZE);
 
 MB_MGMT_CONFIG_RESET_HANDLER_DEFINE(
 	meshbus_llext_mgmt_config_reset, meshbus_LlextConfigResetRequest,
-	meshbus_LlextConfigResetResponse, meshbus_llext_config,
-	meshbus_llext_config_reset, meshbus_llext_config_get,
-	meshbus_LlextConfigResetRequest_fields,
-	meshbus_LlextConfigResetResponse_fields,
+	meshbus_LlextConfigResetResponse, meshbus_llext_config_reset, meshbus_llext_config_get,
+	meshbus_LlextConfigResetRequest_fields, meshbus_LlextConfigResetResponse_fields,
 	MESHBUS_LLEXT_MGMT_PROTO_RSP_MAX_SIZE);
 
 static int meshbus_llext_mgmt_service_list(struct smp_streamer *ctxt)

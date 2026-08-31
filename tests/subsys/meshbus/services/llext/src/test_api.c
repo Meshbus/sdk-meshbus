@@ -20,6 +20,9 @@
 #if defined(CONFIG_MESHBUS_TELEMETRY)
 #include <zephyr/meshbus/telemetry.h>
 #endif
+#if defined(CONFIG_MESHBUS_NOTIFY)
+#include <zephyr/meshbus/notify.h>
+#endif
 
 #include "service_api.h"
 
@@ -573,6 +576,128 @@ ZTEST(meshbus_llext_contract, test_service_get_and_config)
 	rc = meshbus_llext_config_set(&cfg);
 	zassert_equal(rc, -EINVAL, "invalid config should fail");
 }
+#endif
+
+#if IS_ENABLED(CONFIG_MESHBUS_NOTIFY)
+static K_SEM_DEFINE(bridge_work_done, 0, 1);
+
+static void bridge_barrier_handler(struct k_work *work)
+{
+	ARG_UNUSED(work);
+	k_sem_give(&bridge_work_done);
+}
+
+static K_WORK_DEFINE(bridge_barrier, bridge_barrier_handler);
+
+static void bridge_flush_notifications(void)
+{
+	/* Fence notifications already submitted to the system workqueue. */
+	k_sem_reset(&bridge_work_done);
+	zassert_true(k_work_submit(&bridge_barrier) >= 0);
+	zassert_ok(k_sem_take(&bridge_work_done, K_SECONDS(1)),
+		   "bridge notification work did not finish");
+}
+
+static void bridge_publish_notify(void)
+{
+	meshbus_notify payload = meshbus_Notify_init_zero;
+
+	payload.which_payload_variant = MESHBUS_NOTIFY_TAG_CHANNEL;
+	zassert_ok(meshbus_notify_publish(MESHBUS_NOTIFY_TYPE_CHANNELS_CHANGED, &payload));
+}
+
+static void bridge_publish_state(void)
+{
+	struct meshbus_llext_state_event event = {
+		.id = "bridge-test",
+		.kind = MESHBUS_LLEXT_KIND_SERVICE,
+		.state = MESHBUS_LLEXT_STATE_RUNNING,
+	};
+
+	zassert_ok(meshbus_llext_zbus_publish(MESHBUS_LLEXT_ZBUS_LLEXT_EVENT_CHAN,
+					     &event, sizeof(event)));
+}
+
+ZTEST(meshbus_llext_contract, test_bridge_pending_snapshot_and_subscriber_masks)
+{
+	const uint64_t notify_bit =
+		MESHBUS_LLEXT_ZBUS_CH_BIT(MESHBUS_LLEXT_ZBUS_NOTIFY_CHAN);
+	const uint64_t state_bit =
+		MESHBUS_LLEXT_ZBUS_CH_BIT(MESHBUS_LLEXT_ZBUS_LLEXT_EVENT_CHAN);
+	struct k_event all_channels;
+	struct k_event notify_only;
+	uint64_t pending = UINT64_MAX;
+
+	k_event_init(&all_channels);
+	k_event_init(&notify_only);
+	zassert_ok(meshbus_llext_zbus_subscribe(&all_channels, notify_bit | state_bit));
+	zassert_ok(meshbus_llext_zbus_subscribe(&notify_only, notify_bit));
+	bridge_publish_notify();
+	bridge_publish_notify();
+	bridge_publish_state();
+	bridge_flush_notifications();
+
+	zassert_equal(k_event_wait(&all_channels, MESHBUS_LLEXT_ZBUS_EVT_PENDING,
+				   false, K_NO_WAIT), MESHBUS_LLEXT_ZBUS_EVT_PENDING);
+	zassert_ok(meshbus_llext_zbus_take_pending(&all_channels, &pending));
+	zassert_equal(pending, notify_bit | state_bit, "snapshot lost a pending channel");
+	(void)k_event_clear(&all_channels, MESHBUS_LLEXT_ZBUS_EVT_PENDING);
+	zassert_equal(meshbus_llext_zbus_take_pending(&all_channels, &pending), -ENOMSG);
+	zassert_equal(pending, 0ULL, "empty snapshot did not clear output");
+	zassert_ok(meshbus_llext_zbus_take_pending(&notify_only, &pending));
+	zassert_equal(pending, notify_bit, "subscriber mask leaked another channel");
+
+	/* A publication after the snapshot must remain available to the next take. */
+	bridge_publish_state();
+	bridge_flush_notifications();
+	zassert_equal(k_event_wait(&all_channels, MESHBUS_LLEXT_ZBUS_EVT_PENDING,
+				   false, K_NO_WAIT), MESHBUS_LLEXT_ZBUS_EVT_PENDING);
+	zassert_ok(meshbus_llext_zbus_take_pending(&all_channels, &pending));
+	zassert_equal(pending, state_bit);
+	zassert_equal(meshbus_llext_zbus_take_pending(&notify_only, &pending), -ENOMSG);
+	zassert_ok(meshbus_llext_zbus_unsubscribe(&all_channels));
+	zassert_ok(meshbus_llext_zbus_unsubscribe(&notify_only));
+}
+
+ZTEST(meshbus_llext_contract, test_bridge_unsubscribe_and_resubscribe_clear_pending)
+{
+	const uint64_t notify_bit =
+		MESHBUS_LLEXT_ZBUS_CH_BIT(MESHBUS_LLEXT_ZBUS_NOTIFY_CHAN);
+	struct k_event subscriber;
+	uint64_t pending = UINT64_MAX;
+
+	k_event_init(&subscriber);
+	zassert_equal(meshbus_llext_zbus_take_pending(NULL, &pending), -EINVAL);
+	zassert_equal(meshbus_llext_zbus_take_pending(&subscriber, NULL), -EINVAL);
+	zassert_equal(meshbus_llext_zbus_take_pending(&subscriber, &pending), -ENOENT);
+	zassert_equal(pending, 0ULL);
+	zassert_ok(meshbus_llext_zbus_subscribe(&subscriber, notify_bit));
+	bridge_publish_notify();
+	bridge_flush_notifications();
+	zassert_ok(meshbus_llext_zbus_subscribe(&subscriber, notify_bit));
+	zassert_equal(meshbus_llext_zbus_take_pending(&subscriber, &pending), -ENOMSG,
+		      "replacing a subscription retained its pending mask");
+
+	/* Unsubscribe while notification work may still be queued. */
+	bridge_publish_notify();
+	zassert_ok(meshbus_llext_zbus_unsubscribe(&subscriber));
+	(void)k_event_clear(&subscriber, MESHBUS_LLEXT_ZBUS_EVT_PENDING);
+	bridge_publish_notify();
+	bridge_flush_notifications();
+	zassert_equal(k_event_wait(&subscriber, MESHBUS_LLEXT_ZBUS_EVT_PENDING,
+				   false, K_NO_WAIT), 0U,
+		      "notification accessed the event after unsubscribe");
+	zassert_equal(meshbus_llext_zbus_take_pending(&subscriber, &pending), -ENOENT);
+	zassert_ok(meshbus_llext_zbus_subscribe(&subscriber, notify_bit));
+	zassert_equal(meshbus_llext_zbus_take_pending(&subscriber, &pending), -ENOMSG,
+		      "new subscription inherited old pending channels");
+	bridge_publish_notify();
+	bridge_flush_notifications();
+	zassert_ok(meshbus_llext_zbus_take_pending(&subscriber, &pending));
+	zassert_equal(pending, notify_bit);
+	zassert_ok(meshbus_llext_zbus_unsubscribe(&subscriber));
+}
+
 #endif
 
 #if IS_ENABLED(CONFIG_MESHBUS_TELEMETRY)

@@ -156,21 +156,23 @@ static int meshbus_power_mgmt_status(struct smp_streamer *ctxt)
 				    MESHBUS_POWER_MGMT_PROTO_RSP_MAX_SIZE);
 }
 
-MB_MGMT_CONFIG_GET_HANDLER_DEFINE(meshbus_power_mgmt_config_get, meshbus_PowerConfigGetRequest,
-				      meshbus_PowerConfigGetResponse, meshbus_power_config, meshbus_power_config_get,
-				      meshbus_PowerConfigGetRequest_fields,
-				      meshbus_PowerConfigGetResponse_fields, MESHBUS_POWER_MGMT_PROTO_RSP_MAX_SIZE);
+MB_MGMT_CONFIG_GET_HANDLER_DEFINE(
+	meshbus_power_mgmt_config_get, meshbus_PowerConfigGetRequest,
+	meshbus_PowerConfigGetResponse, meshbus_power_config_get,
+	meshbus_PowerConfigGetRequest_fields, meshbus_PowerConfigGetResponse_fields,
+	MESHBUS_POWER_MGMT_PROTO_RSP_MAX_SIZE);
 
-MB_MGMT_CONFIG_SET_HANDLER_DEFINE_NO_VALIDATE(
+MB_MGMT_CONFIG_SET_HANDLER_DEFINE(
 	meshbus_power_mgmt_config_set, meshbus_PowerConfigSetRequest,
-	meshbus_PowerConfigSetResponse, meshbus_power_config, meshbus_power_config_set,
+	meshbus_PowerConfigSetResponse, meshbus_power_config_set,
 	meshbus_PowerConfigSetRequest_fields, meshbus_PowerConfigSetResponse_fields,
 	MESHBUS_POWER_MGMT_PROTO_RSP_MAX_SIZE);
 
-MB_MGMT_CONFIG_RESET_HANDLER_DEFINE(meshbus_power_mgmt_config_reset, meshbus_PowerConfigResetRequest,
-					meshbus_PowerConfigResetResponse, meshbus_power_config, meshbus_power_config_reset,
-					meshbus_power_config_get, meshbus_PowerConfigResetRequest_fields,
-					meshbus_PowerConfigResetResponse_fields, MESHBUS_POWER_MGMT_PROTO_RSP_MAX_SIZE);
+MB_MGMT_CONFIG_RESET_HANDLER_DEFINE(
+	meshbus_power_mgmt_config_reset, meshbus_PowerConfigResetRequest,
+	meshbus_PowerConfigResetResponse, meshbus_power_config_reset, meshbus_power_config_get,
+	meshbus_PowerConfigResetRequest_fields, meshbus_PowerConfigResetResponse_fields,
+	MESHBUS_POWER_MGMT_PROTO_RSP_MAX_SIZE);
 
 static int meshbus_power_mgmt_reboot(struct smp_streamer *ctxt)
 {

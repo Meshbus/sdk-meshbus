@@ -13,6 +13,12 @@
 		power-domains = <&test_power_domain>;
 	};
 
+	second_sensor: second-sensor {
+		compatible = "vnd,fake-sensor";
+		status = "okay";
+		power-domains = <&test_power_domain>;
+	};
+
 	fake_compass_overlap: fake-compass-overlap {
 		compatible = "zephyr,compass-composite";
 		status = "disabled";
@@ -30,8 +36,18 @@
 		};
 
 		ch1 {
+			sensor = <&second_sensor>;
+			channel = <SENSOR_CHAN_ACCEL_XYZ>;
+		};
+
+		ch2 {
 			sensor = <&fake_sensor>;
 			channel = <SENSOR_CHAN_PRESS>;
+		};
+
+		duplicate-temperature {
+			sensor = <&second_sensor>;
+			channel = <SENSOR_CHAN_AMBIENT_TEMP>;
 		};
 
 		invalid_private_channel: invalid-private-channel {

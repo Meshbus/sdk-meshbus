@@ -136,21 +136,21 @@ static int meshbus_gnss_mgmt_status(struct smp_streamer *ctxt)
 				    MESHBUS_GNSS_MGMT_PROTO_RSP_MAX_SIZE);
 }
 
-MB_MGMT_CONFIG_GET_HANDLER_DEFINE(meshbus_gnss_mgmt_config_get, meshbus_GnssConfigGetRequest,
-				      meshbus_GnssConfigGetResponse, meshbus_gnss_config, meshbus_gnss_config_get,
-				      meshbus_GnssConfigGetRequest_fields,
-				      meshbus_GnssConfigGetResponse_fields, MESHBUS_GNSS_MGMT_PROTO_RSP_MAX_SIZE);
+MB_MGMT_CONFIG_GET_HANDLER_DEFINE(
+	meshbus_gnss_mgmt_config_get, meshbus_GnssConfigGetRequest, meshbus_GnssConfigGetResponse,
+	meshbus_gnss_config_get, meshbus_GnssConfigGetRequest_fields,
+	meshbus_GnssConfigGetResponse_fields, MESHBUS_GNSS_MGMT_PROTO_RSP_MAX_SIZE);
 
-MB_MGMT_CONFIG_SET_HANDLER_DEFINE_NO_VALIDATE(
-	meshbus_gnss_mgmt_config_set, meshbus_GnssConfigSetRequest,
-	meshbus_GnssConfigSetResponse, meshbus_gnss_config, meshbus_gnss_config_set_full,
-	meshbus_GnssConfigSetRequest_fields, meshbus_GnssConfigSetResponse_fields,
+MB_MGMT_CONFIG_SET_HANDLER_DEFINE(
+	meshbus_gnss_mgmt_config_set, meshbus_GnssConfigSetRequest, meshbus_GnssConfigSetResponse,
+	meshbus_gnss_config_set_full, meshbus_GnssConfigSetRequest_fields,
+	meshbus_GnssConfigSetResponse_fields, MESHBUS_GNSS_MGMT_PROTO_RSP_MAX_SIZE);
+
+MB_MGMT_CONFIG_RESET_HANDLER_DEFINE(
+	meshbus_gnss_mgmt_config_reset, meshbus_GnssConfigResetRequest,
+	meshbus_GnssConfigResetResponse, meshbus_gnss_config_reset, meshbus_gnss_config_get,
+	meshbus_GnssConfigResetRequest_fields, meshbus_GnssConfigResetResponse_fields,
 	MESHBUS_GNSS_MGMT_PROTO_RSP_MAX_SIZE);
-
-MB_MGMT_CONFIG_RESET_HANDLER_DEFINE(meshbus_gnss_mgmt_config_reset, meshbus_GnssConfigResetRequest,
-					meshbus_GnssConfigResetResponse, meshbus_gnss_config, meshbus_gnss_config_reset,
-					meshbus_gnss_config_get, meshbus_GnssConfigResetRequest_fields,
-					meshbus_GnssConfigResetResponse_fields, MESHBUS_GNSS_MGMT_PROTO_RSP_MAX_SIZE);
 
 static int meshbus_gnss_mgmt_enable(struct smp_streamer *ctxt)
 {

@@ -19,43 +19,12 @@ struct desktop_messages_cache {
 	uint32_t count;
 	uint32_t update_seq;
 	uint64_t last_timestamp_ms;
+	uint64_t last_entry_id;
 	struct desktop_messages_cache_entry entries[CONFIG_MESHBUS_DESKTOP_MESSAGE_CACHE_COUNT];
 };
 
 static struct desktop_messages_cache g_messages_cache;
 static K_MUTEX_DEFINE(g_messages_cache_mutex);
-
-static void messages_cache_key_clear(struct desktop_messages_cache_key *key)
-{
-	if (key == NULL) {
-		return;
-	}
-
-	memset(key, 0, sizeof(*key));
-}
-
-bool desktop_messages_cache_key_is_valid(const struct desktop_messages_cache_key *key)
-{
-	return key != NULL && key->timestamp != 0U;
-}
-
-static size_t messages_cache_payload_len(const meshbus_message_content *message)
-{
-	if (message == NULL) {
-		return 0U;
-	}
-
-	return MIN((size_t)message->payload.size, (size_t)sizeof(message->payload.bytes));
-}
-
-static size_t messages_cache_sender_len(const meshbus_message_content *message)
-{
-	if (message == NULL) {
-		return 0U;
-	}
-
-	return strnlen(message->sender_name, sizeof(message->sender_name));
-}
 
 static bool messages_cache_is_received(const meshbus_message_content *message)
 {
@@ -92,88 +61,17 @@ static uint64_t messages_cache_timestamp_reserve_locked(bool *realtime_out)
 	return timestamp_ms;
 }
 
-bool desktop_messages_cache_key_equal(const struct desktop_messages_cache_key *a,
-				   const struct desktop_messages_cache_key *b)
+static bool messages_cache_find_entry_locked(uint64_t entry_id, uint32_t *index_out)
 {
-	if (!desktop_messages_cache_key_is_valid(a) || !desktop_messages_cache_key_is_valid(b)) {
-		return false;
-	}
-	if (a->type != b->type || a->route != b->route ||
-	    a->timestamp != b->timestamp || a->payload_len != b->payload_len) {
-		return false;
-	}
-	if (memcmp(a->target, b->target, sizeof(a->target)) != 0) {
-		return false;
-	}
-	if (memcmp(a->payload, b->payload, a->payload_len) != 0) {
-		return false;
-	}
-
-	return strcmp(a->sender_name, b->sender_name) == 0;
-}
-
-static bool messages_cache_key_from_message(const meshbus_message_content *message,
-					    struct desktop_messages_cache_key *key)
-{
-	size_t payload_len;
-
-	if (message == NULL || key == NULL) {
-		return false;
-	}
-	if (message->timestamp == 0U || message->target.size != MESHBUS_MESSAGE_TARGET_PREFIX_BYTES) {
-		messages_cache_key_clear(key);
-		return false;
-	}
-
-	payload_len = messages_cache_payload_len(message);
-	if (payload_len == 0U || payload_len > sizeof(key->payload)) {
-		messages_cache_key_clear(key);
-		return false;
-	}
-
-	memset(key, 0, sizeof(*key));
-	key->type = message->type;
-	key->route = message->route;
-	key->timestamp = message->timestamp;
-	key->payload_len = (uint16_t)payload_len;
-	memcpy(key->target, message->target.bytes, sizeof(key->target));
-	memcpy(key->payload, message->payload.bytes, payload_len);
-	memcpy(key->sender_name, message->sender_name,
-	       MIN(sizeof(key->sender_name) - 1U, messages_cache_sender_len(message)));
-	key->sender_name[sizeof(key->sender_name) - 1U] = '\0';
-
-	return true;
-}
-
-static bool messages_cache_entry_equal(const struct desktop_messages_cache_entry *entry,
-					 const struct desktop_messages_cache_key *key)
-{
-	if (entry == NULL || key == NULL) {
-		return false;
-	}
-
-	return desktop_messages_cache_key_equal(&entry->key, key);
-}
-
-static bool messages_cache_find_entry_locked(const struct desktop_messages_cache_key *key,
-					       const struct desktop_messages_cache_entry **entry_out,
-					       uint32_t *index_out)
-{
-	if (!desktop_messages_cache_key_is_valid(key)) {
+	if (entry_id == 0U) {
 		return false;
 	}
 
 	for (uint32_t i = 0U; i < g_messages_cache.count; i++) {
-		if (!messages_cache_entry_equal(&g_messages_cache.entries[i], key)) {
-			continue;
-		}
-		if (entry_out != NULL) {
-			*entry_out = &g_messages_cache.entries[i];
-		}
-		if (index_out != NULL) {
+		if (g_messages_cache.entries[i].entry_id == entry_id) {
 			*index_out = i;
+			return true;
 		}
-		return true;
 	}
 
 	return false;
@@ -228,25 +126,13 @@ static void messages_cache_append_response_locked(
 	const struct meshbus_message_response_event *event)
 {
 	meshbus_message_content message = meshbus_MessageContent_init_zero;
-	struct desktop_messages_cache_key key = {0};
-	uint32_t index = 0U;
 	bool timestamp_realtime = false;
 
 	if (!messages_cache_from_response_event(event, &message, &timestamp_realtime)) {
 		return;
 	}
-	if (!messages_cache_key_from_message(&message, &key)) {
-		return;
-	}
-
-	if (messages_cache_find_entry_locked(&key, NULL, &index)) {
-		bool unread = g_messages_cache.entries[index].unread;
-
-		g_messages_cache.entries[index].key = key;
-		g_messages_cache.entries[index].message = message;
-		g_messages_cache.entries[index].unread = unread;
-		g_messages_cache.entries[index].timestamp_realtime = timestamp_realtime;
-		g_messages_cache.update_seq++;
+	/* Never reuse an ID while a UI snapshot may still refer to it. */
+	if (g_messages_cache.last_entry_id == UINT64_MAX) {
 		return;
 	}
 
@@ -257,7 +143,7 @@ static void messages_cache_append_response_locked(
 		g_messages_cache.count--;
 	}
 
-	g_messages_cache.entries[g_messages_cache.count].key = key;
+	g_messages_cache.entries[g_messages_cache.count].entry_id = ++g_messages_cache.last_entry_id;
 	g_messages_cache.entries[g_messages_cache.count].message = message;
 	g_messages_cache.entries[g_messages_cache.count].unread = true;
 	g_messages_cache.entries[g_messages_cache.count].timestamp_realtime = timestamp_realtime;
@@ -379,12 +265,12 @@ uint32_t desktop_messages_cache_update_seq(void)
 	return update_seq;
 }
 
-void desktop_messages_cache_mark_read(const struct desktop_messages_cache_key *key)
+void desktop_messages_cache_mark_read(uint64_t entry_id)
 {
 	uint32_t index = 0U;
 
 	k_mutex_lock(&g_messages_cache_mutex, K_FOREVER);
-	if (messages_cache_find_entry_locked(key, NULL, &index)) {
+	if (messages_cache_find_entry_locked(entry_id, &index)) {
 		if (g_messages_cache.entries[index].unread) {
 			g_messages_cache.entries[index].unread = false;
 			g_messages_cache.update_seq++;
@@ -393,12 +279,12 @@ void desktop_messages_cache_mark_read(const struct desktop_messages_cache_key *k
 	k_mutex_unlock(&g_messages_cache_mutex);
 }
 
-void desktop_messages_cache_mark_unread(const struct desktop_messages_cache_key *key)
+void desktop_messages_cache_mark_unread(uint64_t entry_id)
 {
 	uint32_t index = 0U;
 
 	k_mutex_lock(&g_messages_cache_mutex, K_FOREVER);
-	if (messages_cache_find_entry_locked(key, NULL, &index)) {
+	if (messages_cache_find_entry_locked(entry_id, &index)) {
 		if (!g_messages_cache.entries[index].unread) {
 			g_messages_cache.entries[index].unread = true;
 			g_messages_cache.update_seq++;

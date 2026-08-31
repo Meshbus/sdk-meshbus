@@ -313,22 +313,6 @@ static uint8_t contact_count;
 	DIV_ROUND_UP(CONFIG_MESHBUS_CONTACT_MAX_CONTACTS, 8U)
 static uint8_t contact_secret_sanitize_pending[CONTACT_SECRET_SANITIZE_PENDING_BYTES];
 
-static const uint32_t contact_persist_field_tags[] = {
-	meshbus_Contact_name_tag,
-	meshbus_Contact_role_tag,
-	meshbus_Contact_out_path_tag,
-	meshbus_Contact_is_neighbor_tag,
-	meshbus_Contact_first_seen_timestamp_tag,
-	meshbus_Contact_flags_tag,
-	meshbus_Contact_latitude_tag,
-	meshbus_Contact_longitude_tag,
-	meshbus_Contact_last_seen_timestamp_tag,
-	meshbus_Contact_last_seen_snr_tag,
-	meshbus_Contact_path_hash_size_tag,
-	meshbus_Contact_alias_tag,
-	meshbus_Contact_management_secret_tag,
-};
-
 static int contact_load_by_index(size_t index, meshbus_contact *out);
 
 /* Must be called under meshbus_contact_settings_mutex. */
@@ -708,63 +692,30 @@ static void contact_request_inflight_clear_if_match_locked(
 	contact_request_inflight_clear_locked(inflight);
 }
 
-static bool contact_field_has_change(const meshbus_contact *old_contact, const meshbus_contact *new_contact,
-				  uint32_t field_tag)
+static bool contact_persist_has_change(const meshbus_contact *old_contact,
+				       const meshbus_contact *new_contact)
 {
 	if (old_contact == NULL || new_contact == NULL) {
 		return true;
 	}
 
-	switch (field_tag) {
-	case meshbus_Contact_name_tag:
-		return memcmp(old_contact->name, new_contact->name, sizeof(old_contact->name)) != 0;
-	case meshbus_Contact_role_tag:
-		return old_contact->role != new_contact->role;
-	case meshbus_Contact_out_path_tag:
-		return old_contact->out_path.size != new_contact->out_path.size ||
-		       memcmp(old_contact->out_path.bytes, new_contact->out_path.bytes,
-			      old_contact->out_path.size) != 0;
-	case meshbus_Contact_is_neighbor_tag:
-		return old_contact->is_neighbor != new_contact->is_neighbor;
-	case meshbus_Contact_first_seen_timestamp_tag:
-		return old_contact->first_seen_timestamp != new_contact->first_seen_timestamp;
-	case meshbus_Contact_flags_tag:
-		return old_contact->flags != new_contact->flags;
-	case meshbus_Contact_latitude_tag:
-		return old_contact->latitude != new_contact->latitude;
-	case meshbus_Contact_longitude_tag:
-		return old_contact->longitude != new_contact->longitude;
-	case meshbus_Contact_last_seen_timestamp_tag:
-		return old_contact->last_seen_timestamp != new_contact->last_seen_timestamp;
-	case meshbus_Contact_last_seen_snr_tag:
-		return old_contact->last_seen_snr != new_contact->last_seen_snr;
-	case meshbus_Contact_path_hash_size_tag:
-		return old_contact->path_hash_size != new_contact->path_hash_size;
-	case meshbus_Contact_alias_tag:
-		return memcmp(old_contact->alias, new_contact->alias, sizeof(old_contact->alias)) != 0;
-	case meshbus_Contact_management_secret_tag:
-		return old_contact->management_secret.size != new_contact->management_secret.size ||
-		       memcmp(old_contact->management_secret.bytes,
-			      new_contact->management_secret.bytes,
-			      old_contact->management_secret.size) != 0;
-	default:
-		return true;
-	}
-}
-
-static bool contact_persist_has_change(const meshbus_contact *old_contact, const meshbus_contact *new_contact)
-{
-	if (old_contact == NULL || new_contact == NULL) {
-		return true;
-	}
-
-	for (size_t i = 0; i < ARRAY_SIZE(contact_persist_field_tags); i++) {
-		if (contact_field_has_change(old_contact, new_contact, contact_persist_field_tags[i])) {
-			return true;
-		}
-	}
-
-	return false;
+	return memcmp(old_contact->name, new_contact->name, sizeof(old_contact->name)) != 0 ||
+	       old_contact->role != new_contact->role ||
+	       old_contact->out_path.size != new_contact->out_path.size ||
+	       memcmp(old_contact->out_path.bytes, new_contact->out_path.bytes,
+		      old_contact->out_path.size) != 0 ||
+	       old_contact->is_neighbor != new_contact->is_neighbor ||
+	       old_contact->first_seen_timestamp != new_contact->first_seen_timestamp ||
+	       old_contact->flags != new_contact->flags ||
+	       old_contact->latitude != new_contact->latitude ||
+	       old_contact->longitude != new_contact->longitude ||
+	       old_contact->last_seen_timestamp != new_contact->last_seen_timestamp ||
+	       old_contact->last_seen_snr != new_contact->last_seen_snr ||
+	       old_contact->path_hash_size != new_contact->path_hash_size ||
+	       memcmp(old_contact->alias, new_contact->alias, sizeof(old_contact->alias)) != 0 ||
+	       old_contact->management_secret.size != new_contact->management_secret.size ||
+	       memcmp(old_contact->management_secret.bytes, new_contact->management_secret.bytes,
+		      old_contact->management_secret.size) != 0;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -805,11 +756,6 @@ static int contact_slot_persist_blob(size_t slot_idx, const meshbus_contact *con
 	k_mutex_unlock(&meshbus_contact_settings_mutex);
 
 	return 0;
-}
-
-static int contact_slot_persist_fields(size_t slot_idx, const meshbus_contact *contact_record)
-{
-	return contact_slot_persist_blob(slot_idx, contact_record);
 }
 
 static int contact_slot_persist_diff(size_t slot_idx, const meshbus_contact *old_contact,
@@ -1459,7 +1405,7 @@ static int contact_insert_locked(const meshbus_contact *contact, size_t *index_o
 			contact_timestamp_or_now(contact_record.first_seen_timestamp);
 	}
 
-	rc = contact_slot_persist_fields(idx, &contact_record);
+	rc = contact_slot_persist_blob(idx, &contact_record);
 	if (rc != 0) {
 		LOG_WRN("Contact persist failed after insert: idx=%u rc=%d", (unsigned int)idx, rc);
 		return rc;

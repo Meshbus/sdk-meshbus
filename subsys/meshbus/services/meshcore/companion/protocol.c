@@ -223,11 +223,6 @@ static const struct companion_repeat_freq_range companion_repeat_freq_ranges[] =
 	{ 918000U, 918000U },
 };
 
-struct companion_frame {
-	size_t len;
-	uint8_t data[MESHCORE_COMPANION_MAX_FRAME_SIZE];
-};
-
 struct companion_pending_ack {
 	bool in_use;
 	uint8_t attempt;
@@ -392,17 +387,12 @@ static struct companion_cli_pending companion_pending_cli[COMPANION_PENDING_CLI_
 static struct companion_cli_start companion_cli_start;
 static struct companion_contact_update_start companion_contact_update_start;
 
-K_MSGQ_DEFINE(companion_tx_msgq, sizeof(struct companion_frame),
-	      CONFIG_MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_QUEUE_DEPTH, 4);
-
-static void companion_tx_work_handler(struct k_work *work);
 static void companion_contact_sync_work_handler(struct k_work *work);
 static void companion_login_start_work_handler(struct k_work *work);
 static void companion_cli_start_work_handler(struct k_work *work);
 static void companion_contact_update_work_handler(struct k_work *work);
 static uint32_t companion_current_timestamp(void);
 
-K_WORK_DELAYABLE_DEFINE(companion_tx_work, companion_tx_work_handler);
 K_WORK_DELAYABLE_DEFINE(companion_contact_sync_work, companion_contact_sync_work_handler);
 K_WORK_DEFINE(companion_login_start_work, companion_login_start_work_handler);
 K_WORK_DEFINE(companion_cli_start_work, companion_cli_start_work_handler);
@@ -4572,27 +4562,6 @@ static int companion_handle_send_control_data(const uint8_t *frame, size_t len)
 	return companion_send_result(meshbus_meshcore_control_data_send(payload, payload_len));
 }
 
-static void companion_schedule_tx_work(void)
-{
-	(void)k_work_reschedule(&companion_tx_work,
-				 K_MSEC(CONFIG_MESHBUS_MESHCORE_COMPANION_PROTOCOL_TX_WORK_DELAY_MS));
-}
-
-static void companion_tx_work_handler(struct k_work *work)
-{
-	struct companion_frame frame;
-
-	ARG_UNUSED(work);
-
-	while (k_msgq_get(&companion_tx_msgq, &frame, K_NO_WAIT) == 0) {
-		int rc = companion_send_frame(frame.data, frame.len);
-
-		if (rc != 0) {
-			LOG_DBG("Companion TX frame dropped: rc=%d len=%u", rc, (unsigned int)frame.len);
-		}
-	}
-}
-
 static void companion_message_waiting_listener_cb(const struct zbus_channel *chan)
 {
 	uint8_t frame[] = { COMPANION_PUSH_CODE_MSG_WAITING };
@@ -5385,11 +5354,9 @@ int meshcore_companion_adapter_init(const struct meshcore_companion_transport *t
 	adapter_transport = *transport;
 	adapter_initialized = true;
 	adapter_connected = false;
-	k_msgq_purge(&companion_tx_msgq);
 	k_mutex_unlock(&adapter_lock);
 	(void)k_work_cancel(&companion_cli_start_work);
 	(void)k_work_cancel(&companion_contact_update_work);
-	(void)k_work_cancel_delayable(&companion_tx_work);
 	(void)k_work_cancel_delayable(&companion_contact_sync_work);
 
 	companion_pending_ack_clear_all();
@@ -5417,11 +5384,9 @@ void meshcore_companion_adapter_disconnected(void)
 {
 	k_mutex_lock(&adapter_lock, K_FOREVER);
 	adapter_connected = false;
-	k_msgq_purge(&companion_tx_msgq);
 	k_mutex_unlock(&adapter_lock);
 	(void)k_work_cancel(&companion_cli_start_work);
 	(void)k_work_cancel(&companion_contact_update_work);
-	(void)k_work_cancel_delayable(&companion_tx_work);
 	(void)k_work_cancel_delayable(&companion_contact_sync_work);
 
 	companion_pending_ack_clear_all();
@@ -5578,42 +5543,16 @@ int meshcore_companion_adapter_rx_frame(const uint8_t *frame, size_t len)
 
 int meshcore_companion_adapter_queue_frame(const uint8_t *frame, size_t len)
 {
-	struct companion_frame queued = {0};
-	int rc;
-
-	rc = validate_frame_args(frame, len);
-	if (rc != 0) {
-		return rc;
-	}
-
-	k_mutex_lock(&adapter_lock, K_FOREVER);
-	if (!adapter_initialized || !adapter_connected || adapter_transport.send == NULL) {
-		rc = -ENOTCONN;
-	} else {
-		queued.len = len;
-		memcpy(queued.data, frame, len);
-		rc = k_msgq_put(&companion_tx_msgq, &queued, K_NO_WAIT);
-	}
-	k_mutex_unlock(&adapter_lock);
-
-	if (rc == 0) {
-		companion_schedule_tx_work();
-	} else if (rc == -ENOMSG) {
-		rc = -ENOSPC;
-	}
-
-	return rc;
+	return companion_send_frame(frame, len);
 }
 
 void meshcore_companion_adapter_flush(void)
 {
 	struct k_work_sync cli_start_sync;
 	struct k_work_sync contact_update_sync;
-	struct k_work_sync tx_sync;
 	struct k_work_sync contact_sync;
 
 	(void)k_work_flush(&companion_cli_start_work, &cli_start_sync);
 	(void)k_work_flush(&companion_contact_update_work, &contact_update_sync);
-	(void)k_work_flush_delayable(&companion_tx_work, &tx_sync);
 	(void)k_work_flush_delayable(&companion_contact_sync_work, &contact_sync);
 }

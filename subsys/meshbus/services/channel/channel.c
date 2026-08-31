@@ -29,8 +29,6 @@ LOG_MODULE_REGISTER(meshbus_channel, CONFIG_MESHBUS_CHANNEL_LOG_LEVEL);
 /* Defaults And State                                                         */
 /* -------------------------------------------------------------------------- */
 #define MESHBUS_CHANNEL_SETTINGS_SUBTREE "meshbus/channel"
-#define PREFIX_BUCKET_COUNT              256
-#define PREFIX_BUCKET_INVALID            (-1)
 #define CHANNEL_HASH_SIZE                1U
 #define CHANNEL_SHA256_SIZE              32U
 
@@ -46,7 +44,6 @@ enum channel_slot_state {
 
 struct channel_slot_meta {
 	enum channel_slot_state state;
-	int16_t bucket_next;
 	uint8_t prefix[CONFIG_MESHBUS_CHANNEL_SECRET_PREFIX_BYTES];
 	uint8_t hash;
 };
@@ -63,7 +60,6 @@ MB_SETTINGS_INDEXED_BLOB_SCHEMA_DEFINE(channel_settings_schema, MESHBUS_CHANNEL_
  * - CHANNEL_SLOT_BUSY reserves a slot/prefix while set/reset updates settings.
  */
 static struct channel_slot_meta channel_slots[CONFIG_MESHBUS_CHANNEL_MAX_CHANNELS];
-static int16_t channel_prefix_bucket_head[PREFIX_BUCKET_COUNT];
 static uint8_t channel_count;
 static bool channel_mutation_busy;
 
@@ -188,82 +184,19 @@ static int channel_secret_hash(const uint8_t *secret, size_t secret_len,
 	return 0;
 }
 
-static void channel_prefix_bucket_remove(size_t idx)
-{
-	int16_t prev = PREFIX_BUCKET_INVALID;
-	int16_t cur;
-	uint8_t bucket;
-
-	if (idx >= CONFIG_MESHBUS_CHANNEL_MAX_CHANNELS ||
-	    channel_slots[idx].state == CHANNEL_SLOT_EMPTY) {
-		return;
-	}
-
-	bucket = channel_slots[idx].prefix[0];
-	cur = channel_prefix_bucket_head[bucket];
-	while (cur != PREFIX_BUCKET_INVALID) {
-		if ((size_t)cur == idx) {
-			if (prev == PREFIX_BUCKET_INVALID) {
-				channel_prefix_bucket_head[bucket] = channel_slots[cur].bucket_next;
-			} else {
-				channel_slots[prev].bucket_next = channel_slots[cur].bucket_next;
-			}
-			channel_slots[idx].bucket_next = PREFIX_BUCKET_INVALID;
-			return;
-		}
-		prev = cur;
-		cur = channel_slots[cur].bucket_next;
-	}
-}
-
-static void channel_prefix_bucket_insert(size_t idx)
-{
-	int16_t prev = PREFIX_BUCKET_INVALID;
-	int16_t cur;
-	uint8_t bucket;
-
-	if (idx >= CONFIG_MESHBUS_CHANNEL_MAX_CHANNELS ||
-	    channel_slots[idx].state == CHANNEL_SLOT_EMPTY) {
-		return;
-	}
-
-	bucket = channel_slots[idx].prefix[0];
-	cur = channel_prefix_bucket_head[bucket];
-	while (cur != PREFIX_BUCKET_INVALID && (size_t)cur < idx) {
-		prev = cur;
-		cur = channel_slots[cur].bucket_next;
-	}
-
-	if (prev == PREFIX_BUCKET_INVALID) {
-		channel_slots[idx].bucket_next = channel_prefix_bucket_head[bucket];
-		channel_prefix_bucket_head[bucket] = (int16_t)idx;
-		return;
-	}
-
-	channel_slots[idx].bucket_next = channel_slots[prev].bucket_next;
-	channel_slots[prev].bucket_next = (int16_t)idx;
-}
-
 static int channel_slot_find_by_prefix_locked(const uint8_t *prefix, size_t *idx_out)
 {
-	int16_t cur;
-
 	if (prefix == NULL || idx_out == NULL) {
 		return -EINVAL;
 	}
 
-	cur = channel_prefix_bucket_head[prefix[0]];
-	while (cur != PREFIX_BUCKET_INVALID) {
-		size_t idx = (size_t)cur;
-
+	for (size_t idx = 0; idx < ARRAY_SIZE(channel_slots); idx++) {
 		if (channel_slots[idx].state != CHANNEL_SLOT_EMPTY &&
 		    memcmp(channel_slots[idx].prefix, prefix,
 			   sizeof(channel_slots[idx].prefix)) == 0) {
 			*idx_out = idx;
 			return 0;
 		}
-
-		cur = channel_slots[idx].bucket_next;
 	}
 
 	return -ENOENT;
@@ -276,12 +209,10 @@ static void channel_slot_clear_locked(size_t idx)
 		return;
 	}
 
-	channel_prefix_bucket_remove(idx);
 	if (channel_slots[idx].state == CHANNEL_SLOT_READY && channel_count > 0U) {
 		channel_count--;
 	}
 	channel_slots[idx].state = CHANNEL_SLOT_EMPTY;
-	channel_slots[idx].bucket_next = PREFIX_BUCKET_INVALID;
 	memset(channel_slots[idx].prefix, 0, sizeof(channel_slots[idx].prefix));
 	channel_slots[idx].hash = 0U;
 }
@@ -292,18 +223,13 @@ static void channel_slot_reserve_locked(size_t idx, const uint8_t *secret_prefix
 		return;
 	}
 
-	if (channel_slots[idx].state != CHANNEL_SLOT_EMPTY) {
-		channel_prefix_bucket_remove(idx);
-		if (channel_slots[idx].state == CHANNEL_SLOT_READY && channel_count > 0U) {
-			channel_count--;
-		}
+	if (channel_slots[idx].state == CHANNEL_SLOT_READY && channel_count > 0U) {
+		channel_count--;
 	}
 
 	channel_slots[idx].state = CHANNEL_SLOT_BUSY;
-	channel_slots[idx].bucket_next = PREFIX_BUCKET_INVALID;
 	memcpy(channel_slots[idx].prefix, secret_prefix, sizeof(channel_slots[idx].prefix));
 	channel_slots[idx].hash = hash;
-	channel_prefix_bucket_insert(idx);
 }
 
 static void channel_slot_commit_locked(size_t idx)
@@ -325,13 +251,8 @@ static void channel_slot_set_locked(size_t idx, const uint8_t *secret_prefix, ui
 
 static void channel_tables_reset(void)
 {
-	for (size_t i = 0; i < PREFIX_BUCKET_COUNT; i++) {
-		channel_prefix_bucket_head[i] = PREFIX_BUCKET_INVALID;
-	}
-
 	for (size_t i = 0; i < CONFIG_MESHBUS_CHANNEL_MAX_CHANNELS; i++) {
 		channel_slots[i].state = CHANNEL_SLOT_EMPTY;
-		channel_slots[i].bucket_next = PREFIX_BUCKET_INVALID;
 		memset(channel_slots[i].prefix, 0, sizeof(channel_slots[i].prefix));
 		channel_slots[i].hash = 0U;
 	}
