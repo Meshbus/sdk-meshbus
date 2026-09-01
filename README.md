@@ -56,11 +56,10 @@ declared by its local `sample.yaml` or `testcase.yaml`.
 
 ## Development workflow
 
-Within the Meshbus product workspace, firmware and SDK changes use the single
-Spec Kit project in the firmware root. The [SDK entry guide](AGENTS.md) explains
-how to locate that project's constitution and standards. Source ownership and
-Git history remain separate; SDK-only work does not create a second planning
-system here. Existing standalone sample builds still use their own metadata.
+Read the [SDK entry guide](AGENTS.md) and the nearest local `AGENTS.md` before
+changing an owned area. Source ownership and Git history remain separate from
+any consuming firmware repository. Local `sample.yaml` and `testcase.yaml`
+files define supported build and test surfaces.
 
 The serial console helper is an ordinary SDK tool at `scripts/serial_use.py`;
 its device-free regression tests are in `scripts/tests/test_serial_use.py`.
