@@ -1,0 +1,55 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+
+/ {
+	leds {
+		compatible = "gpio-leds";
+		service_led: service_led {
+			gpios = <&arduino_header ARDUINO_HEADER_R3_D13 GPIO_ACTIVE_HIGH>;
+		};
+	};
+
+	fstab: fstab {
+		compatible = "zephyr,fstab";
+		extra: extra {
+			compatible = "zephyr,fstab,littlefs";
+			automount;
+			mount-point = "/extra";
+			partition = <&extra_partition>;
+			read-size = <16>;
+			prog-size = <16>;
+			cache-size = <128>;
+			lookahead-size = <64>;
+			block-cycles = <512>;
+		};
+	};
+
+	chosen {
+		meshbus,indicator-light-active = &service_led;
+	};
+};
+
+&cpuapp_rram {
+	/delete-node/ partitions;
+
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		slot0_partition: partition@0 {
+			label = "image-0";
+			reg = <0x0 DT_SIZE_K(1288)>;
+		};
+
+		storage_partition: partition@142000 {
+			label = "storage";
+			reg = <0x142000 DT_SIZE_K(16)>;
+		};
+
+		extra_partition: partition@146000 {
+			label = "extra";
+			reg = <0x146000 DT_SIZE_K(124)>;
+		};
+	};
+};

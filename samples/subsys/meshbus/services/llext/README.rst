@@ -19,11 +19,20 @@ Build Host Firmware
 From workspace root::
 
   source ~/.zephyr/env/bin/activate
-  BOARD=idea_mesh_tracker_c2/nrf54l15/cpuapp
+  SDK_ROOT="$(west list meshbus -f '{abspath}')"
+  BOARD=devkit_nrf54l15/nrf54l15/cpuapp
 
   west build -p auto -b ${BOARD} \
     -d build.meshbus_llext_service_hw \
-    -s sdk-meshbus/samples/subsys/meshbus/services/llext
+    -s "${SDK_ROOT}/samples/subsys/meshbus/services/llext"
+
+The DevKit build is a dedicated Service-host Qualification Fixture. It does
+not change or qualify the Meshbus Repeater, Room, or Sensor product profiles,
+and its evidence does not apply to C2 GA. The fixture maps its active-high
+indicator light to Arduino D13, reserves ``/extra`` for service packages, and
+produces a service-profile EDK for ``.mbs`` compilation. The C2 SDK sample
+target remains available for service-level testing, but it is not the C2
+product firmware.
 
 The SDK sample can be built without a Firmware source checkout. Host tools
 are provided by the separately installed Rust ``meshbus`` CLI.

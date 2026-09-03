@@ -13,6 +13,8 @@ common:
 tests:
   sample.subsys.meshbus.services.llext:
     platform_allow:
+      - devkit_nrf54l15/nrf54l15/cpuapp
       - idea_mesh_tracker_c2/nrf54l15/cpuapp
     integration_platforms:
+      - devkit_nrf54l15/nrf54l15/cpuapp
       - idea_mesh_tracker_c2/nrf54l15/cpuapp
