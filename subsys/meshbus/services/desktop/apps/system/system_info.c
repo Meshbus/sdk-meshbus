@@ -155,7 +155,8 @@ static void system_open_info_detail(struct system_app *app, uint32_t id)
 		title = DESKTOP_TEXT_SYSTEM_MENU_FIRMWARE;
 		(void)snprintk(app->text, sizeof(app->text),
 			       DESKTOP_TEXT_SYSTEM_INFO_FIRMWARE_FORMAT,
-			       APP_VERSION_STRING, __DATE__ " " __TIME__, KERNEL_VERSION_STRING);
+			       APP_VERSION_STRING, STRINGIFY(APP_BUILD_VERSION),
+			       KERNEL_VERSION_STRING);
 		break;
 	case SYSTEM_INFO_RUNTIME:
 		title = DESKTOP_TEXT_SYSTEM_MENU_RUNTIME;
