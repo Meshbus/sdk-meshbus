@@ -122,6 +122,40 @@ K_THREAD_STACK_DEFINE(meshcore_wq_stack, CONFIG_MESHBUS_MESHCORE_WORKQ_STACK_SIZ
 static struct k_work_delayable meshcore_work;
 static atomic_t meshcore_runtime_work_ready;
 static atomic_t meshcore_radio_paused;
+static atomic_t runtime_generation;
+static void meshcore_restart_handler(struct k_work *work);
+static K_WORK_DEFINE(meshcore_restart_work, meshcore_restart_handler);
+
+static const meshbus_meshcore_config *restart_candidate;
+static int restart_result;
+static bool restart_was_ready;
+
+int meshbus_meshcore_runtime_apply(const meshbus_meshcore_config *cfg)
+{
+	struct k_work_sync sync;
+	int rc;
+
+	/* Teardown must never run recursively inside a protocol callback. */
+	if (k_current_get() == k_work_queue_thread_get(&meshcore_wq)) {
+		rc = -EWOULDBLOCK;
+		goto out;
+	}
+	restart_candidate = cfg;
+	restart_was_ready = atomic_set(&meshcore_runtime_work_ready, 0) != 0;
+	rc = k_work_submit_to_queue(&meshcore_wq, &meshcore_restart_work);
+	if (rc < 0) {
+		atomic_set(&meshcore_runtime_work_ready, restart_was_ready);
+		goto out;
+	}
+	(void)k_work_flush(&meshcore_restart_work, &sync);
+	rc = restart_result;
+out:
+	meshbus_meshcore_activation_complete(meshbus_meshcore_runtime_is_ready() ? 0 : -EIO);
+	if (meshbus_meshcore_runtime_is_ready()) {
+		meshbus_meshcore_runtime_wake();
+	}
+	return rc;
+}
 
 static bool meshcore_timer_due(uint32_t now_ms, uint32_t deadline_ms)
 {
@@ -238,7 +272,9 @@ static void meshcore_runtime_work_handler(struct k_work *work)
 		uint32_t now_ms = k_uptime_get_32();
 		int rc;
 
-		if (meshbus_meshcore_radio_is_paused()) {
+		if (!atomic_get(&meshcore_runtime_work_ready) ||
+		    meshbus_meshcore_activation_pending() ||
+		    meshbus_meshcore_radio_is_paused()) {
 			return;
 		}
 
@@ -310,11 +346,6 @@ bool meshbus_meshcore_runtime_is_ready(void)
 #define MESHCORE_REQUEST_QUEUE_CAP CONFIG_MESHBUS_MESHCORE_REQUEST_QUEUE_DEPTH
 #define MESHCORE_REQUEST_LARGE_QUEUE_CAP \
 	CONFIG_MESHBUS_MESHCORE_REQUEST_LARGE_QUEUE_DEPTH
-#define MESHCORE_DEFAULT_FLOOD_MAX 64U
-#define MESHCORE_DEFAULT_TX_DELAY_FACTOR 0.5f
-#define MESHCORE_DEFAULT_DIRECT_TX_DELAY_FACTOR 0.2f
-#define MESHCORE_DEFAULT_ADVERT_INTERVAL_SEC (1U * 60U)
-#define MESHCORE_DEFAULT_FLOOD_ADVERT_INTERVAL_SEC (1U * 60U * 60U)
 #define MESHCORE_DEFAULT_TELEMETRY_PERMISSION_MASK \
 	(MESHCORE_TELEM_PERM_BASE | MESHCORE_TELEM_PERM_LOCATION | \
 	 MESHCORE_TELEM_PERM_ENVIRONMENT)
@@ -338,7 +369,6 @@ enum meshcore_request_type {
 	MESHCORE_REQUEST_NODE_TELEMETRY,
 	MESHCORE_REQUEST_MESSAGE_SEND_TO_CHANNEL,
 #endif
-	MESHCORE_REQUEST_NODE_CONFIG_RESET,
 	MESHCORE_REQUEST_NODE_DISCOVER,
 	MESHCORE_REQUEST_NODE_TRACE,
 #if defined(CONFIG_MESHBUS_MESHCORE_CLIENT)
@@ -381,6 +411,7 @@ enum meshcore_request_storage {
 
 struct meshcore_request_item_header {
 	void *fifo_reserved;
+	atomic_val_t generation;
 	uint8_t type;
 	uint8_t storage;
 };
@@ -557,12 +588,16 @@ static void meshcore_request_large_item_copy(
 static int meshcore_request_work_queue_append(
 	const struct meshcore_request_event *evt, const char *request_name)
 {
+	atomic_val_t generation = atomic_get(&runtime_generation);
 	const char *req_name = request_name;
 	void *mem = NULL;
 	int rc;
 
 	if (evt == NULL) {
 		return -EINVAL;
+	}
+	if (!meshbus_meshcore_runtime_is_ready() || meshbus_meshcore_activation_pending()) {
+		return -EBUSY;
 	}
 	if (req_name == NULL || req_name[0] == '\0') {
 		req_name = "MeshCore request";
@@ -586,6 +621,7 @@ static int meshcore_request_work_queue_append(
 
 		item = (struct meshcore_request_large_item *)mem;
 		memset(item, 0, sizeof(*item));
+		item->header.generation = generation;
 		item->header.type = evt->type;
 		item->header.storage = MESHCORE_REQUEST_STORAGE_LARGE;
 		meshcore_request_large_item_copy(item, evt);
@@ -603,6 +639,7 @@ static int meshcore_request_work_queue_append(
 
 		item = (struct meshcore_request_small_item *)mem;
 		memset(item, 0, sizeof(*item));
+		item->header.generation = generation;
 		item->header.type = evt->type;
 		item->header.storage = MESHCORE_REQUEST_STORAGE_SMALL;
 		meshcore_request_small_item_copy(item, evt);
@@ -782,7 +819,6 @@ static int meshbus_meshcore_backend_bootstrap_defaults(void)
 {
 	const uint8_t default_secret[] = DEFAULT_CHANNEL_SECRET_BYTES;
 	meshbus_meshcore_config cfg = meshbus_MeshcoreConfig_init_zero;
-	struct meshcore_local_identity local_identity;
 	size_t default_channel_idx = 0U;
 	bool default_channel_exists = false;
 	int rc;
@@ -795,22 +831,7 @@ static int meshbus_meshcore_backend_bootstrap_defaults(void)
 
 	if (cfg.public_key.size != MESHCORE_PUBLIC_KEY_SIZE ||
 	    cfg.private_key.size != MESHCORE_PRIVATE_KEY_SIZE) {
-		meshcore_local_identity_generate(&local_identity);
-		memcpy(cfg.public_key.bytes, local_identity.identity.pub_key,
-		       MESHCORE_PUBLIC_KEY_SIZE);
-		memcpy(cfg.private_key.bytes, local_identity.prv_key,
-		       MESHCORE_PRIVATE_KEY_SIZE);
-		cfg.public_key.size = MESHCORE_PUBLIC_KEY_SIZE;
-		cfg.private_key.size = MESHCORE_PRIVATE_KEY_SIZE;
-		cfg.disable_fwd = false;
-		cfg.flood_max = MESHCORE_DEFAULT_FLOOD_MAX;
-		cfg.client_repeat = false;
-		cfg.tx_delay_factor = MESHCORE_DEFAULT_TX_DELAY_FACTOR;
-		cfg.direct_tx_delay_factor = MESHCORE_DEFAULT_DIRECT_TX_DELAY_FACTOR;
-		cfg.advert_interval = MESHCORE_DEFAULT_ADVERT_INTERVAL_SEC;
-		cfg.flood_advert_interval =
-			MESHCORE_DEFAULT_FLOOD_ADVERT_INTERVAL_SEC;
-		cfg.loop_detect = MESHBUS_MESHCORE_LOOP_DETECT_OFF;
+		meshbus_meshcore_config_init_identity(&cfg);
 
 		rc = meshbus_meshcore_config_set(&cfg);
 		if (rc != 0) {
@@ -820,12 +841,12 @@ static int meshbus_meshcore_backend_bootstrap_defaults(void)
 		LOG_INF("Generated new local identity and applied default MeshCore config");
 	}
 
-	if (meshbus_meshcore_firmware_role_get() != MESHBUS_MESHCORE_ROLE_CHAT) {
-		return 0;
-	}
-
 	rc = meshcore_backend_default_channel_slot(default_secret, sizeof(default_secret),
 						  &default_channel_idx, &default_channel_exists);
+	/* A full user-owned table, including a single custom channel, is valid. */
+	if (rc == -ENOSPC) {
+		return 0;
+	}
 	if (rc != 0) {
 		LOG_WRN("default channel slot lookup failed: %d", rc);
 		return rc;
@@ -851,7 +872,6 @@ static int meshbus_meshcore_backend_bootstrap_defaults(void)
 static int meshbus_meshcore_backend_bootstrap_defaults(void)
 {
 	meshbus_meshcore_config cfg = meshbus_MeshcoreConfig_init_zero;
-	struct meshcore_local_identity local_identity;
 	int rc;
 
 	rc = meshbus_meshcore_config_get(&cfg);
@@ -865,21 +885,7 @@ static int meshbus_meshcore_backend_bootstrap_defaults(void)
 		return 0;
 	}
 
-	meshcore_local_identity_generate(&local_identity);
-	memcpy(cfg.public_key.bytes, local_identity.identity.pub_key,
-	       MESHCORE_PUBLIC_KEY_SIZE);
-	memcpy(cfg.private_key.bytes, local_identity.prv_key,
-	       MESHCORE_PRIVATE_KEY_SIZE);
-	cfg.public_key.size = MESHCORE_PUBLIC_KEY_SIZE;
-	cfg.private_key.size = MESHCORE_PRIVATE_KEY_SIZE;
-	cfg.disable_fwd = false;
-	cfg.flood_max = MESHCORE_DEFAULT_FLOOD_MAX;
-	cfg.client_repeat = false;
-	cfg.tx_delay_factor = MESHCORE_DEFAULT_TX_DELAY_FACTOR;
-	cfg.direct_tx_delay_factor = MESHCORE_DEFAULT_DIRECT_TX_DELAY_FACTOR;
-	cfg.advert_interval = MESHCORE_DEFAULT_ADVERT_INTERVAL_SEC;
-	cfg.flood_advert_interval = MESHCORE_DEFAULT_FLOOD_ADVERT_INTERVAL_SEC;
-	cfg.loop_detect = MESHBUS_MESHCORE_LOOP_DETECT_OFF;
+	meshbus_meshcore_config_init_identity(&cfg);
 
 	rc = meshbus_meshcore_config_set(&cfg);
 	if (rc != 0) {
@@ -908,10 +914,6 @@ static int meshcore_request_item_execute(
 
 	if (item == NULL) {
 		return -EINVAL;
-	}
-
-	if (item->type == MESHCORE_REQUEST_NODE_CONFIG_RESET) {
-		return meshbus_meshcore_backend_bootstrap_defaults();
 	}
 
 	if (item->storage == MESHCORE_REQUEST_STORAGE_SMALL) {
@@ -1199,7 +1201,11 @@ static bool meshbus_meshcore_request_queue_process(uint32_t budget, bool *made_p
 		}
 		type = item->type;
 
-		rc = meshcore_request_item_execute(item);
+		rc = 0;
+		if (item->generation == atomic_get(&runtime_generation) &&
+		    !meshbus_meshcore_activation_pending()) {
+			rc = meshcore_request_item_execute(item);
+		}
 		if (rc == -ENOBUFS) {
 			break;
 		}
@@ -1523,15 +1529,6 @@ static void meshbus_meshcore_control_data_request_listener_cb(
 		chan, &evt, "MeshCore control-data request");
 }
 
-static void meshbus_meshcore_config_reset_listener_cb(const struct zbus_channel *chan)
-{
-	struct meshcore_request_event evt = {0};
-
-	evt.type = MESHCORE_REQUEST_NODE_CONFIG_RESET;
-	(void)meshcore_request_work_queue_accept(
-		chan, &evt, "MeshCore config reset event");
-}
-
 ZBUS_LISTENER_DEFINE(meshbus_meshcore_advert_request_listener,
 		     meshbus_meshcore_advert_request_listener_cb);
 ZBUS_CHAN_ADD_OBS(meshbus_meshcore_advert_request_chan,
@@ -1598,10 +1595,6 @@ ZBUS_LISTENER_DEFINE(meshbus_meshcore_control_data_request_listener,
 		     meshbus_meshcore_control_data_request_listener_cb);
 ZBUS_CHAN_ADD_OBS(meshbus_meshcore_control_data_send_request_chan,
 		  meshbus_meshcore_control_data_request_listener, 0);
-ZBUS_LISTENER_DEFINE(meshbus_meshcore_config_reset_listener,
-		     meshbus_meshcore_config_reset_listener_cb);
-ZBUS_CHAN_ADD_OBS(meshbus_meshcore_config_reset_chan,
-		  meshbus_meshcore_config_reset_listener, 0);
 
 /* runtime/radio.c */
 
@@ -1623,10 +1616,37 @@ ZBUS_CHAN_ADD_OBS(meshbus_radio_state_chan, meshbus_radio_state_listener, 0);
 
 static atomic_t meshcore_radio_tx_done_pending;
 static int meshcore_radio_tx_done_status;
+static struct k_spinlock radio_tx_lock;
+static bool radio_tx_outstanding;
+static atomic_val_t radio_tx_generation;
+
+bool meshbus_meshcore_radio_tx_begin(void)
+{
+	k_spinlock_key_t key = k_spin_lock(&radio_tx_lock);
+	bool accepted = !radio_tx_outstanding &&
+		!meshbus_meshcore_activation_pending();
+
+	if (accepted) {
+		radio_tx_outstanding = true;
+		radio_tx_generation = atomic_get(&runtime_generation);
+	}
+	k_spin_unlock(&radio_tx_lock, key);
+	return accepted;
+}
+
+void meshbus_meshcore_radio_tx_abort(void)
+{
+	k_spinlock_key_t key = k_spin_lock(&radio_tx_lock);
+
+	radio_tx_outstanding = false;
+	k_spin_unlock(&radio_tx_lock, key);
+}
+
 
 #if !defined(CONFIG_MESHBUS_MESHCORE_RADIO_RX_ZBUS_SUBSCRIBER)
 struct meshcore_radio_rx_item {
 	void *fifo_reserved;
+	atomic_val_t generation;
 	struct meshbus_radio_receive_event event;
 };
 
@@ -1665,8 +1685,16 @@ static void meshbus_radio_tx_done_listener_cb(const struct zbus_channel *chan)
 		return;
 	}
 
-	meshcore_radio_tx_done_status = evt->status;
-	atomic_set(&meshcore_radio_tx_done_pending, 1);
+	k_spinlock_key_t key = k_spin_lock(&radio_tx_lock);
+
+	if (radio_tx_outstanding &&
+	    radio_tx_generation == atomic_get(&runtime_generation) &&
+	    !meshbus_meshcore_activation_pending()) {
+		meshcore_radio_tx_done_status = evt->status;
+		atomic_set(&meshcore_radio_tx_done_pending, 1);
+	}
+	radio_tx_outstanding = false;
+	k_spin_unlock(&radio_tx_lock, key);
 	meshbus_meshcore_runtime_wake();
 }
 
@@ -1699,7 +1727,8 @@ static bool meshbus_meshcore_radio_rx_process(uint32_t budget, bool *made_progre
 	while (handled < budget &&
 	       zbus_sub_wait_msg(&meshcore_radio_rx_subscriber, &chan, &evt,
 				 K_NO_WAIT) == 0) {
-		if (chan == &meshbus_radio_receive_chan && evt.len > 0U) {
+		if (chan == &meshbus_radio_receive_chan && evt.len > 0U &&
+		    !meshbus_meshcore_activation_pending()) {
 			(void)meshcore_radio_rx_inject(evt.data, evt.len, evt.rssi,
 						       evt.snr, k_uptime_get_32());
 		}
@@ -1716,12 +1745,14 @@ static void meshbus_radio_receive_listener_cb(const struct zbus_channel *chan)
 {
 	const struct meshbus_radio_receive_event *evt;
 	struct meshcore_radio_rx_item *item;
+	atomic_val_t generation = atomic_get(&runtime_generation);
 	void *mem = NULL;
 	atomic_val_t count;
 	int rc;
 
 	evt = (const struct meshbus_radio_receive_event *)zbus_chan_const_msg(chan);
-	if (evt == NULL || evt->len == 0U) {
+	if (evt == NULL || evt->len == 0U ||
+	    meshbus_meshcore_activation_pending()) {
 		return;
 	}
 
@@ -1742,6 +1773,7 @@ static void meshbus_radio_receive_listener_cb(const struct zbus_channel *chan)
 
 	item = (struct meshcore_radio_rx_item *)mem;
 	memset(item, 0, sizeof(*item));
+	item->generation = generation;
 	item->event = *evt;
 	k_fifo_put(&meshcore_radio_rx_fifo, item);
 	meshbus_meshcore_runtime_wake();
@@ -1762,7 +1794,9 @@ static bool meshbus_meshcore_radio_rx_process(uint32_t budget, bool *made_progre
 		if (item == NULL) {
 			break;
 		}
-		if (item->event.len > 0U) {
+		if (item->event.len > 0U &&
+		    item->generation == atomic_get(&runtime_generation) &&
+		    !meshbus_meshcore_activation_pending()) {
 			(void)meshcore_radio_rx_inject(
 				item->event.data, item->event.len, item->event.rssi,
 				item->event.snr, k_uptime_get_32());
@@ -1782,4 +1816,57 @@ static bool meshbus_meshcore_radio_rx_process(uint32_t budget, bool *made_progre
 static bool meshbus_meshcore_radio_tx_done_is_pending(void)
 {
 	return atomic_get(&meshcore_radio_tx_done_pending) != 0;
+}
+
+/* Runs after any executing protocol callback on the same owning queue. */
+static void meshcore_restart_handler(struct k_work *work)
+{
+	int rc;
+	int restore_rc;
+
+	ARG_UNUSED(work);
+	/* Exclude in-flight publishers while discarding RX and reopening admission. */
+	rc = zbus_chan_claim(&meshbus_radio_receive_chan, K_FOREVER);
+	if (rc != 0) {
+		atomic_set(&meshcore_runtime_work_ready, restart_was_ready);
+		restart_result = rc;
+		return;
+	}
+	(void)k_work_cancel_delayable(&meshcore_work);
+	atomic_inc(&runtime_generation);
+	atomic_clear(&meshcore_radio_tx_done_pending);
+#if defined(CONFIG_MESHBUS_MESHCORE_CLIENT)
+	meshbus_meshcore_ack_handoff_reset();
+#endif
+#if defined(CONFIG_MESHBUS_CONTACT)
+	meshbus_meshcore_contact_trace_pending_clear();
+#endif
+	meshcore_deinit();
+	while (meshbus_meshcore_request_queue_process(MESHCORE_REQUEST_WORK_BUDGET, NULL)) {
+	}
+	while (meshbus_meshcore_radio_rx_process(MESHCORE_RADIO_RX_WORK_BUDGET, NULL)) {
+	}
+	meshbus_meshcore_config_activate(restart_candidate);
+	rc = meshcore_init();
+	if (rc == 0) {
+		rc = meshbus_meshcore_config_commit(restart_candidate, true);
+	}
+	if (rc == 0) {
+		atomic_set(&meshcore_runtime_work_ready, 1);
+		LOG_INF("MeshCore configuration applied without reboot: %u",
+			(unsigned int)restart_candidate->role);
+	} else {
+		/* Discard partial initialization and recreate the last committed configuration. */
+		meshcore_deinit();
+		meshbus_meshcore_config_activate(NULL);
+		restore_rc = meshcore_init();
+		atomic_set(&meshcore_runtime_work_ready, restore_rc == 0);
+		if (restore_rc != 0) {
+			LOG_ERR("MeshCore apply failed: %d; restoring runtime failed: %d", rc, restore_rc);
+		} else {
+			LOG_WRN("MeshCore apply failed: %d; previous configuration restored", rc);
+		}
+	}
+	(void)zbus_chan_finish(&meshbus_radio_receive_chan);
+	restart_result = rc;
 }

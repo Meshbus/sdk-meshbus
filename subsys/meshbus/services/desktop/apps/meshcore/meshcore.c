@@ -29,6 +29,8 @@ static int meshcore_app_create(struct meshcore_app *app, struct zui_host *host)
 		return -EINVAL;
 	}
 
+	k_work_init(&app->settings_work, meshcore_settings_work);
+	atomic_clear(&app->settings_busy);
 	app->host = host;
 	app->selected_channel_idx = UINT8_MAX;
 	app->radio_preset_selected_idx = MESHCORE_RADIO_PRESET_CUSTOM;
@@ -165,6 +167,10 @@ static void meshcore_app_destroy(struct meshcore_app *app)
 	if (app == NULL) {
 		return;
 	}
+
+	struct k_work_sync sync;
+
+	(void)k_work_cancel_sync(&app->settings_work, &sync);
 
 	if (app->host != NULL) {
 		(void)zui_host_detach_router(app->host, ZUI_LAYER_FULLSCREEN);

@@ -35,9 +35,9 @@ BUILD_ASSERT(!IS_ENABLED(CONFIG_FLASH_SIMULATOR),
              "C2 scenario must use real RRAM");
 BUILD_ASSERT(IS_ENABLED(CONFIG_MESHBUS_RADIO_DEFAULT_RECEIVE_ONLY),
              "service-DUT scenario must never enable TX");
-BUILD_ASSERT(CONFIG_MESHBUS_MESHCORE_FIRMWARE_ROLE ==
+BUILD_ASSERT(CONFIG_MESHBUS_MESHCORE_DEFAULT_ROLE ==
                  MESHBUS_MESHCORE_ROLE_REPEATER,
-             "service-DUT scenario must use repeater role");
+             "service-DUT scenario must default to repeater role");
 BUILD_ASSERT(DT_NODE_HAS_STATUS(TEST_PARTITION_NODE, okay),
              "test storage missing");
 BUILD_ASSERT(DT_NODE_HAS_STATUS(PRODUCT_PARTITION_NODE, okay),
@@ -127,7 +127,7 @@ ZTEST(meshbus_meshcore_service_dut, test_identity_and_radio_pause_resume) {
 
   zassert_ok(test_storage_prepare_rc, "test storage prepare failed: %d",
              test_storage_prepare_rc);
-  zassert_equal(meshbus_meshcore_firmware_role_get(),
+  zassert_equal(meshbus_meshcore_active_role_get(),
                 MESHBUS_MESHCORE_ROLE_REPEATER,
                 "firmware role is not repeater");
   zassert_true(meshbus_meshcore_runtime_is_ready(),
@@ -157,7 +157,7 @@ ZTEST(meshbus_meshcore_service_dut, test_identity_and_radio_pause_resume) {
       zbus_chan_read(&meshbus_radio_state_chan, &initial_radio, K_NO_WAIT),
       "initial radio state read failed");
   printk("MB_MESHCORE_DUT_READY role=%u mode=receive_only name_len=%u\n",
-         (unsigned int)meshbus_meshcore_firmware_role_get(),
+         (unsigned int)meshbus_meshcore_active_role_get(),
          (unsigned int)strlen(initial_cfg.name));
 
   radio_cfg.enabled = false;

@@ -60,9 +60,10 @@ static void print_config(const struct shell *sh, const meshbus_meshcore_config *
 	}
 
 	shell_print(sh, "Settings:");
-	shell_print(sh, "  firmware_role:             %s (%u)",
-		    role_str(meshbus_meshcore_firmware_role_get()),
-		    (unsigned int)meshbus_meshcore_firmware_role_get());
+	shell_print(sh, "  role:                      %s (%u)", role_str(cfg->role),
+		    (unsigned int)cfg->role);
+	shell_print(sh, "  runtime_ready:             %s",
+		    meshbus_meshcore_runtime_is_ready() ? "yes" : "no");
 	shell_print(sh, "  name:                      %s", cfg->name);
 	shell_print(sh, "  public_key:                %u bytes", (unsigned int)cfg->public_key.size);
 	shell_hexdump(sh, cfg->public_key.bytes, cfg->public_key.size);
@@ -146,6 +147,31 @@ static int meshcore_shell_parse_position(const char *latitude_arg, const char *l
 	}
 
 	return 0;
+}
+
+static int cmd_meshcore_role(const struct shell *sh, size_t argc, char **argv)
+{
+	meshbus_meshcore_config cfg;
+	int rc = meshbus_meshcore_config_get(&cfg);
+
+	ARG_UNUSED(argc);
+	if (rc != 0) {
+		return rc;
+	}
+	for (unsigned int role = MESHBUS_MESHCORE_ROLE_CHAT;
+	     role <= MESHBUS_MESHCORE_ROLE_SENSOR; role++) {
+		if (strcmp(argv[1], role_str(role)) == 0) {
+			cfg.role = role;
+			rc = meshbus_meshcore_config_set(&cfg);
+			if (rc != 0) {
+				mb_shell_error(sh, rc);
+			} else {
+				print_config(sh, &cfg);
+			}
+			return rc;
+		}
+	}
+	return -EINVAL;
 }
 
 static int cmd_meshcore_config_set(const struct shell *sh, size_t argc, char **argv)
@@ -359,6 +385,8 @@ static int cmd_meshcore_trace(const struct shell *sh, size_t argc, char **argv)
 }
 
 SHELL_STATIC_SUBCMD_SET_CREATE(meshbus_meshcore_config_cmds,
+	SHELL_CMD_ARG(role, NULL, "Save and switch role: chat|repeater|room|sensor",
+		      cmd_meshcore_role, 2, 0),
 	SHELL_CMD_ARG(get, NULL, "Show MeshCore config",
 		      cmd_meshcore_config_get, 1, 0),
 	SHELL_CMD_ARG(reset, NULL, "Reset MeshCore config",

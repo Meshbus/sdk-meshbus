@@ -22,7 +22,7 @@ source "subsys/logging/Kconfig.template.log_config"
 config MESHBUS_CHANNEL_MAX_CHANNELS
 	int "Maximum number of channels"
 	default 64
-	range 8 128
+	range 1 128
 	help
 	  Maximum number of channels that can be stored.
 

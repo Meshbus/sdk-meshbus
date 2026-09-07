@@ -36,7 +36,6 @@ static int meshbus_meshcore_mgmt_encode_config_response(struct smp_streamer *ctx
 							const pb_msgdesc_t *fields,
 							void *rsp)
 {
-	meshbus_meshcore_role role = meshbus_meshcore_firmware_role_get();
 	meshbus_meshcore_config response_cfg;
 
 	if (cfg == NULL) {
@@ -49,19 +48,16 @@ static int meshbus_meshcore_mgmt_encode_config_response(struct smp_streamer *ctx
 
 		typed_rsp->has_config = true;
 		typed_rsp->config = response_cfg;
-		typed_rsp->role = role;
 	} else if (fields == meshbus_MeshcoreConfigSetResponse_fields) {
 		meshbus_MeshcoreConfigSetResponse *typed_rsp = rsp;
 
 		typed_rsp->has_config = true;
 		typed_rsp->config = response_cfg;
-		typed_rsp->role = role;
 	} else {
 		meshbus_MeshcoreConfigResetResponse *typed_rsp = rsp;
 
 		typed_rsp->has_config = true;
 		typed_rsp->config = response_cfg;
-		typed_rsp->role = role;
 	}
 
 	return mb_mgmt_encode_proto(ctxt, rsp, fields,

@@ -255,10 +255,10 @@ static void meshcore_build_root_settings_form(struct meshcore_app *app)
 	meshcore_form_add_value(app, MESHCORE_FORM_NAME, DESKTOP_TEXT_MESHCORE_SETTINGS_NAME,
 				app->editing.name[0] != '\0' ? app->editing.name
 							     : DESKTOP_TEXT_COMMON_NONE);
-	meshcore_form_add_value(
+	meshcore_form_add_option(
 		app, MESHCORE_FORM_ROLE, DESKTOP_TEXT_MESHCORE_SETTINGS_ROLE,
-		DESKTOP_TEXT_MESHCORE_ROLE_VALUES[meshcore_role_to_index(
-			meshbus_meshcore_firmware_role_get())]);
+		DESKTOP_TEXT_MESHCORE_ROLE_VALUES, DESKTOP_TEXT_MESHCORE_ROLE_COUNT,
+		meshcore_role_to_index(app->editing.role));
 
 	buf = meshcore_value_buf(app, &value_idx);
 	meshcore_hex_short(app->editing.public_key.bytes, app->editing.public_key.size, buf,
@@ -287,7 +287,7 @@ static void meshcore_build_root_settings_form(struct meshcore_app *app)
 	meshcore_form_add_route(app, MESHCORE_FORM_TELEMETRY_MODE,
 				DESKTOP_TEXT_MESHCORE_SETTINGS_TELEMETRY_MODE);
 
-	if (meshcore_role_is_repeater(meshbus_meshcore_firmware_role_get())) {
+	if (meshcore_role_is_repeater(app->editing.role)) {
 		buf = meshcore_value_buf(app, &value_idx);
 		(void)snprintk(buf, MESHCORE_VALUE_BUF_SIZE,
 			       DESKTOP_TEXT_POWER_VALUE_SECONDS_FORMAT,
@@ -304,7 +304,8 @@ static void meshcore_build_root_settings_form(struct meshcore_app *app)
 	}
 
 	meshcore_form_add_value(app, MESHCORE_FORM_RESET, DESKTOP_TEXT_MESHCORE_ACTION_RESET, NULL);
-	meshcore_form_add_value(app, MESHCORE_FORM_APPLY, DESKTOP_TEXT_COMMON_ACTION_APPLY, NULL);
+	meshcore_form_add_value(app, MESHCORE_FORM_APPLY,
+		DESKTOP_TEXT_COMMON_ACTION_APPLY, NULL);
 
 	meshcore_update_settings_form(app, DESKTOP_TEXT_MESHCORE_TITLE);
 }
@@ -367,7 +368,7 @@ static void meshcore_build_forwarding_form(struct meshcore_app *app)
 	app->form_item_count = 0U;
 	app->settings_page = MESHCORE_SETTINGS_PAGE_FORWARDING;
 
-	if (meshcore_role_is_repeater(meshbus_meshcore_firmware_role_get())) {
+	if (meshcore_role_is_repeater(app->editing.role)) {
 		meshcore_form_add_option(
 			app, MESHCORE_FORM_DISABLE_FWD, DESKTOP_TEXT_MESHCORE_SETTINGS_DISABLE_FWD,
 			DESKTOP_TEXT_COMMON_NO_YES_VALUES, 2U, app->editing.disable_fwd ? 1U : 0U);
@@ -494,6 +495,7 @@ static void meshcore_update_bool_bit(uint8_t *field, uint8_t bit, size_t option)
 
 static void meshcore_sync_root_settings_from_form(struct meshcore_app *app)
 {
+	app->editing.role = zui_form_option(app->settings_form, MESHCORE_FORM_ROLE) + 1U;
 	app->editing.advert_position =
 		zui_form_option(app->settings_form, MESHCORE_FORM_ADVERT_POSITION) != 0U;
 	app->editing.path_hash_size =
@@ -521,7 +523,7 @@ static void meshcore_sync_contact_add_policy_from_form(struct meshcore_app *app)
 
 static void meshcore_sync_forwarding_from_form(struct meshcore_app *app)
 {
-	if (meshcore_role_is_repeater(meshbus_meshcore_firmware_role_get())) {
+	if (meshcore_role_is_repeater(app->editing.role)) {
 		app->editing.disable_fwd =
 			zui_form_option(app->settings_form, MESHCORE_FORM_DISABLE_FWD) != 0U;
 		app->editing.loop_detect =
@@ -574,51 +576,43 @@ void meshcore_sync_settings_from_form(struct meshcore_app *app)
 	}
 	meshcore_settings_sanitize(&app->editing);
 }
+void meshcore_settings_work(struct k_work *work)
+{
+	struct meshcore_app *app = CONTAINER_OF(work, struct meshcore_app, settings_work);
+	bool reset = app->settings_reset;
+	int rc = reset ? meshbus_meshcore_config_reset() :
+			 meshbus_meshcore_config_set(&app->settings_candidate);
+
+	meshcore_apply_toast(app, rc == 0, reset ? DESKTOP_TEXT_MESHCORE_RESET_DONE : NULL);
+	atomic_clear(&app->settings_busy);
+}
+
+static void meshcore_submit_settings(struct meshcore_app *app, bool reset)
+{
+	if (app == NULL || !atomic_cas(&app->settings_busy, 0, 1)) {
+		return;
+	}
+	meshcore_sync_settings_from_form(app);
+	app->settings_candidate = app->editing;
+	app->settings_reset = reset;
+	if (k_work_submit(&app->settings_work) < 0) {
+		atomic_clear(&app->settings_busy);
+		meshcore_apply_toast(app, false, NULL);
+		return;
+	}
+	meshcore_switch(app, MESHCORE_SCREEN_MENU);
+}
+
 void meshcore_apply_settings(struct meshcore_app *app)
 {
-	meshbus_meshcore_config new_cfg;
-	int rc;
-
-	if (app == NULL) {
-		return;
-	}
-
-	meshcore_sync_settings_from_form(app);
-	new_cfg = app->editing;
-	meshcore_settings_sanitize(&new_cfg);
-
-	rc = meshbus_meshcore_config_set(&new_cfg);
-	if (rc != 0) {
-		meshcore_apply_toast(app, false, NULL);
-		meshcore_build_settings_form(app);
-		return;
-	}
-
-	app->applied = new_cfg;
-	app->editing = new_cfg;
-	meshcore_apply_toast(app, true, NULL);
-	meshcore_switch(app, MESHCORE_SCREEN_MENU);
+	meshcore_submit_settings(app, false);
 }
 
 void meshcore_reset_settings(struct meshcore_app *app)
 {
-	int rc;
-
-	if (app == NULL) {
-		return;
-	}
-
-	rc = meshbus_meshcore_config_reset();
-	if (rc != 0) {
-		meshcore_apply_toast(app, false, NULL);
-		meshcore_switch(app, MESHCORE_SCREEN_SETTINGS);
-		return;
-	}
-
-	meshcore_reload_node(app);
-	meshcore_apply_toast(app, true, DESKTOP_TEXT_MESHCORE_RESET_DONE);
-	meshcore_switch(app, MESHCORE_SCREEN_MENU);
+	meshcore_submit_settings(app, true);
 }
+
 void meshcore_settings_activated(struct zui_form *form, uint32_t id,
 				 const struct zui_input_event *event, void *user_data)
 {
@@ -742,8 +736,17 @@ static bool meshcore_form_input(const struct zui_input_event *event, void *user_
 		meshcore_apply_settings(app);
 		return true;
 	}
+	meshbus_meshcore_role previous_role = app->editing.role;
+
 	if (meshcore_forward_input(zui_form_get_screen(app->settings_form), event)) {
 		meshcore_sync_settings_from_form(app);
+		if (app->settings_page == MESHCORE_SETTINGS_PAGE_ROOT &&
+		    previous_role != app->editing.role) {
+			app->settings_root_selected = zui_form_selected(app->settings_form);
+			meshcore_build_settings_form(app);
+			meshcore_restore_root_settings_selection(app);
+			meshcore_request_redraw(app);
+		}
 		return true;
 	}
 	return false;

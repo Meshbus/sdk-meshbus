@@ -16,9 +16,7 @@ static void contact_listener_cb(const struct zbus_channel *chan, const void *mes
 {
 	ARG_UNUSED(message);
 
-	if (chan == &meshbus_meshcore_config_reset_chan) {
-		LOG_INF("contact/config-reset request");
-	} else if (chan == &meshbus_meshcore_advert_request_chan) {
+	if (chan == &meshbus_meshcore_advert_request_chan) {
 		const meshbus_meshcore_advert_request_event *event = message;
 
 		LOG_INF("contact/advert request: flood=%u", event->flood ? 1U : 0U);
@@ -73,7 +71,6 @@ int main(void)
 		(unsigned int)meshbus_contact_store_count(),
 		(unsigned int)meshbus_contact_store_size());
 
-	subscribe_contact_channel(&meshbus_meshcore_config_reset_chan, "meshbus_meshcore_config_reset_chan");
 	subscribe_contact_channel(&meshbus_meshcore_advert_request_chan, "meshbus_meshcore_advert_request_chan");
 	subscribe_contact_channel(&meshbus_contact_share_request_chan,
 			       "meshbus_contact_share_request_chan");

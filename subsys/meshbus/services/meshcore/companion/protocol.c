@@ -2697,7 +2697,7 @@ static int companion_handle_app_start(const uint8_t *frame, size_t len)
 	companion_radio_params(&freq_khz, &bandwidth_hz, &spread_factor, &coding_rate);
 
 	out[idx++] = COMPANION_RESP_CODE_SELF_INFO;
-	out[idx++] = companion_role_to_advert_type(meshbus_meshcore_firmware_role_get());
+	out[idx++] = companion_role_to_advert_type(meshbus_meshcore_active_role_get());
 	out[idx++] = companion_radio_tx_power();
 	out[idx++] = COMPANION_MAX_LORA_TX_POWER_DBM;
 	companion_public_key_copy(&out[idx], &node);

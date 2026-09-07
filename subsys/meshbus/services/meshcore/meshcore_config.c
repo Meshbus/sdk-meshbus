@@ -24,6 +24,9 @@
 #include "common/settings.h"
 #include "meshbus/meshcore.pb.h"
 #include "meshcore_prvi.h"
+#if defined(CONFIG_MESHBUS_MESHCORE_RUNTIME)
+#include "meshcore_identity.h"
+#endif
 
 LOG_MODULE_REGISTER(meshbus_meshcore_config, CONFIG_MESHBUS_MESHCORE_LOG_LEVEL);
 
@@ -34,9 +37,6 @@ LOG_MODULE_REGISTER(meshbus_meshcore_config, CONFIG_MESHBUS_MESHCORE_LOG_LEVEL);
 static bool meshcore_node_discover_request_validator(const void *msg, size_t msg_size);
 static bool meshcore_trace_request_validator(const void *msg, size_t msg_size);
 static bool meshcore_trace_response_validator(const void *msg, size_t msg_size);
-
-ZBUS_CHAN_DEFINE(meshbus_meshcore_config_reset_chan, meshbus_meshcore_config_reset_event,
-		 NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
 
 ZBUS_CHAN_DEFINE(meshbus_meshcore_advert_request_chan, meshbus_meshcore_advert_request_event,
 		 NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
@@ -62,8 +62,8 @@ ZBUS_CHAN_DEFINE(meshbus_meshcore_trace_response_chan,
 
 #define MESHBUS_MESHCORE_ROLE_MIN MESHBUS_MESHCORE_ROLE_CHAT
 #define MESHBUS_MESHCORE_ROLE_MAX MESHBUS_MESHCORE_ROLE_SENSOR
-#define MESHBUS_MESHCORE_FIRMWARE_ROLE_VALUE \
-	((meshbus_meshcore_role)CONFIG_MESHBUS_MESHCORE_FIRMWARE_ROLE)
+#define MESHBUS_MESHCORE_DEFAULT_ROLE_VALUE \
+	((meshbus_meshcore_role)CONFIG_MESHBUS_MESHCORE_DEFAULT_ROLE)
 #define MESHBUS_MESHCORE_SETTINGS_SUBTREE "meshbus/meshcore"
 #define MESHBUS_MESHCORE_SETTINGS_KEY_CONFIG "config"
 #define MESHBUS_MESHCORE_CONTACT_ADD_FILTER_MASK \
@@ -74,21 +74,17 @@ ZBUS_CHAN_DEFINE(meshbus_meshcore_trace_response_chan,
 	 MESHBUS_MESHCORE_CONTACT_ADD_FILTER_SENSOR | \
 	 MESHBUS_MESHCORE_CONTACT_ADD_FILTER_MANUAL_MODE)
 
-#if defined(CONFIG_MESHBUS_MESHCORE_ROLE_REPEATER)
-#define MESHBUS_MESHCORE_DEFAULT_ADD_CONTACT_CONFIG \
-	(MESHBUS_MESHCORE_CONTACT_ADD_FILTER_OVERWRITE_OLDEST | \
-	 MESHBUS_MESHCORE_CONTACT_ADD_FILTER_MANUAL_MODE)
-#else
 #define MESHBUS_MESHCORE_DEFAULT_ADD_CONTACT_CONFIG \
 	(MESHBUS_MESHCORE_CONTACT_ADD_FILTER_CHAT | \
 	 MESHBUS_MESHCORE_CONTACT_ADD_FILTER_REPEATER | \
 	 MESHBUS_MESHCORE_CONTACT_ADD_FILTER_ROOM | \
 	 MESHBUS_MESHCORE_CONTACT_ADD_FILTER_SENSOR | \
 	 MESHBUS_MESHCORE_CONTACT_ADD_FILTER_MANUAL_MODE)
-#endif
+
 
 #define MESHBUS_MESHCORE_CONFIG_DEFAULTS \
 	{ \
+		.role = MESHBUS_MESHCORE_DEFAULT_ROLE_VALUE, \
 		.path_hash_size = 1U, \
 		.loop_detect = MESHBUS_MESHCORE_LOOP_DETECT_OFF, \
 		.client_repeat = false, \
@@ -103,9 +99,15 @@ ZBUS_CHAN_DEFINE(meshbus_meshcore_trace_response_chan,
 		.telemetry_mode_environment = MESHBUS_MESHCORE_TELEMETRY_MODE_FLAGS, \
 	}
 
-BUILD_ASSERT(CONFIG_MESHBUS_MESHCORE_FIRMWARE_ROLE >= MESHBUS_MESHCORE_ROLE_MIN &&
-		     CONFIG_MESHBUS_MESHCORE_FIRMWARE_ROLE <= MESHBUS_MESHCORE_ROLE_MAX,
-	     "CONFIG_MESHBUS_MESHCORE_FIRMWARE_ROLE must be a valid MeshCore role");
+BUILD_ASSERT(CONFIG_MESHBUS_MESHCORE_DEFAULT_ROLE >= MESHBUS_MESHCORE_ROLE_MIN &&
+		     CONFIG_MESHBUS_MESHCORE_DEFAULT_ROLE <= MESHBUS_MESHCORE_ROLE_MAX,
+	     "CONFIG_MESHBUS_MESHCORE_DEFAULT_ROLE must be a valid MeshCore role");
+BUILD_ASSERT(CONFIG_MESHBUS_MESHCORE_DEFAULT_ROLE != MESHBUS_MESHCORE_ROLE_CHAT ||
+	     (IS_ENABLED(CONFIG_MESHBUS_CONTACT) && IS_ENABLED(CONFIG_MESHBUS_CHANNEL) &&
+	      IS_ENABLED(CONFIG_MESHBUS_MESSAGE) &&
+	      (!IS_ENABLED(CONFIG_MESHBUS_MESHCORE_RUNTIME) ||
+	       IS_ENABLED(CONFIG_MESHBUS_MESHCORE_CLIENT))),
+	     "Default CHAT requires compiled Contact, Channel, and Message integration");
 
 static meshbus_meshcore_config meshcore_cfg = MESHBUS_MESHCORE_CONFIG_DEFAULTS;
 
@@ -116,6 +118,78 @@ static struct k_work_delayable settings_persistence_work;
 static meshbus_meshcore_config settings_load_cfg = MESHBUS_MESHCORE_CONFIG_DEFAULTS;
 static struct mb_settings_blob_load_state settings_load_state;
 static atomic_t shutting_down = ATOMIC_INIT(0);
+static atomic_t active_role = ATOMIC_INIT(CONFIG_MESHBUS_MESHCORE_DEFAULT_ROLE);
+static bool config_ready;
+static atomic_t activation_pending;
+static atomic_t activation_failed;
+static atomic_t config_update_busy;
+static const meshbus_meshcore_config *activation_cfg;
+
+bool meshbus_meshcore_activation_pending(void)
+{
+	return atomic_get(&activation_pending) != 0;
+}
+
+/* Only the engine sees a candidate; public getters and persistence see committed settings. */
+int meshbus_meshcore_active_config_get(meshbus_meshcore_config *cfg)
+{
+	k_mutex_lock(&meshbus_meshcore_settings_mutex, K_FOREVER);
+	*cfg = activation_cfg != NULL ? *activation_cfg : meshcore_cfg;
+	k_mutex_unlock(&meshbus_meshcore_settings_mutex);
+	return 0;
+}
+
+void meshbus_meshcore_config_activate(const meshbus_meshcore_config *cfg)
+{
+	k_mutex_lock(&meshbus_meshcore_settings_mutex, K_FOREVER);
+	activation_cfg = cfg;
+	atomic_set(&active_role, cfg != NULL ? cfg->role : meshcore_cfg.role);
+	k_mutex_unlock(&meshbus_meshcore_settings_mutex);
+}
+
+void meshbus_meshcore_activation_complete(int recovery_result)
+{
+	meshbus_meshcore_config_activate(NULL);
+	atomic_set(&activation_failed, recovery_result != 0);
+	atomic_clear(&activation_pending);
+}
+
+#if defined(CONFIG_MESHBUS_MESHCORE_RUNTIME)
+/* Shared by first boot and reset; prepare a candidate without publishing it. */
+void meshbus_meshcore_config_init_identity(meshbus_meshcore_config *cfg)
+{
+	struct meshcore_local_identity identity;
+
+	meshcore_local_identity_generate(&identity);
+	memcpy(cfg->public_key.bytes, identity.identity.pub_key, MESHCORE_PUBLIC_KEY_SIZE);
+	memcpy(cfg->private_key.bytes, identity.prv_key, MESHCORE_PRIVATE_KEY_SIZE);
+	cfg->public_key.size = MESHCORE_PUBLIC_KEY_SIZE;
+	cfg->private_key.size = MESHCORE_PRIVATE_KEY_SIZE;
+	cfg->disable_fwd = false;
+	cfg->flood_max = 64U;
+	cfg->client_repeat = false;
+	cfg->tx_delay_factor = 0.5f;
+	cfg->direct_tx_delay_factor = 0.2f;
+	cfg->advert_interval = 60U;
+	cfg->flood_advert_interval = 60U * 60U;
+	cfg->loop_detect = MESHBUS_MESHCORE_LOOP_DETECT_OFF;
+}
+#endif
+
+static uint32_t meshcore_supported_roles(void)
+{
+	uint32_t roles = BIT(MESHBUS_MESHCORE_ROLE_REPEATER) |
+			 BIT(MESHBUS_MESHCORE_ROLE_ROOM) | BIT(MESHBUS_MESHCORE_ROLE_SENSOR);
+
+	if (IS_ENABLED(CONFIG_MESHBUS_CONTACT) && IS_ENABLED(CONFIG_MESHBUS_CHANNEL) &&
+	    IS_ENABLED(CONFIG_MESHBUS_MESSAGE) &&
+	    (!IS_ENABLED(CONFIG_MESHBUS_MESHCORE_RUNTIME) ||
+	     IS_ENABLED(CONFIG_MESHBUS_MESHCORE_CLIENT))) {
+		roles |= BIT(MESHBUS_MESHCORE_ROLE_CHAT);
+	}
+	return roles;
+}
+
 static atomic_t async_request_tag_counter = ATOMIC_INIT(1);
 
 /* -------------------------------------------------------------------------- */
@@ -141,6 +215,13 @@ static int meshcore_config_validate(const meshbus_meshcore_config *cfg)
 {
 	if (cfg == NULL) {
 		return -EINVAL;
+	}
+
+	if (cfg->role < MESHBUS_MESHCORE_ROLE_MIN || cfg->role > MESHBUS_MESHCORE_ROLE_MAX) {
+		return -EINVAL;
+	}
+	if ((meshcore_supported_roles() & BIT(cfg->role)) == 0U) {
+		return -ENOTSUP;
 	}
 
 	if (cfg->public_key.size != 0U &&
@@ -212,7 +293,7 @@ static bool meshcore_config_has_change(const meshbus_meshcore_config *a,
 		return true;
 	}
 
-	if (a->latitude != b->latitude || a->longitude != b->longitude ||
+	if (a->role != b->role || a->latitude != b->latitude || a->longitude != b->longitude ||
 	    a->disable_fwd != b->disable_fwd || a->flood_max != b->flood_max ||
 	    a->multi_acks != b->multi_acks || a->advert_interval != b->advert_interval ||
 	    a->flood_advert_interval != b->flood_advert_interval ||
@@ -329,15 +410,16 @@ static int settings_handler_apply(const meshbus_meshcore_config *cfg, bool persi
 
 	memcpy(&meshcore_cfg, &normalized_cfg, sizeof(meshcore_cfg));
 	meshcore_cfg.name[sizeof(meshcore_cfg.name) - 1U] = '\0';
+	atomic_set(&active_role, meshcore_cfg.role);
 	settings_initial_apply = true;
 
 	meshbus_meshcore_config applied_cfg = meshcore_cfg;
 
 	k_mutex_unlock(&meshbus_meshcore_settings_mutex);
 
-	LOG_INF("MeshCore config applied: firmware_role=%u name=%s path_hash_size=%u "
+	LOG_INF("MeshCore config applied: configured_role=%u name=%s path_hash_size=%u "
 		"loop_detect=%u client_repeat=%d advert=%d add_contact_config=0x%02x",
-		(unsigned int)MESHBUS_MESHCORE_FIRMWARE_ROLE_VALUE, applied_cfg.name,
+		(unsigned int)applied_cfg.role, applied_cfg.name,
 		(unsigned int)applied_cfg.path_hash_size,
 		(unsigned int)applied_cfg.loop_detect, applied_cfg.client_repeat,
 		applied_cfg.advert_position, (unsigned int)applied_cfg.add_contact_config);
@@ -370,6 +452,10 @@ static int settings_handle_commit(void)
 	meshbus_meshcore_config cfg;
 	bool force;
 	int rc;
+
+	if (config_ready) {
+		return 0;
+	}
 
 	if (!mb_settings_blob_commit_prepare(
 		    &meshcore_config_settings_schema, &meshbus_meshcore_settings_mutex,
@@ -455,29 +541,83 @@ static void settings_persistence_work_handler(struct k_work *work)
 /* Public API                                                                 */
 /* -------------------------------------------------------------------------- */
 
+/* Serialize commit with shutdown persistence, never hold this lock while waiting on the engine. */
+int meshbus_meshcore_config_commit(const meshbus_meshcore_config *cfg, bool force)
+{
+	int rc;
+
+	k_mutex_lock(&meshbus_meshcore_persistence_mutex, K_FOREVER);
+	rc = settings_handler_apply(cfg, true, force);
+	k_mutex_unlock(&meshbus_meshcore_persistence_mutex);
+	return rc;
+}
+
+static int meshcore_config_update(const meshbus_meshcore_config *candidate, bool reset)
+{
+	meshbus_meshcore_config next = *candidate;
+	bool restart;
+	bool identity_changed;
+	int rc;
+
+	next.name[sizeof(next.name) - 1U] = '\0';
+	if (next.path_hash_size == 0U) {
+		next.path_hash_size = 1U;
+	}
+	rc = meshcore_config_validate(&next);
+	if (rc != 0) {
+		return rc;
+	}
+	/* Reject concurrent setters without blocking callbacks on the engine's queue. */
+	if (!atomic_cas(&config_update_busy, 0, 1)) {
+		return -EBUSY;
+	}
+	if (atomic_get(&shutting_down) != 0) {
+		rc = -ESHUTDOWN;
+		goto out;
+	}
+#if defined(CONFIG_MESHBUS_MESHCORE_RUNTIME)
+	if (reset) {
+		meshbus_meshcore_config_init_identity(&next);
+	}
+#endif
+	if (next.name[0] == '\0' && next.public_key.size == MESHBUS_MESHCORE_PUBLIC_KEY_SIZE) {
+		for (size_t i = 0; i < CONFIG_MESHBUS_MESHCORE_NAME_PUBKEY_PREFIX_BYTES; i++) {
+			(void)snprintk(&next.name[i * 2U], sizeof(next.name) - (i * 2U),
+				       "%02X", next.public_key.bytes[i]);
+		}
+		next.name[CONFIG_MESHBUS_MESHCORE_NAME_PUBKEY_PREFIX_BYTES * 2U] = '\0';
+	}
+	k_mutex_lock(&meshbus_meshcore_settings_mutex, K_FOREVER);
+	identity_changed = memcmp(&next.public_key, &meshcore_cfg.public_key,
+				 sizeof(next.public_key)) != 0 ||
+		memcmp(&next.private_key, &meshcore_cfg.private_key, sizeof(next.private_key)) != 0;
+	restart = config_ready && (reset || next.role != meshcore_cfg.role ||
+		atomic_get(&activation_failed) != 0 ||
+		(identity_changed && meshbus_meshcore_runtime_is_ready()));
+	k_mutex_unlock(&meshbus_meshcore_settings_mutex);
+#if defined(CONFIG_MESHBUS_MESHCORE_RUNTIME)
+	if (restart) {
+		atomic_set(&activation_pending, 1);
+		/* The call returns after commit or recovery; no state/persistence lock is held. */
+		rc = meshbus_meshcore_runtime_apply(&next);
+	} else {
+		rc = meshbus_meshcore_config_commit(&next, reset);
+	}
+#else
+	ARG_UNUSED(restart);
+	rc = meshbus_meshcore_config_commit(&next, reset);
+#endif
+out:
+	atomic_clear(&config_update_busy);
+	return rc;
+}
+
 int meshbus_meshcore_config_set(meshbus_meshcore_config *cfg)
 {
 	if (cfg == NULL) {
 		return -EINVAL;
 	}
-
-	meshbus_meshcore_config new_cfg = *cfg;
-	new_cfg.name[sizeof(new_cfg.name) - 1U] = '\0';
-
-	if (new_cfg.name[0] == '\0' &&
-	    new_cfg.public_key.size == MESHBUS_MESHCORE_PUBLIC_KEY_SIZE) {
-		for (size_t i = 0; i < CONFIG_MESHBUS_MESHCORE_NAME_PUBKEY_PREFIX_BYTES; i++) {
-			(void)snprintk(&new_cfg.name[i * 2U],
-				       sizeof(new_cfg.name) - (i * 2U), "%02X",
-				       new_cfg.public_key.bytes[i]);
-		}
-		new_cfg.name[CONFIG_MESHBUS_MESHCORE_NAME_PUBKEY_PREFIX_BYTES * 2U] = '\0';
-	}
-
-	LOG_DBG("Set MeshCore config request: firmware_role=%u name=%s",
-		(unsigned int)MESHBUS_MESHCORE_FIRMWARE_ROLE_VALUE, new_cfg.name);
-
-	return settings_handler_apply(&new_cfg, true, false);
+	return meshcore_config_update(cfg, false);
 }
 
 int meshbus_meshcore_config_get(meshbus_meshcore_config *cfg)
@@ -493,47 +633,16 @@ int meshbus_meshcore_config_get(meshbus_meshcore_config *cfg)
 	return 0;
 }
 
-meshbus_meshcore_role meshbus_meshcore_firmware_role_get(void)
+meshbus_meshcore_role meshbus_meshcore_active_role_get(void)
 {
-	return MESHBUS_MESHCORE_FIRMWARE_ROLE_VALUE;
+	return (meshbus_meshcore_role)atomic_get(&active_role);
 }
 
 int meshbus_meshcore_config_reset(void)
 {
-	struct k_work_sync sync;
-	meshbus_meshcore_config_reset_event event = {0};
-	int pub_rc;
-	int rc;
+	const meshbus_meshcore_config defaults = MESHBUS_MESHCORE_CONFIG_DEFAULTS;
 
-	(void)k_work_cancel_delayable_sync(&settings_persistence_work, &sync);
-	k_mutex_lock(&meshbus_meshcore_persistence_mutex, K_FOREVER);
-	if (atomic_get(&shutting_down) != 0) {
-		k_mutex_unlock(&meshbus_meshcore_persistence_mutex);
-		return -ESHUTDOWN;
-	}
-
-	meshbus_meshcore_config cfg = MESHBUS_MESHCORE_CONFIG_DEFAULTS;
-	rc = settings_handler_apply(&cfg, false, true);
-
-	if (rc != 0) {
-		k_mutex_unlock(&meshbus_meshcore_persistence_mutex);
-		return rc;
-	}
-
-	rc = mb_settings_blob_delete(&meshcore_config_settings_schema);
-	k_mutex_unlock(&meshbus_meshcore_persistence_mutex);
-	if (rc != 0) {
-		LOG_ERR("Failed to delete persisted MeshCore config: %d", rc);
-		return rc;
-	}
-
-	pub_rc = zbus_chan_pub(&meshbus_meshcore_config_reset_chan, &event, K_NO_WAIT);
-	if (pub_rc != 0) {
-		LOG_WRN("MeshCore config reset event publish failed: %d", pub_rc);
-	}
-
-	LOG_INF("MeshCore config reset to defaults");
-	return 0;
+	return meshcore_config_update(&defaults, true);
 }
 
 int meshbus_meshcore_advert_request(bool flood)
@@ -706,7 +815,9 @@ static int meshbus_meshcore_config_init(void)
 		}
 	}
 
-	LOG_INF("MeshCore config ready");
+	atomic_set(&active_role, meshcore_cfg.role);
+	config_ready = true;
+	LOG_INF("MeshCore config ready: active_role=%u", (unsigned int)meshcore_cfg.role);
 	return 0;
 }
 

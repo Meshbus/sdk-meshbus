@@ -40,7 +40,7 @@ static const struct gpio_dt_spec radio_busy = GPIO_DT_SPEC_GET(RADIO_NODE, busy_
 BUILD_ASSERT(!IS_ENABLED(CONFIG_FLASH_SIMULATOR), "Message system endpoint must use real RRAM");
 BUILD_ASSERT(IS_ENABLED(CONFIG_MESHBUS_RADIO_DEFAULT_RECEIVE_ONLY),
 	     "Message system endpoint must boot with TX locked");
-BUILD_ASSERT(CONFIG_MESHBUS_MESHCORE_FIRMWARE_ROLE == MESHBUS_MESHCORE_ROLE_CHAT,
+BUILD_ASSERT(CONFIG_MESHBUS_MESHCORE_DEFAULT_ROLE == MESHBUS_MESHCORE_ROLE_CHAT,
 	     "Message system endpoint must use chat role");
 BUILD_ASSERT(DT_NODE_HAS_STATUS(TEST_PARTITION_NODE, okay), "test storage missing");
 BUILD_ASSERT(DT_NODE_HAS_STATUS(PRODUCT_PARTITION_NODE, okay), "product storage guard missing");
@@ -456,11 +456,10 @@ static int cmd_identity(const struct shell *sh, size_t argc, char **argv)
 
 static int cmd_identity_new(const struct shell *sh, size_t argc, char **argv)
 {
-	meshbus_meshcore_config cfg = meshbus_MeshcoreConfig_init_zero;
 	int rc;
 
 	ARG_UNUSED(argc);
-
+	ARG_UNUSED(argv);
 	rc = radio_tx_set(false);
 	if (rc == 0) {
 		rc = contacts_clear();
@@ -470,24 +469,9 @@ static int cmd_identity_new(const struct shell *sh, size_t argc, char **argv)
 	if (rc == 0) {
 		rc = meshbus_meshcore_config_reset();
 	}
-	if (rc == 0) {
-		rc = identity_wait(&cfg);
-	}
-	if (rc == 0) {
-		memset(cfg.name, 0, sizeof(cfg.name));
-		strncpy(cfg.name, argv[1], sizeof(cfg.name) - 1U);
-		rc = meshbus_meshcore_config_set(&cfg);
-	}
-	if (rc == 0) {
-		rc = meshbus_meshcore_config_get(&cfg);
-	}
-	if (rc != 0) {
-		shell_error(sh, "MB_MESSAGE_SYSTEM_RESULT command=identity_new rc=%d", rc);
-		return rc;
-	}
-
-	identity_print(sh, &cfg, "MB_MESSAGE_SYSTEM_IDENTITY_NEW");
-	return 0;
+	shell_print(sh, "MB_MESSAGE_SYSTEM_RESULT command=identity_new rc=%d reset_accepted=%u",
+		    rc, rc == 0);
+	return rc;
 }
 
 static int cmd_tx(const struct shell *sh, size_t argc, char **argv)
@@ -933,8 +917,8 @@ static int cmd_cleanup(const struct shell *sh, size_t argc, char **argv)
 SHELL_STATIC_SUBCMD_SET_CREATE(
 	mb_msg_test_commands,
 	SHELL_CMD_ARG(identity, NULL, "Print public identity only", cmd_identity, 1, 0),
-	SHELL_CMD_ARG(identity_new, NULL, "Reset test state and generate identity: <name>",
-		      cmd_identity_new, 2, 0),
+	SHELL_CMD_ARG(identity_new, NULL, "Reset test state and reboot to generate identity",
+		      cmd_identity_new, 1, 0),
 	SHELL_CMD_ARG(tx, NULL, "Explicitly enable or disable TX: <0|1>", cmd_tx, 2, 0),
 	SHELL_CMD_ARG(peer_add, NULL, "Add peer: <full_public_key_hex> <name>", cmd_peer_add, 3, 0),
 	SHELL_CMD_ARG(peer_path, NULL, "Set peer path: <full_public_key_hex> <hash_size> <path_hex|->",

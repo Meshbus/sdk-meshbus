@@ -121,7 +121,7 @@ static void meshcore_widget_snapshot(struct meshcore_widget_model *model)
 	meshcore_widget_defaults(model);
 	if (meshbus_meshcore_config_get(&cfg) == 0) {
 		desktop_widget_strcpy(model->role, sizeof(model->role),
-				      meshcore_widget_role(meshbus_meshcore_firmware_role_get()));
+				      meshcore_widget_role(meshbus_meshcore_active_role_get()));
 		prefix_len = MIN((size_t)cfg.public_key.size,
 				 (size_t)MESHCORE_WIDGET_NODE_PREFIX_BYTES);
 		desktop_widget_hex_prefix_format(model->node_id, sizeof(model->node_id),

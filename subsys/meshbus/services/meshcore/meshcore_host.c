@@ -234,7 +234,7 @@ static bool local_identity_valid;
 
 static meshbus_meshcore_role meshbus_meshcore_host_local_role(void)
 {
-	return meshbus_meshcore_firmware_role_get();
+	return meshbus_meshcore_active_role_get();
 }
 
 struct meshcore_common_freq_range_hz {
@@ -457,7 +457,8 @@ static bool meshbus_meshcore_host_config_sync(void)
 	unsigned long now_s = meshbus_meshcore_host_now_seconds();
 	bool changed;
 
-	if (meshbus_meshcore_config_get(&cfg) != 0) {
+	if (meshbus_meshcore_active_config_get(&cfg) != 0) {
+		/* Retain the old identity/policy until the engine activation boundary. */
 		return false;
 	}
 

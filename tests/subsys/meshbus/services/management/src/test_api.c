@@ -287,6 +287,7 @@ static void test_identity_prepare_unprovisioned(void)
 {
 	meshbus_meshcore_config cfg = meshbus_MeshcoreConfig_init_zero;
 
+	zassert_ok(meshbus_meshcore_config_get(&cfg));
 	for (size_t i = 0; i < sizeof(test_public_key); i++) {
 		test_public_key[i] = 0x30U + i;
 	}

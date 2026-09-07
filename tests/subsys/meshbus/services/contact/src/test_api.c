@@ -25,13 +25,9 @@
 
 #include "common/settings.h"
 
-#define TEST_MESHCORE_SETTINGS_SUBTREE    "meshbus/meshcore"
-#define TEST_MESHCORE_CONFIG_SETTINGS_KEY "meshbus/meshcore/config"
 #define TEST_CONTACT_SETTINGS_SUBTREE     "meshbus/contact"
 #define TEST_CONTACT_SETTINGS_KEY_ADVERT_RAW "advert_raw"
 
-MB_SETTINGS_BLOB_SCHEMA_DEFINE(meshcore_config_blob_schema, TEST_MESHCORE_SETTINGS_SUBTREE, "config",
-			       meshbus_MeshcoreConfig, meshbus_meshcore_config);
 MB_SETTINGS_INDEXED_BLOB_SCHEMA_DEFINE(contact_blob_schema, TEST_CONTACT_SETTINGS_SUBTREE,
 				       NULL, meshbus_Contact, meshbus_contact);
 MB_SETTINGS_INDEXED_RAW_SCHEMA_DEFINE(contact_advert_raw_blob_schema,
@@ -360,20 +356,6 @@ static int wait_contact_notify_counts(uint32_t nodes_changed_count, uint32_t nod
 	return -ETIMEDOUT;
 }
 
-static void wait_for_reset_cleanup(void)
-{
-	uint8_t dummy_prefix[CONFIG_MESHBUS_CONTACT_PREFIX_BYTES] = {0};
-
-	for (int attempt = 0; attempt < 200; attempt++) {
-		if (meshbus_contact_reset(dummy_prefix) != -EBUSY) {
-			return;
-		}
-		k_sleep(K_MSEC(5));
-	}
-
-	zassert_true(false, "timed out waiting for reset cleanup");
-}
-
 static int update_contact_seen_by_key(const uint8_t *public_key, uint32_t timestamp,
 				       bool has_snr, int32_t snr)
 {
@@ -480,6 +462,7 @@ static void build_key_prefix(const meshbus_contact *contact, uint8_t *prefix)
 static void build_default_cfg(meshbus_meshcore_config *cfg, uint8_t seed)
 {
 	*cfg = (meshbus_meshcore_config)meshbus_MeshcoreConfig_init_zero;
+	cfg->role = CONFIG_MESHBUS_MESHCORE_DEFAULT_ROLE;
 	cfg->path_hash_size = 1U;
 	cfg->loop_detect = MESHBUS_MESHCORE_LOOP_DETECT_OFF;
 	cfg->client_repeat = false;
@@ -494,24 +477,6 @@ static void build_default_cfg(meshbus_meshcore_config *cfg, uint8_t seed)
 	cfg->private_key.size = MESHBUS_MESHCORE_PRIVATE_KEY_SIZE;
 	fill_bytes(cfg->public_key.bytes, cfg->public_key.size, seed);
 	fill_bytes(cfg->private_key.bytes, cfg->private_key.size, (uint8_t)(seed ^ 0x5a));
-}
-
-static void reload_meshcore_settings(void)
-{
-	int rc = settings_load_subtree(TEST_MESHCORE_SETTINGS_SUBTREE);
-
-	zassert_ok(rc, "settings_load_subtree(%s) failed: %d", TEST_MESHCORE_SETTINGS_SUBTREE,
-		   rc);
-}
-
-static void save_config_blob(const meshbus_meshcore_config *cfg)
-{
-	uint8_t buffer[MB_SETTINGS_BLOB_RECORD_BUFFER_SIZE(meshbus_MeshcoreConfig_size)];
-	int rc;
-
-	rc = mb_settings_blob_save_with_buffer(&meshcore_config_blob_schema, cfg, buffer,
-					       sizeof(buffer));
-	zassert_ok(rc, "config blob save failed: %d", rc);
 }
 
 static void save_contact_blob(size_t slot, const meshbus_contact *contact)
@@ -533,14 +498,6 @@ static void load_contact_blob(size_t slot, meshbus_contact *contact)
 	rc = mb_settings_indexed_blob_load_with_buffer(&contact_blob_schema, slot, contact,
 						       buffer, sizeof(buffer));
 	zassert_ok(rc, "contact blob load failed: slot=%u rc=%d", (unsigned int)slot, rc);
-}
-
-static void assert_config_blob_deleted(void)
-{
-	ssize_t len = settings_get_val_len(TEST_MESHCORE_CONFIG_SETTINGS_KEY);
-
-	zassert_true(len == -ENOENT || len == 0,
-		     "config blob should be deleted or tombstoned: len=%zd", len);
 }
 
 static void assert_contact_blob_deleted(size_t slot)
@@ -582,8 +539,11 @@ static void reset_test_state(void)
 
 	contact_save_gate_disarm();
 	test_realtime_reset();
-	rc = meshbus_meshcore_config_reset();
-	zassert_ok(rc, "config_reset failed: %d", rc);
+	meshbus_meshcore_config cfg;
+
+	build_default_cfg(&cfg, 0x10);
+	rc = meshbus_meshcore_config_set(&cfg);
+	zassert_ok(rc, "config_set failed: %d", rc);
 	rc = delete_all_contacts();
 	zassert_ok(rc, "delete_all_contacts failed: %d", rc);
 }
@@ -752,8 +712,8 @@ ZTEST(meshbus_contact_contract, test_config_set_get_and_auto_name)
 
 	rc = meshbus_meshcore_config_get(&got);
 	zassert_ok(rc, "config_get failed: %d", rc);
-	zassert_equal(meshbus_meshcore_firmware_role_get(), MESHBUS_MESHCORE_ROLE_CHAT,
-		      "firmware role mismatch");
+	zassert_equal(meshbus_meshcore_active_role_get(), CONFIG_MESHBUS_MESHCORE_DEFAULT_ROLE,
+		      "active role mismatch");
 	zassert_equal(got.path_hash_size, cfg.path_hash_size, "path_hash_size mismatch");
 	zassert_equal(got.loop_detect, cfg.loop_detect, "loop_detect mismatch");
 	zassert_equal(got.client_repeat, cfg.client_repeat, "client_repeat mismatch");
@@ -835,105 +795,7 @@ ZTEST(meshbus_contact_contract, test_config_set_get_and_auto_name)
 		      "invalid telemetry_mode_environment should fail, rc=%d", rc);
 }
 
-ZTEST(meshbus_contact_contract, test_config_reset_restores_defaults)
-{
-	meshbus_meshcore_config cfg;
-	meshbus_meshcore_config got;
-	int rc;
-
-	build_default_cfg(&cfg, 0x31);
-	strncpy(cfg.name, "meshcore_cfg", sizeof(cfg.name) - 1U);
-	cfg.name[sizeof(cfg.name) - 1U] = '\0';
-	cfg.latitude = 12345;
-	cfg.longitude = -54321;
-	cfg.advert_position = true;
-	cfg.add_contact_config = MESHBUS_MESHCORE_CONTACT_ADD_FILTER_OVERWRITE_OLDEST;
-	cfg.tx_delay_factor = 1.25f;
-	cfg.direct_tx_delay_factor = 0.75f;
-	cfg.telemetry_mode_base = MESHBUS_MESHCORE_TELEMETRY_MODE_FLAGS;
-	cfg.telemetry_mode_locat = MESHBUS_MESHCORE_TELEMETRY_MODE_FLAGS;
-	cfg.telemetry_mode_environment = MESHBUS_MESHCORE_TELEMETRY_MODE_ALL;
-
-	rc = meshbus_meshcore_config_set(&cfg);
-	zassert_ok(rc, "config_set failed: %d", rc);
-
-	rc = meshbus_meshcore_config_reset();
-	zassert_ok(rc, "config_reset failed: %d", rc);
-
-	rc = meshbus_meshcore_config_get(&got);
-	zassert_ok(rc, "config_get failed: %d", rc);
-	zassert_equal(meshbus_meshcore_firmware_role_get(), MESHBUS_MESHCORE_ROLE_CHAT,
-		      "firmware role mismatch");
-	zassert_true(got.name[0] == '\0', "default name should be empty");
-	zassert_equal(got.public_key.size, 0U, "default public_key size mismatch");
-	zassert_equal(got.private_key.size, 0U, "default private_key size mismatch");
-	zassert_equal(got.path_hash_size, 1U, "default path_hash_size mismatch");
-	zassert_equal(got.loop_detect, MESHBUS_MESHCORE_LOOP_DETECT_OFF,
-		      "default loop_detect mismatch");
-	zassert_false(got.client_repeat, "default client_repeat mismatch");
-	zassert_false(got.advert_position, "default advert_position mismatch");
-	zassert_equal(got.add_contact_config,
-		      (MESHBUS_MESHCORE_CONTACT_ADD_FILTER_CHAT |
-		       MESHBUS_MESHCORE_CONTACT_ADD_FILTER_REPEATER |
-		       MESHBUS_MESHCORE_CONTACT_ADD_FILTER_ROOM |
-		       MESHBUS_MESHCORE_CONTACT_ADD_FILTER_SENSOR |
-		       MESHBUS_MESHCORE_CONTACT_ADD_FILTER_MANUAL_MODE),
-		      "default add_contact_config mismatch");
-	zassert_equal(got.tx_delay_factor, 0.5f, "default tx_delay_factor mismatch");
-	zassert_equal(got.direct_tx_delay_factor, 0.2f,
-		      "default direct_tx_delay_factor mismatch");
-	zassert_equal(got.telemetry_mode_base, MESHBUS_MESHCORE_TELEMETRY_MODE_ALL,
-		      "default telemetry_mode_base mismatch");
-	zassert_equal(got.telemetry_mode_locat, MESHBUS_MESHCORE_TELEMETRY_MODE_ALL,
-		      "default telemetry_mode_locat mismatch");
-	zassert_equal(got.telemetry_mode_environment, MESHBUS_MESHCORE_TELEMETRY_MODE_FLAGS,
-		      "default telemetry_mode_environment mismatch");
-
-	wait_for_reset_cleanup();
-}
-
-ZTEST(meshbus_contact_contract, test_config_reset_preserves_contact_store)
-{
-	meshbus_meshcore_config cfg;
-	meshbus_meshcore_config got = meshbus_MeshcoreConfig_init_zero;
-	meshbus_contact contact = meshbus_Contact_init_zero;
-	meshbus_contact contact_got = meshbus_Contact_init_zero;
-	int rc;
-
-	build_default_cfg(&cfg, 0x3a);
-	strncpy(cfg.name, "split_reset", sizeof(cfg.name) - 1U);
-	cfg.name[sizeof(cfg.name) - 1U] = '\0';
-	build_contact(&contact, 0x7a, "reset_contact");
-
-	rc = create_contact(&contact);
-	zassert_ok(rc, "contact set before reset failed: %d", rc);
-	zassert_equal(meshbus_contact_store_count(), 1U, "contact count before reset mismatch");
-
-	rc = meshbus_meshcore_config_reset();
-	zassert_ok(rc, "config_reset failed: %d", rc);
-	zassert_equal(meshbus_contact_store_count(), 1U, "config reset should keep contacts");
-
-	rc = meshbus_meshcore_config_set(&cfg);
-	zassert_ok(rc, "config_set after reset failed: %d", rc);
-	rc = meshbus_meshcore_config_get(&got);
-	zassert_ok(rc, "config_get after reset failed: %d", rc);
-	zassert_true(strcmp(got.name, cfg.name) == 0,
-		     "config name after reset should match latest set");
-
-	rc = create_contact(&contact);
-	zassert_ok(rc, "contact create after config reset failed: %d", rc);
-	rc = meshbus_contact_find_by_key(contact.public_key.bytes, &contact_got);
-	zassert_ok(rc, "contact lookup after config reset failed: %d", rc);
-	zassert_true(strcmp(contact_got.name, contact.name) == 0,
-		     "contact name after config reset mismatch");
-
-	rc = meshbus_contact_set(contact.public_key.bytes, &contact);
-	zassert_ok(rc, "contact set after config reset failed: %d", rc);
-	rc = meshbus_contact_reset(contact.public_key.bytes);
-	zassert_ok(rc, "contact reset after config reset failed: %d", rc);
-}
-
-ZTEST(meshbus_contact_contract, test_config_blob_restore_loads_all_fields)
+ZTEST(meshbus_contact_contract, test_config_set_get_all_fields)
 {
 	meshbus_meshcore_config cfg;
 	meshbus_meshcore_config got = meshbus_MeshcoreConfig_init_zero;
@@ -961,9 +823,7 @@ ZTEST(meshbus_contact_contract, test_config_blob_restore_loads_all_fields)
 	cfg.client_repeat = true;
 	cfg.add_contact_hops_limit = 4U;
 
-	save_config_blob(&cfg);
-
-	reload_meshcore_settings();
+	zassert_ok(meshbus_meshcore_config_set(&cfg));
 
 	rc = meshbus_meshcore_config_get(&got);
 	zassert_ok(rc, "config_get failed: %d", rc);
@@ -998,73 +858,6 @@ ZTEST(meshbus_contact_contract, test_config_blob_restore_loads_all_fields)
 	zassert_true(got.client_repeat, "client_repeat mismatch");
 	zassert_equal(got.add_contact_hops_limit, cfg.add_contact_hops_limit,
 		      "add_contact_hops_limit mismatch");
-}
-
-ZTEST(meshbus_contact_contract, test_config_blob_restore_ignores_malformed_blob)
-{
-	meshbus_meshcore_config got = meshbus_MeshcoreConfig_init_zero;
-	static const uint8_t malformed[] = {0xff, 0xff, 0xff, 0xff};
-	int rc;
-
-	rc = settings_save_one(TEST_MESHCORE_CONFIG_SETTINGS_KEY, malformed, sizeof(malformed));
-	zassert_ok(rc, "malformed config blob save failed: %d", rc);
-
-	reload_meshcore_settings();
-
-	rc = meshbus_meshcore_config_get(&got);
-	zassert_ok(rc, "config_get failed: %d", rc);
-	zassert_equal(meshbus_meshcore_firmware_role_get(), MESHBUS_MESHCORE_ROLE_CHAT,
-		      "malformed config blob should keep firmware role");
-	zassert_true(got.name[0] == '\0', "malformed config blob should leave name empty");
-}
-
-ZTEST(meshbus_contact_contract, test_config_blob_restore_rejects_invalid_final_config)
-{
-	meshbus_meshcore_config cfg;
-	meshbus_meshcore_config got = meshbus_MeshcoreConfig_init_zero;
-	uint32_t nan_bits = 0x7fc00000U;
-	int rc;
-
-	build_default_cfg(&cfg, 0x62);
-	memcpy(&cfg.tx_delay_factor, &nan_bits, sizeof(cfg.tx_delay_factor));
-	save_config_blob(&cfg);
-
-	reload_meshcore_settings();
-
-	rc = meshbus_meshcore_config_get(&got);
-	zassert_ok(rc, "config_get failed: %d", rc);
-	zassert_equal(got.tx_delay_factor, 0.5f,
-		      "invalid final config should keep default tx_delay_factor");
-}
-
-ZTEST(meshbus_contact_contract, test_config_reset_deletes_config_blob)
-{
-	meshbus_meshcore_config cfg;
-	meshbus_meshcore_config got = meshbus_MeshcoreConfig_init_zero;
-	int rc;
-
-	build_default_cfg(&cfg, 0x63);
-	strncpy(cfg.name, "delete_blob", sizeof(cfg.name) - 1U);
-	cfg.name[sizeof(cfg.name) - 1U] = '\0';
-	save_config_blob(&cfg);
-	reload_meshcore_settings();
-
-	rc = meshbus_meshcore_config_get(&got);
-	zassert_ok(rc, "config_get after restore failed: %d", rc);
-	zassert_true(strcmp(got.name, "delete_blob") == 0, "restored name mismatch");
-
-	rc = meshbus_meshcore_config_reset();
-	zassert_ok(rc, "config_reset failed: %d", rc);
-	wait_for_reset_cleanup();
-
-	assert_config_blob_deleted();
-
-	reload_meshcore_settings();
-
-	rc = meshbus_meshcore_config_get(&got);
-	zassert_ok(rc, "config_get after reset reload failed: %d", rc);
-	zassert_true(got.name[0] == '\0',
-		     "deleted config blob should keep default name after reload");
 }
 
 ZTEST(meshbus_contact_contract, test_contact_crud_iteration_and_prefix_match)

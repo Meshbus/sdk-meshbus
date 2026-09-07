@@ -51,45 +51,33 @@ config MESHBUS_MESHCORE_REQUEST_TIMEOUT_MS
 	  Timeout for MeshCore runtime pending node requests, including path,
 	  trace, telemetry, and binary request correlation.
 
-	choice
-	prompt "MeshCore firmware role"
-	default MESHBUS_MESHCORE_ROLE_CHAT
+config MESHBUS_MESHCORE_DEFAULT_ROLE
+	int "Initial MeshCore role when Settings are unavailable"
+	default 1 if MESHBUS_CONTACT && MESHBUS_CHANNEL && MESHBUS_MESSAGE
+	default 2
+	range 1 4
 	help
-	  Select the firmware role reported by this image. This is a build-time
-	  product identity; it is not part of mutable MeshCore configuration.
-
-config MESHBUS_MESHCORE_ROLE_CHAT
-	bool "Chat/client"
-
-config MESHBUS_MESHCORE_ROLE_REPEATER
-	bool "Repeater"
-
-config MESHBUS_MESHCORE_ROLE_ROOM
-	bool "Room"
-
-config MESHBUS_MESHCORE_ROLE_SENSOR
-	bool "Sensor"
-
-	endchoice
-
-config MESHBUS_MESHCORE_FIRMWARE_ROLE
-	int
-	default 1 if MESHBUS_MESHCORE_ROLE_CHAT
-	default 2 if MESHBUS_MESHCORE_ROLE_REPEATER
-	default 3 if MESHBUS_MESHCORE_ROLE_ROOM
-	default 4 if MESHBUS_MESHCORE_ROLE_SENSOR
+	  Initial role only: 1 CHAT, 2 REPEATER, 3 ROOM, 4 SENSOR.
+	  Settings select the role at boot and allow live role changes. CHAT requires the
+	  compiled contact/channel/message integration.
 
 config MESHBUS_MESHCORE_RUNTIME
 	bool "Enable MeshCore lib-mc runtime"
 	default y
 	depends on MESHBUS_RADIO
+	select PSA_CRYPTO
+	select PSA_WANT_ALG_SHA_256
+	select PSA_WANT_ALG_ECB_NO_PADDING
+	select PSA_WANT_ALG_HMAC
+	select PSA_WANT_KEY_TYPE_AES
+	select PSA_WANT_KEY_TYPE_HMAC
 	help
 	  Build the lib-mc based runtime that subscribes to Meshbus request
 	  channels and drives MeshCore processing. Tests may disable this when
 	  they only need the Companion protocol adapter.
 
 config MESHBUS_MESHCORE_CLIENT
-	bool "MeshCore client role support"
+	bool "MeshCore contact/channel/message integration"
 	default y if MESHBUS_CHANNEL && MESHBUS_MESSAGE
 	depends on MESHBUS_MESHCORE_RUNTIME
 	depends on MESHBUS_CONTACT

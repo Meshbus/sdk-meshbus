@@ -314,8 +314,7 @@ const char DESKTOP_TEXT_MESHCORE_CHANNEL_SECRET_TITLE[] = "Channel Secret";
 const char DESKTOP_TEXT_MESHCORE_CHANNEL_QRCODE_BUTTON[] = "QRcode";
 const char DESKTOP_TEXT_MESHCORE_RESET_CONFIRM_TITLE[] = "Reset";
 const char DESKTOP_TEXT_MESHCORE_RESET_CONFIRM_TEXT[] =
-	"After resetting node, other"
-	"\n nodes will treat this node as\n a new device.";
+	"Reset MeshCore? Other nodes\nwill treat this as a new device.";
 const char DESKTOP_TEXT_MESHCORE_RESET_DONE[] = "MeshCore config reset.";
 const char DESKTOP_TEXT_MESHCORE_TELEMETRY_MODE_DENY[] = "Disable";
 const char DESKTOP_TEXT_MESHCORE_TELEMETRY_MODE_ALL[] = "Enable";
@@ -669,7 +668,7 @@ const char DESKTOP_TEXT_WIDGET_INFO_UPTIME_FORMAT[] = "%llud%lluh%llum";
 
 const char DESKTOP_TEXT_WIDGET_MESHCORE_ROLE[] = "Client";
 const char DESKTOP_TEXT_WIDGET_MESHCORE_SYNC_WORD_PRIVATE[] = "PR";
-const char DESKTOP_TEXT_WIDGET_MESHCORE_ROLE_CLIENT[] = "Client";
+const char DESKTOP_TEXT_WIDGET_MESHCORE_ROLE_CLIENT[] = "Chat";
 const char DESKTOP_TEXT_WIDGET_MESHCORE_ROLE_REPEATER[] = "Repeater";
 const char DESKTOP_TEXT_WIDGET_MESHCORE_ROLE_ROOM[] = "Room";
 const char DESKTOP_TEXT_WIDGET_MESHCORE_ROLE_SENSOR[] = "Sensor";

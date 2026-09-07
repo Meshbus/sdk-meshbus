@@ -98,9 +98,9 @@ BUILD_ASSERT(!IS_ENABLED(CONFIG_FLASH_SIMULATOR),
              "C2 scenario must use real RRAM");
 BUILD_ASSERT(IS_ENABLED(CONFIG_MESHBUS_RADIO_DEFAULT_RECEIVE_ONLY),
              "service-DUT scenario must never enable TX");
-BUILD_ASSERT(CONFIG_MESHBUS_MESHCORE_FIRMWARE_ROLE ==
+BUILD_ASSERT(CONFIG_MESHBUS_MESHCORE_DEFAULT_ROLE ==
                  MESHBUS_MESHCORE_ROLE_REPEATER,
-             "service-DUT scenario must use repeater role");
+             "service-DUT scenario must default to repeater role");
 BUILD_ASSERT(DT_NODE_HAS_STATUS(TEST_PARTITION_NODE, okay),
              "test storage missing");
 BUILD_ASSERT(DT_NODE_HAS_STATUS(STAGE_PARTITION_NODE, okay),
@@ -512,7 +512,7 @@ static void second_boot_verify_and_cleanup(void) {
   zassert_mem_equal(meshcore_cfg.public_key.bytes, test_stage.public_key,
                     sizeof(test_stage.public_key),
                     "MeshCore identity changed across reboot");
-  zassert_equal(meshbus_meshcore_firmware_role_get(),
+  zassert_equal(meshbus_meshcore_active_role_get(),
                 MESHBUS_MESHCORE_ROLE_REPEATER,
                 "MeshCore role changed across reboot");
   zassert_ok(meshbus_radio_config_get(&radio_cfg));

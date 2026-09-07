@@ -51,12 +51,7 @@ typedef meshbus_MeshcoreConfig_LoopDetect meshbus_meshcore_loop_detect;
 #define MESHBUS_MESHCORE_ROLE_SENSOR   4U
 /** @} */
 
-#if defined(CONFIG_MESHBUS_MESHCORE_FIRMWARE_ROLE)
-#define MESHBUS_MESHCORE_FIRMWARE_ROLE \
-	((meshbus_meshcore_role)CONFIG_MESHBUS_MESHCORE_FIRMWARE_ROLE)
-#else
-#define MESHBUS_MESHCORE_FIRMWARE_ROLE MESHBUS_MESHCORE_ROLE_CHAT
-#endif
+
 
 /** @name Loop detect modes (protobuf enum values)
  *  @{
@@ -128,15 +123,10 @@ typedef meshbus_MeshcoreConfig_LoopDetect meshbus_meshcore_loop_detect;
 	 MESHBUS_MESHCORE_DISCOVER_FILTER_ROOM | MESHBUS_MESHCORE_DISCOVER_FILTER_SENSOR)
 /** @} */
 
-ZBUS_CHAN_DECLARE(meshbus_meshcore_config_reset_chan);
 ZBUS_CHAN_DECLARE(meshbus_meshcore_advert_request_chan);
 ZBUS_CHAN_DECLARE(meshbus_meshcore_node_discover_request_chan);
 ZBUS_CHAN_DECLARE(meshbus_meshcore_trace_request_chan);
 ZBUS_CHAN_DECLARE(meshbus_meshcore_trace_response_chan);
-
-typedef struct meshbus_meshcore_config_reset_event {
-	uint8_t reserved;
-} meshbus_meshcore_config_reset_event;
 
 /** @brief MeshCore advert request event. */
 typedef struct meshbus_meshcore_advert_request_event {
@@ -326,31 +316,33 @@ extern STATS_SECT_DECL(meshbus_meshcore_stats) meshbus_meshcore_stats;
 /**
  * @brief Set the MeshCore configuration.
  *
- * Validates, applies, and schedules persistence.
+ * Apply settings before committing them and scheduling coalesced persistence.
+ * Role or identity changes restart the protocol engine without rebooting the
+ * device. The call waits for initialization; readers see the previous settings
+ * until success. Failure leaves settings unchanged and restores the old engine.
+ * Queued protocol work is discarded during restart and cannot be recovered.
+ * If restoring the engine also fails, readiness is false; config_set may retry.
+ * Invalid roles return -EINVAL; roles unsupported by compiled services return -ENOTSUP.
+ * Concurrent changes return -EBUSY. A restart from an engine callback returns
+ * -EWOULDBLOCK instead of waiting on its own queue. Call from thread context.
  *
- * @param cfg New configuration.
- * @retval 0 Configuration accepted.
+ * @param cfg New configuration, copied for the duration of the call.
+ * @retval 0 Configuration applied; persistence follows the shared settings delay.
  * @retval -ESHUTDOWN The service is already stopping for a power action.
- * @return Other negative errno on validation or persistence scheduling failure.
+ * @return Other negative errno on validation or runtime apply failure.
  */
 int meshbus_meshcore_config_set(meshbus_meshcore_config *cfg);
 
 /**
- * @brief Get the current MeshCore configuration.
+ * @brief Get the last successfully applied MeshCore settings.
  *
  * @param cfg Output parameter for current configuration.
  * @return 0 on success, negative errno on failure.
  */
 int meshbus_meshcore_config_get(meshbus_meshcore_config *cfg);
 
-/**
- * @brief Get the effective local firmware role selected by this image.
- *
- * The local role is firmware identity, not mutable runtime configuration.
- *
- * @return Effective local firmware role.
- */
-meshbus_meshcore_role meshbus_meshcore_firmware_role_get(void);
+/** @brief Get the currently active protocol role. */
+meshbus_meshcore_role meshbus_meshcore_active_role_get(void);
 
 /**
  * @brief Check whether the MeshCore runtime completed initialization.
@@ -370,9 +362,17 @@ static inline bool meshbus_meshcore_runtime_is_ready(void)
 #endif
 
 /**
- * @brief Reset MeshCore configuration to defaults.
+ * @brief Restore MeshCore defaults and restart only the protocol runtime.
  *
- * @retval 0 Configuration reset.
+ * Contacts and channels are preserved. With runtime support, a new identity is
+ * generated and the engine rebuilt before committing defaults. Without runtime
+ * support, identity stays unset until a runtime boot. The call waits for apply;
+ * failure leaves configuration unchanged and attempts to restore the old engine.
+ * Device, Desktop, and extensions keep running. Protocol queues are discarded.
+ * Successful defaults use the same coalesced persistence as config_set.
+ *
+ * @retval 0 Defaults applied; persistence scheduled.
+ * @retval -EBUSY Another settings operation is in progress.
  * @retval -ESHUTDOWN The service is already stopping for a power action.
  * @return Other negative errno on failure.
  */

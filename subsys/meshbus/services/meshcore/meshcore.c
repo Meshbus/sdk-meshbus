@@ -289,6 +289,13 @@ struct meshbus_meshcore_contact_trace_pending {
 static struct meshbus_meshcore_contact_trace_pending contact_trace_pending;
 static K_MUTEX_DEFINE(contact_trace_pending_mutex);
 
+void meshbus_meshcore_contact_trace_pending_clear(void)
+{
+	k_mutex_lock(&contact_trace_pending_mutex, K_FOREVER);
+	contact_trace_pending.active = false;
+	k_mutex_unlock(&contact_trace_pending_mutex);
+}
+
 void meshbus_meshcore_contact_trace_pending_register(uint32_t tag,
 						     const uint8_t *key_prefix)
 {

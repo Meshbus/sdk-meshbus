@@ -124,6 +124,10 @@ struct meshcore_radio_preset {
 };
 
 struct meshcore_app {
+	struct k_work settings_work;
+	atomic_t settings_busy;
+	bool settings_reset;
+	meshbus_meshcore_config settings_candidate;
 	struct zui_host *host;
 	struct zui_router *router;
 	struct k_sem exit_sem;
@@ -232,6 +236,7 @@ void meshcore_reload_node(struct meshcore_app *app);
 void meshcore_build_settings_form(struct meshcore_app *app);
 void meshcore_sync_settings_from_form(struct meshcore_app *app);
 void meshcore_apply_settings(struct meshcore_app *app);
+void meshcore_settings_work(struct k_work *work);
 void meshcore_reset_settings(struct meshcore_app *app);
 void meshcore_settings_activated(struct zui_form *form, uint32_t id,
 				 const struct zui_input_event *event, void *user_data);

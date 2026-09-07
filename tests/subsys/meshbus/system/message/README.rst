@@ -50,7 +50,7 @@ Control commands
 The host uses these serial shell commands::
 
    mb_msg_test identity
-   mb_msg_test identity_new <run_name>
+   mb_msg_test identity_new
    mb_msg_test tx <0|1>
    mb_msg_test peer_add <64_hex_public_key> <name>
    mb_msg_test peer_path <64_hex_public_key> <hash_size> <path_hex|->
@@ -67,8 +67,9 @@ The host uses these serial shell commands::
    mb_msg_test clear
    mb_msg_test cleanup
 
-``identity_new`` disables TX, clears test-owned contacts/messages, generates a
-new local identity, and prints only its public key. Test payloads intentionally
+``identity_new`` disables TX, clears test-owned contacts/messages, and requests
+a live MeshCore reset. After MeshCore configuration activation completes, run
+``identity`` to read the new public identity. Test payloads intentionally
 use a single shell argument so transcript parsing stays deterministic.
 ``burst`` performs immediate public Message API calls inside the endpoint, so
 UART command-injection timing cannot confound back-to-back send tests.

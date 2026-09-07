@@ -129,6 +129,7 @@ EXPORT_SYMBOL(meshbus_message_next);
 #if defined(CONFIG_MESHBUS_MESHCORE)
 EXPORT_SYMBOL(meshbus_meshcore_config_set);
 EXPORT_SYMBOL(meshbus_meshcore_config_get);
+EXPORT_SYMBOL(meshbus_meshcore_active_role_get);
 EXPORT_SYMBOL(meshbus_meshcore_config_reset);
 EXPORT_SYMBOL(meshbus_meshcore_advert_request);
 EXPORT_SYMBOL(meshbus_meshcore_node_discover_request);

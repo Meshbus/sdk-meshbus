@@ -4,6 +4,7 @@
  */
 
 #include "meshcore/platform.h"
+#include "meshcore_prvi.h"
 
 #include <errno.h>
 #include <stddef.h>
@@ -176,10 +177,15 @@ int meshcore_platform_radio_packet_send(const uint8_t *data, size_t len)
 		return 0;
 	}
 
+	if (!meshbus_meshcore_radio_tx_begin()) {
+		return 0;
+	}
+
 	memcpy(event.data, data, len);
 	event.len = (uint16_t)len;
 	rc = zbus_chan_pub(&meshbus_radio_publish_chan, &event, K_NO_WAIT);
 	if (rc != 0) {
+		meshbus_meshcore_radio_tx_abort();
 		return 0;
 	}
 

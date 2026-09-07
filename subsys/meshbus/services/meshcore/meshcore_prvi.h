@@ -36,6 +36,20 @@ BUILD_ASSERT(MESHBUS_MESHCORE_CHANNEL_DATA_TYPE_RESERVED ==
 BUILD_ASSERT(MESHBUS_MESHCORE_CHANNEL_DATA_TYPE_DEV ==
 	     MESHCORE_CHANNEL_DATA_TYPE_DEV);
 
+/* Configuration activation serializes engine execution on its owning workqueue. */
+bool meshbus_meshcore_activation_pending(void);
+int meshbus_meshcore_active_config_get(meshbus_meshcore_config *cfg);
+void meshbus_meshcore_config_activate(const meshbus_meshcore_config *cfg);
+int meshbus_meshcore_config_commit(const meshbus_meshcore_config *cfg, bool force);
+void meshbus_meshcore_activation_complete(int result);
+#if defined(CONFIG_MESHBUS_MESHCORE_RUNTIME)
+void meshbus_meshcore_config_init_identity(meshbus_meshcore_config *cfg);
+int meshbus_meshcore_runtime_apply(const meshbus_meshcore_config *cfg);
+bool meshbus_meshcore_radio_tx_begin(void);
+void meshbus_meshcore_radio_tx_abort(void);
+void meshbus_meshcore_ack_handoff_reset(void);
+#endif
+
 int meshbus_meshcore_request_publish_accepted(
 	const struct zbus_channel *chan, const void *msg);
 void meshbus_meshcore_request_acceptance_report(
@@ -90,6 +104,7 @@ static inline bool meshbus_meshcore_path_valid(const uint8_t *path,
 }
 
 #if defined(CONFIG_MESHBUS_CONTACT)
+void meshbus_meshcore_contact_trace_pending_clear(void);
 void meshbus_meshcore_contact_trace_pending_register(uint32_t tag,
 						     const uint8_t *key_prefix);
 bool meshbus_meshcore_contact_trace_response_claim(

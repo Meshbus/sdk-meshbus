@@ -118,7 +118,8 @@ static void meshbus_meshcore_ack_handoff_work_handler(struct k_work *work)
 
 	ARG_UNUSED(work);
 
-	while (meshbus_meshcore_ack_handoff_peek(&event)) {
+	while (!meshbus_meshcore_activation_pending() &&
+	       meshbus_meshcore_ack_handoff_peek(&event)) {
 		rc = zbus_chan_pub(&meshbus_message_ack_response_chan, &event,
 				   K_NO_WAIT);
 		if (rc != 0) {
@@ -155,4 +156,17 @@ int meshbus_meshcore_ack_handoff_publish(
 	}
 
 	return meshbus_meshcore_ack_handoff_schedule(K_NO_WAIT);
+}
+
+void meshbus_meshcore_ack_handoff_reset(void)
+{
+	struct k_work_sync sync;
+
+	/* Called on meshcore_wq, never on the system queue owning this work. */
+	(void)k_work_cancel_delayable_sync(&ack_handoff_work, &sync);
+	k_spinlock_key_t key = k_spin_lock(&ack_handoff_lock);
+
+	ack_handoff_head = 0;
+	ack_handoff_count = 0;
+	k_spin_unlock(&ack_handoff_lock, key);
 }
