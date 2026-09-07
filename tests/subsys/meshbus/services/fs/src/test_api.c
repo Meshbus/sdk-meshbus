@@ -71,7 +71,7 @@ ZTEST(meshbus_fs_contract, test_path_normalize_policy)
 	zassert_str_equal(path, MESHBUS_FS_GAMES_PATH);
 
 	zassert_equal(meshbus_fs_path_normalize("extra/apps", path, sizeof(path)), -EINVAL);
-	zassert_equal(meshbus_fs_path_normalize("/extra/apps/../svcs", path, sizeof(path)),
+	zassert_equal(meshbus_fs_path_normalize("/extra/apps/../other", path, sizeof(path)),
 		      -EINVAL);
 	zassert_equal(meshbus_fs_path_normalize("/extra/apps/./game.mba", path, sizeof(path)),
 		      -EINVAL);
@@ -134,10 +134,6 @@ ZTEST(meshbus_fs_contract, test_product_dirs_and_status)
 	zassert_ok(rc, "stat games failed: %d", rc);
 	zassert_equal(entry.type, MESHBUS_FS_ENTRY_DIR);
 
-	rc = meshbus_fs_stat(MESHBUS_FS_SVCS_PATH, &entry);
-	zassert_ok(rc, "stat svcs failed: %d", rc);
-	zassert_equal(entry.type, MESHBUS_FS_ENTRY_DIR);
-
 	rc = meshbus_fs_volume_status("extra", &status);
 	zassert_ok(rc, "status failed: %d", rc);
 	zassert_true(status.mounted);
@@ -186,7 +182,6 @@ ZTEST(meshbus_fs_contract, test_delete_protects_product_dirs)
 	zassert_equal(meshbus_fs_delete(MESHBUS_FS_EXTRA_MOUNT_POINT), -EACCES);
 	zassert_equal(meshbus_fs_delete(MESHBUS_FS_APPS_PATH), -EACCES);
 	zassert_equal(meshbus_fs_delete(MESHBUS_FS_GAMES_PATH), -EACCES);
-	zassert_equal(meshbus_fs_delete(MESHBUS_FS_SVCS_PATH), -EACCES);
 }
 
 ZTEST(meshbus_fs_contract, test_format_default_disabled)

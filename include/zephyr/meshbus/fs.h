@@ -31,8 +31,6 @@ extern "C" {
 #define MESHBUS_FS_APPS_PATH "/extra/apps"
 /** Managed Desktop game app directory. */
 #define MESHBUS_FS_GAMES_PATH "/extra/apps/games"
-/** Managed LLEXT boot-service directory. */
-#define MESHBUS_FS_SVCS_PATH "/extra/svcs"
 /** Confirmation token required by @ref meshbus_fs_format. */
 #define MESHBUS_FS_FORMAT_CONFIRM "FORMAT"
 
@@ -112,7 +110,7 @@ int meshbus_fs_volume_status(const char *volume_id, struct meshbus_fs_volume_sta
 /**
  * @brief Ensure standard Meshbus product directories exist.
  *
- * This creates `/extra/apps`, `/extra/apps/games`, and `/extra/svcs`
+ * This creates `/extra/apps` and `/extra/apps/games`
  * idempotently when the backing filesystem is mounted.
  *
  * @retval 0 on success.

@@ -69,7 +69,7 @@ class MkLfs(WestCommand):
             epilog="""\
 Examples:
   west mklfs -d build.meshbus_llext_service_hw -o /tmp/extra.bin \\
-    --file build-blinky-service-hw/blinky.mbs:/svcs/blinky.mbs
+    --file build/llext/snake.mba:/apps/snake.mba
 
   pyocd commander -t nrf54l -M halt \\
     -c "load /tmp/extra.bin 0x146000" -c reset -c exit

@@ -1,5 +1,4 @@
 id: hollow
-type: app
 name: Hollow Seeker
 version: 0.33.0-fobe.1
 entry-point: hollow_app_main

@@ -1,5 +1,4 @@
 id: castleboy
-type: app
 name: CastleBoy
 version: 1.0.0-fobe.1
 entry-point: castleboy_app_main

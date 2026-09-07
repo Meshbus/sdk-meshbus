@@ -12,6 +12,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/llext/symbol.h>
 #include <zephyr/meshbus/llext.h>
+#include <zephyr/meshbus/input.h>
 #include <zephyr/settings/settings.h>
 #include <zephyr/storage/flash_map.h>
 #include <zephyr/sys/atomic.h>
@@ -24,22 +25,10 @@
 #include <zephyr/meshbus/notify.h>
 #endif
 
-#include "service_api.h"
+#include "app_api.h"
 
 /* Public API and lifecycle contract coverage for the simulated backend. */
 
-#define TEST_SERVICE_ID "mb_test"
-#define TEST_SERVICE_PATH "/extra/svcs/" TEST_SERVICE_ID ".mbs"
-#define EXIT_SERVICE_ID "mb_exit"
-#define EXIT_SERVICE_PATH "/extra/svcs/" EXIT_SERVICE_ID ".mbs"
-#define BAD_MAGIC_SERVICE_ID "mb_badmagic"
-#define BAD_MAGIC_SERVICE_PATH "/extra/svcs/" BAD_MAGIC_SERVICE_ID ".mbs"
-#define BAD_TARGET_SERVICE_ID "mb_badtarget"
-#define BAD_TARGET_SERVICE_PATH "/extra/svcs/" BAD_TARGET_SERVICE_ID ".mbs"
-#define OLD_METADATA_SERVICE_ID "mb_oldmeta"
-#define OLD_METADATA_SERVICE_PATH "/extra/svcs/" OLD_METADATA_SERVICE_ID ".mbs"
-#define BAD_SYMBOL_SERVICE_ID "mb_badsym"
-#define BAD_SYMBOL_SERVICE_PATH "/extra/svcs/" BAD_SYMBOL_SERVICE_ID ".mbs"
 #define TEST_APP_ID "mb_app"
 #define TEST_APP_PATH "/extra/apps/" TEST_APP_ID ".mba"
 #define OTHER_EDK_APP_PATH "/extra/apps/mb_otheredk.mba"
@@ -54,24 +43,13 @@
 #define BAD_SYMBOL_APP_ID "mb_badsymapp"
 #define BAD_SYMBOL_APP_PATH "/extra/apps/" BAD_SYMBOL_APP_ID ".mba"
 #define TRUNCATED_APP_PATH "/extra/apps/truncated.mba"
-#define IGNORED_FILE_PATH "/extra/svcs/ignored.llext"
-#define IGNORED_APP_IN_SERVICE_PATH "/extra/svcs/ignored_app.mba"
-#define LLEXT_BOOT_DELAY_INVALID 60001U
 
-static atomic_t setup_count;
-static atomic_t exit_count;
 static atomic_t app_count;
 static bool extra_fs_ready;
 
 int mb_llext_test_hook(int event)
 {
 	switch (event) {
-	case MB_LLEXT_TEST_EVT_SETUP:
-		atomic_inc(&setup_count);
-		return 0;
-	case MB_LLEXT_TEST_EVT_EXIT:
-		atomic_inc(&exit_count);
-		return 0;
 	case MB_LLEXT_TEST_EVT_APP:
 		atomic_inc(&app_count);
 		return 0;
@@ -81,27 +59,6 @@ int mb_llext_test_hook(int event)
 }
 EXPORT_SYMBOL(mb_llext_test_hook);
 
-#if IS_ENABLED(CONFIG_MESHBUS_LLEXT_BOOT_SERVICES)
-static const uint8_t test_service_ext[] __aligned(4) = {
-	#include "mb_test_service.inc"
-};
-static const uint8_t exit_service_ext[] __aligned(4) = {
-	#include "mb_exit_service.inc"
-};
-static const uint8_t bad_magic_service_ext[] __aligned(4) = {
-	#include "mb_badmagic_service.inc"
-};
-static const uint8_t bad_target_service_ext[] __aligned(4) = {
-	#include "mb_badtarget_service.inc"
-};
-static const uint8_t old_metadata_service_ext[] __aligned(4) = {
-	#include "mb_oldmeta_service.inc"
-};
-static const uint8_t bad_symbol_service_ext[] __aligned(4) = {
-	#include "mb_badsym_service.inc"
-};
-#endif
-#if IS_ENABLED(CONFIG_MESHBUS_LLEXT_APP_SERVICES)
 static const uint8_t app_ext[] __aligned(4) = {
 	#include "mb_app.inc"
 };
@@ -129,7 +86,6 @@ static const uint8_t bad_icon_app_ext[] __aligned(4) = {
 static const uint8_t bad_symbol_app_ext[] __aligned(4) = {
 	#include "mb_badsymapp.inc"
 };
-#endif
 
 FS_LITTLEFS_DECLARE_DEFAULT_CONFIG(extra_storage);
 static struct fs_mount_t extra_mp = {
@@ -152,10 +108,6 @@ static int ensure_extra_fs_ready(void)
 		return rc;
 	}
 
-	rc = fs_mkdir("/extra/svcs");
-	if ((rc != 0) && (rc != -EEXIST)) {
-		return rc;
-	}
 	rc = fs_mkdir("/extra/apps");
 	if ((rc != 0) && (rc != -EEXIST)) {
 		return rc;
@@ -163,37 +115,6 @@ static int ensure_extra_fs_ready(void)
 
 	extra_fs_ready = true;
 	return 0;
-}
-
-static void cleanup_service_dir(void)
-{
-	struct fs_dir_t dir;
-	struct fs_dirent entry;
-	char path[MESHBUS_LLEXT_PATH_MAX_LEN + 1];
-	int rc;
-
-	fs_dir_t_init(&dir);
-	rc = fs_opendir(&dir, "/extra/svcs");
-	if (rc != 0) {
-		return;
-	}
-
-	while (true) {
-		rc = fs_readdir(&dir, &entry);
-		if (rc != 0 || entry.name[0] == '\0') {
-			break;
-		}
-		if (entry.type != FS_DIR_ENTRY_FILE) {
-			continue;
-		}
-		if (snprintk(path, sizeof(path), "/extra/svcs/%s", entry.name) >=
-		    sizeof(path)) {
-			continue;
-		}
-		(void)fs_unlink(path);
-	}
-
-	(void)fs_closedir(&dir);
 }
 
 static void cleanup_app_dir(void)
@@ -254,32 +175,11 @@ static int write_file(const char *path, const uint8_t *data, size_t data_len)
 
 static void *suite_setup(void)
 {
-#if IS_ENABLED(CONFIG_MESHBUS_LLEXT_BOOT_SERVICES)
-	static const uint8_t ignored[] = {0x7f, 'E', 'L', 'F'};
-#endif
 
 	zassert_ok(ensure_extra_fs_ready(), "extra fs not ready");
-	cleanup_service_dir();
 	cleanup_app_dir();
-	atomic_clear(&setup_count);
-	atomic_clear(&exit_count);
 	atomic_clear(&app_count);
 
-#if IS_ENABLED(CONFIG_MESHBUS_LLEXT_BOOT_SERVICES)
-	zassert_ok(write_file(TEST_SERVICE_PATH, test_service_ext, sizeof(test_service_ext)));
-	zassert_ok(write_file(EXIT_SERVICE_PATH, exit_service_ext, sizeof(exit_service_ext)));
-	zassert_ok(write_file(BAD_MAGIC_SERVICE_PATH, bad_magic_service_ext,
-			      sizeof(bad_magic_service_ext)));
-	zassert_ok(write_file(BAD_TARGET_SERVICE_PATH, bad_target_service_ext,
-			      sizeof(bad_target_service_ext)));
-	zassert_ok(write_file(OLD_METADATA_SERVICE_PATH, old_metadata_service_ext,
-			      sizeof(old_metadata_service_ext)));
-	zassert_ok(write_file(BAD_SYMBOL_SERVICE_PATH, bad_symbol_service_ext,
-			      sizeof(bad_symbol_service_ext)));
-	zassert_ok(write_file(IGNORED_FILE_PATH, ignored, sizeof(ignored)));
-	zassert_ok(write_file(IGNORED_APP_IN_SERVICE_PATH, ignored, sizeof(ignored)));
-#endif
-#if IS_ENABLED(CONFIG_MESHBUS_LLEXT_APP_SERVICES)
 	zassert_ok(write_file(TEST_APP_PATH, app_ext, sizeof(app_ext)));
 	zassert_ok(write_file(OTHER_EDK_APP_PATH, other_edk_app_ext,
 			      sizeof(other_edk_app_ext)));
@@ -297,51 +197,10 @@ static void *suite_setup(void)
 			      sizeof(bad_symbol_app_ext)));
 	zassert_true(sizeof(app_ext) > 16U, "test app artifact unexpectedly short");
 	zassert_ok(write_file(TRUNCATED_APP_PATH, app_ext, 16U));
-#endif
 
-#if IS_ENABLED(CONFIG_MESHBUS_LLEXT_BOOT_SERVICES)
-	k_sleep(K_MSEC(CONFIG_MESHBUS_LLEXT_DEFAULT_BOOT_DELAY + 800));
-#endif
 	return NULL;
 }
 
-#if IS_ENABLED(CONFIG_MESHBUS_LLEXT_BOOT_SERVICES)
-ZTEST(meshbus_llext_contract, test_boot_loads_valid_services)
-{
-	struct meshbus_llext_service_info info;
-	size_t count;
-	int rc;
-
-	rc = meshbus_llext_service_count(&count);
-	zassert_ok(rc, "service count failed: %d", rc);
-	zassert_equal(count, 3U, "unexpected service count");
-
-	rc = meshbus_llext_service_status(TEST_SERVICE_ID, &info);
-	zassert_ok(rc, "status failed: %d", rc);
-	zassert_equal(info.state, MESHBUS_LLEXT_STATE_RUNNING, "service not running");
-	zassert_equal(info.stack_size, 1024U, "stack size mismatch");
-	zassert_equal(info.heap_size, 16384U, "heap size mismatch");
-	zassert_true(strcmp(info.edk_version, "0.1.0") == 0,
-		     "service EDK version mismatch");
-	zassert_true(atomic_get(&setup_count) > 0, "service entry did not run");
-}
-
-ZTEST(meshbus_llext_contract, test_boot_mode_rejects_desktop_apps)
-{
-	struct meshbus_llext_app_session *session = (void *)UINTPTR_MAX;
-	struct meshbus_llext_app_info info;
-	int rc;
-
-	rc = meshbus_llext_app_probe(TEST_APP_PATH, &info);
-	zassert_equal(rc, -ENOTSUP, "boot-service mode must reject app probe");
-
-	rc = meshbus_llext_app_load(TEST_APP_PATH, &session);
-	zassert_equal(rc, -ENOTSUP, "boot-service mode must reject app load");
-	zassert_is_null(session, "rejected app load must clear session output");
-}
-#endif
-
-#if IS_ENABLED(CONFIG_MESHBUS_LLEXT_APP_SERVICES)
 ZTEST(meshbus_llext_contract, test_app_probe_load_entry_unload)
 {
 	struct meshbus_llext_app_session *session;
@@ -399,7 +258,7 @@ ZTEST(meshbus_llext_contract, test_app_probe_uses_edk_version_as_provenance)
 	zassert_equal(rc, -ENOEXEC, "nonzero compatibility reserved bytes should fail probe");
 	rc = meshbus_llext_app_probe(BAD_ICON_APP_PATH, &info);
 	zassert_equal(rc, -ENOEXEC, "bad app icon size should fail probe");
-	rc = meshbus_llext_app_probe("/extra/apps/not_app.mbs", &info);
+	rc = meshbus_llext_app_probe("/extra/apps/not_app.bin", &info);
 	zassert_equal(rc, -EINVAL, "wrong app suffix should fail probe");
 }
 
@@ -463,6 +322,35 @@ ZTEST(meshbus_llext_contract, test_app_probe_load_rejects_disabled_llext)
 	zassert_equal(load_rc, -ENODEV, "disabled LLEXT should reject app load");
 }
 
+ZTEST(meshbus_llext_contract, test_config_reset_and_disable_preserve_loaded_app)
+{
+	struct meshbus_llext_app_session *session;
+	struct meshbus_llext_app_info info;
+	meshbus_llext_app_entry_t entry;
+	meshbus_llext_config cfg;
+	atomic_val_t count;
+
+	zassert_equal(meshbus_llext_config_get(NULL), -EINVAL);
+	zassert_equal(meshbus_llext_config_set(NULL), -EINVAL);
+	zassert_ok(meshbus_llext_app_load(TEST_APP_PATH, &session));
+	zassert_ok(meshbus_llext_config_get(&cfg));
+	cfg.enabled = false;
+	zassert_ok(meshbus_llext_config_set(&cfg));
+	zassert_equal(meshbus_llext_app_probe(TEST_APP_PATH, &info), -ENODEV);
+	zassert_true(meshbus_llext_runtime_busy());
+	zassert_ok(meshbus_llext_app_get_entry(session, &entry));
+	count = atomic_get(&app_count);
+	entry(NULL);
+	zassert_equal(atomic_get(&app_count), count + 1);
+	zassert_ok(meshbus_llext_app_unload(session));
+	zassert_false(meshbus_llext_runtime_busy());
+	zassert_ok(meshbus_llext_config_reset());
+	zassert_ok(meshbus_llext_config_get(&cfg));
+	zassert_equal(cfg.enabled, IS_ENABLED(CONFIG_MESHBUS_LLEXT_DEFAULT_ENABLED));
+	zassert_ok(meshbus_llext_app_load(TEST_APP_PATH, &session));
+	zassert_ok(meshbus_llext_app_unload(session));
+}
+
 ZTEST(meshbus_llext_contract, test_app_load_revalidates_and_enforces_heap_budget)
 {
 	struct meshbus_llext_app_session *session;
@@ -507,76 +395,6 @@ ZTEST(meshbus_llext_contract, test_app_duplicate_load_and_failure_cleanup_recove
 	zassert_false(meshbus_llext_runtime_busy(),
 		      "recovery unload should release runtime resources");
 }
-#endif
-
-#if IS_ENABLED(CONFIG_MESHBUS_LLEXT_BOOT_SERVICES)
-ZTEST(meshbus_llext_contract, test_returning_service_is_marked_exited)
-{
-	struct meshbus_llext_service_info info;
-	int rc;
-
-	k_sleep(K_MSEC(100));
-	rc = meshbus_llext_service_status(EXIT_SERVICE_ID, &info);
-	zassert_ok(rc, "status failed: %d", rc);
-	zassert_equal(info.state, MESHBUS_LLEXT_STATE_EXITED, "returning service state mismatch");
-	zassert_true(atomic_get(&exit_count) > 0, "returning service did not run");
-}
-
-ZTEST(meshbus_llext_contract, test_invalid_metadata_is_not_registered)
-{
-	struct meshbus_llext_service_info info;
-	int rc;
-
-	rc = meshbus_llext_service_status(BAD_MAGIC_SERVICE_ID, &info);
-	zassert_equal(rc, -ENOENT, "bad magic service should be skipped");
-	rc = meshbus_llext_service_status(BAD_TARGET_SERVICE_ID, &info);
-	zassert_equal(rc, -ENOENT, "bad target service should be skipped");
-	rc = meshbus_llext_service_status(OLD_METADATA_SERVICE_ID, &info);
-	zassert_equal(rc, -ENOENT, "old metadata service should be skipped");
-}
-
-ZTEST(meshbus_llext_contract, test_missing_entry_symbol_faults)
-{
-	struct meshbus_llext_service_info info;
-	int rc;
-
-	rc = meshbus_llext_service_status(BAD_SYMBOL_SERVICE_ID, &info);
-	zassert_ok(rc, "status failed: %d", rc);
-	zassert_equal(info.state, MESHBUS_LLEXT_STATE_FAULTED, "bad symbol state mismatch");
-	zassert_equal(info.last_error, -ENOEXEC, "bad symbol error mismatch");
-}
-
-ZTEST(meshbus_llext_contract, test_service_get_and_config)
-{
-	struct meshbus_llext_service_info info;
-	meshbus_llext_config cfg;
-	size_t count;
-	int rc;
-
-	rc = meshbus_llext_service_count(&count);
-	zassert_ok(rc, "service count failed: %d", rc);
-	zassert_equal(count, 3U, "unexpected service count");
-
-	rc = meshbus_llext_service_get(0, &info);
-	zassert_ok(rc, "service get failed: %d", rc);
-	rc = meshbus_llext_service_get(count, &info);
-	zassert_equal(rc, -ENOENT, "out-of-range get should fail");
-	rc = meshbus_llext_service_get(0, NULL);
-	zassert_equal(rc, -EINVAL, "NULL get should fail");
-	rc = meshbus_llext_service_count(NULL);
-	zassert_equal(rc, -EINVAL, "NULL count should fail");
-
-	rc = meshbus_llext_config_get(&cfg);
-	zassert_ok(rc, "config get failed: %d", rc);
-	zassert_true(cfg.enabled, "config enabled mismatch");
-	zassert_equal(cfg.boot_delay, CONFIG_MESHBUS_LLEXT_DEFAULT_BOOT_DELAY,
-		      "boot delay mismatch");
-
-	cfg.boot_delay = LLEXT_BOOT_DELAY_INVALID;
-	rc = meshbus_llext_config_set(&cfg);
-	zassert_equal(rc, -EINVAL, "invalid config should fail");
-}
-#endif
 
 #if IS_ENABLED(CONFIG_MESHBUS_NOTIFY)
 static K_SEM_DEFINE(bridge_work_done, 0, 1);
@@ -606,15 +424,11 @@ static void bridge_publish_notify(void)
 	zassert_ok(meshbus_notify_publish(MESHBUS_NOTIFY_TYPE_CHANNELS_CHANGED, &payload));
 }
 
-static void bridge_publish_state(void)
+static void bridge_publish_input(void)
 {
-	struct meshbus_llext_state_event event = {
-		.id = "bridge-test",
-		.kind = MESHBUS_LLEXT_KIND_SERVICE,
-		.state = MESHBUS_LLEXT_STATE_RUNNING,
-	};
+	struct meshbus_input_act_event event = {0};
 
-	zassert_ok(meshbus_llext_zbus_publish(MESHBUS_LLEXT_ZBUS_LLEXT_EVENT_CHAN,
+	zassert_ok(meshbus_llext_zbus_publish(MESHBUS_LLEXT_ZBUS_INPUT_ACTION_CHAN,
 					     &event, sizeof(event)));
 }
 
@@ -622,25 +436,25 @@ ZTEST(meshbus_llext_contract, test_bridge_pending_snapshot_and_subscriber_masks)
 {
 	const uint64_t notify_bit =
 		MESHBUS_LLEXT_ZBUS_CH_BIT(MESHBUS_LLEXT_ZBUS_NOTIFY_CHAN);
-	const uint64_t state_bit =
-		MESHBUS_LLEXT_ZBUS_CH_BIT(MESHBUS_LLEXT_ZBUS_LLEXT_EVENT_CHAN);
-	struct k_event all_channels;
-	struct k_event notify_only;
+	const uint64_t input_bit =
+		MESHBUS_LLEXT_ZBUS_CH_BIT(MESHBUS_LLEXT_ZBUS_INPUT_ACTION_CHAN);
+	static struct k_event all_channels;
+	static struct k_event notify_only;
 	uint64_t pending = UINT64_MAX;
 
 	k_event_init(&all_channels);
 	k_event_init(&notify_only);
-	zassert_ok(meshbus_llext_zbus_subscribe(&all_channels, notify_bit | state_bit));
+	zassert_ok(meshbus_llext_zbus_subscribe(&all_channels, notify_bit | input_bit));
 	zassert_ok(meshbus_llext_zbus_subscribe(&notify_only, notify_bit));
 	bridge_publish_notify();
 	bridge_publish_notify();
-	bridge_publish_state();
+	bridge_publish_input();
 	bridge_flush_notifications();
 
 	zassert_equal(k_event_wait(&all_channels, MESHBUS_LLEXT_ZBUS_EVT_PENDING,
 				   false, K_NO_WAIT), MESHBUS_LLEXT_ZBUS_EVT_PENDING);
 	zassert_ok(meshbus_llext_zbus_take_pending(&all_channels, &pending));
-	zassert_equal(pending, notify_bit | state_bit, "snapshot lost a pending channel");
+	zassert_equal(pending, notify_bit | input_bit, "snapshot lost a pending channel");
 	(void)k_event_clear(&all_channels, MESHBUS_LLEXT_ZBUS_EVT_PENDING);
 	zassert_equal(meshbus_llext_zbus_take_pending(&all_channels, &pending), -ENOMSG);
 	zassert_equal(pending, 0ULL, "empty snapshot did not clear output");
@@ -648,12 +462,12 @@ ZTEST(meshbus_llext_contract, test_bridge_pending_snapshot_and_subscriber_masks)
 	zassert_equal(pending, notify_bit, "subscriber mask leaked another channel");
 
 	/* A publication after the snapshot must remain available to the next take. */
-	bridge_publish_state();
+	bridge_publish_input();
 	bridge_flush_notifications();
 	zassert_equal(k_event_wait(&all_channels, MESHBUS_LLEXT_ZBUS_EVT_PENDING,
 				   false, K_NO_WAIT), MESHBUS_LLEXT_ZBUS_EVT_PENDING);
 	zassert_ok(meshbus_llext_zbus_take_pending(&all_channels, &pending));
-	zassert_equal(pending, state_bit);
+	zassert_equal(pending, input_bit);
 	zassert_equal(meshbus_llext_zbus_take_pending(&notify_only, &pending), -ENOMSG);
 	zassert_ok(meshbus_llext_zbus_unsubscribe(&all_channels));
 	zassert_ok(meshbus_llext_zbus_unsubscribe(&notify_only));
@@ -663,7 +477,7 @@ ZTEST(meshbus_llext_contract, test_bridge_unsubscribe_and_resubscribe_clear_pend
 {
 	const uint64_t notify_bit =
 		MESHBUS_LLEXT_ZBUS_CH_BIT(MESHBUS_LLEXT_ZBUS_NOTIFY_CHAN);
-	struct k_event subscriber;
+	static struct k_event subscriber;
 	uint64_t pending = UINT64_MAX;
 
 	k_event_init(&subscriber);
@@ -708,7 +522,7 @@ ZTEST(meshbus_llext_contract, test_telemetry_bridge_is_subscribe_only)
 		.value_count = 1U,
 	};
 	struct meshbus_telemetry_data_event readback;
-	struct k_event subscriber;
+	static struct k_event subscriber;
 	uint64_t mask = MESHBUS_LLEXT_ZBUS_CH_BIT(MESHBUS_LLEXT_ZBUS_TELEMETRY_DATA_CHAN);
 
 	k_event_init(&subscriber);

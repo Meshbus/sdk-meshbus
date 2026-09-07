@@ -9,52 +9,26 @@ target_include_directories(app PRIVATE ../src)
 set(llext_targets)
 set(llext_outputs)
 
-if(CONFIG_MESHBUS_LLEXT_BOOT_SERVICES)
-	set(exit_bin ${PROJECT_BINARY_DIR}/llext/mb_exit.mbs)
-	set(exit_inc ${ZEPHYR_BINARY_DIR}/include/generated/mb_exit_service.inc)
-	set(bad_symbol_bin ${PROJECT_BINARY_DIR}/llext/mb_badsym.mbs)
-	set(bad_symbol_inc ${ZEPHYR_BINARY_DIR}/include/generated/mb_badsym_service.inc)
 
-	add_llext_target(mb_exit_service_ext
-		OUTPUT ${exit_bin}
-		SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/service_exit_ext.c
-	)
-	llext_include_directories(mb_exit_service_ext
-		${CMAKE_CURRENT_SOURCE_DIR}/../src
-	)
-	add_llext_target(mb_badsym_service_ext
-		OUTPUT ${bad_symbol_bin}
-		SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/service_bad_symbol_ext.c
-	)
+set(app_bin ${PROJECT_BINARY_DIR}/llext/mb_app.mba)
+set(app_inc ${ZEPHYR_BINARY_DIR}/include/generated/mb_app.inc)
+set(bad_symbol_app_bin ${PROJECT_BINARY_DIR}/llext/mb_badsymapp.mba)
+set(bad_symbol_app_inc ${ZEPHYR_BINARY_DIR}/include/generated/mb_badsymapp.inc)
 
-	list(APPEND llext_targets mb_exit_service_ext mb_badsym_service_ext)
-	list(APPEND llext_outputs ${exit_bin} ${bad_symbol_bin})
+add_llext_target(mb_app_ext
+	OUTPUT ${app_bin}
+	SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/../src/app_ext.c
+)
+add_llext_target(mb_badsymapp_ext
+	OUTPUT ${bad_symbol_app_bin}
+	SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/../src/app_bad_symbol_ext.c
+)
 
-	generate_inc_file_for_target(app ${exit_bin} ${exit_inc})
-	generate_inc_file_for_target(app ${bad_symbol_bin} ${bad_symbol_inc})
-endif()
+list(APPEND llext_targets mb_app_ext mb_badsymapp_ext)
+list(APPEND llext_outputs ${app_bin} ${bad_symbol_app_bin})
 
-if(CONFIG_MESHBUS_LLEXT_APP_SERVICES)
-	set(app_bin ${PROJECT_BINARY_DIR}/llext/mb_app.mba)
-	set(app_inc ${ZEPHYR_BINARY_DIR}/include/generated/mb_app.inc)
-	set(bad_symbol_app_bin ${PROJECT_BINARY_DIR}/llext/mb_badsymapp.mba)
-	set(bad_symbol_app_inc ${ZEPHYR_BINARY_DIR}/include/generated/mb_badsymapp.inc)
-
-	add_llext_target(mb_app_ext
-		OUTPUT ${app_bin}
-		SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/../src/app_ext.c
-	)
-	add_llext_target(mb_badsymapp_ext
-		OUTPUT ${bad_symbol_app_bin}
-		SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/../src/app_bad_symbol_ext.c
-	)
-
-	list(APPEND llext_targets mb_app_ext mb_badsymapp_ext)
-	list(APPEND llext_outputs ${app_bin} ${bad_symbol_app_bin})
-
-	generate_inc_file_for_target(app ${app_bin} ${app_inc})
-	generate_inc_file_for_target(app ${bad_symbol_app_bin} ${bad_symbol_app_inc})
-endif()
+generate_inc_file_for_target(app ${app_bin} ${app_inc})
+generate_inc_file_for_target(app ${bad_symbol_app_bin} ${bad_symbol_app_inc})
 
 foreach(llext_target ${llext_targets})
 	if(TARGET ${llext_target}_llext_lib AND TARGET meshbus_proto)

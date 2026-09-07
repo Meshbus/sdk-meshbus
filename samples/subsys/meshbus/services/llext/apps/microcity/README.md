@@ -27,7 +27,7 @@ Port boundaries:
 - Long BACK/MENU/HOME or long T9 `*` exits through the app screen action-state
   handler; short BACK remains MicroCity's B button.
 
-Build with the installed Rust `meshbus` CLI and a released app-profile EDK
+Build with the installed Rust `meshbus` CLI and a released EDK
 for the intended Desktop host. Set `ZEPHYR_SDK_INSTALL_DIR` and install CMake
 and Ninja; no Firmware source checkout is required:
 

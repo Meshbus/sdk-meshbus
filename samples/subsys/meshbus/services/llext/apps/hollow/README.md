@@ -26,7 +26,7 @@ Port boundaries:
 - Arduboy Playtune score data is converted to short single-channel buzzer
   melodies through the Meshbus indicator buzzer.
 
-Build with the installed Rust `meshbus` CLI and a released app-profile EDK
+Build with the installed Rust `meshbus` CLI and a released EDK
 for the intended Desktop host. Set `ZEPHYR_SDK_INSTALL_DIR` and install CMake
 and Ninja; no Firmware source checkout is required:
 

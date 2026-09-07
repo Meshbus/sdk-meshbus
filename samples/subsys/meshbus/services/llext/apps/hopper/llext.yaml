@@ -1,5 +1,4 @@
 id: hopper
-type: app
 name: Hopper
 version: 0.22.0-fobe.1
 entry-point: hopper_app_main

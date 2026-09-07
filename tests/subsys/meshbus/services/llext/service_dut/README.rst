@@ -8,16 +8,7 @@ mounted at ``/extra``, and a 4 KiB stage page.  Product storage at
 ``0x174000..0x17cfff`` remains mapped as a guard and is never selected, mounted,
 or formatted.
 
-The boot-service variant writes a current-target returning ``.mbs`` and a
-missing-symbol ``.mbs`` to real LittleFS before the delayed boot scan.  It
-proves ARM load/relocation, entry execution, returning-service teardown,
-failure isolation, artifact cleanup, and stage cleanup.
-
-The two intentionally small test services declare 32 KiB heap estimates each.
-That is test-artifact metadata sized for the C2 ARM loader path, not a product
-service budget.
-
-The app variant writes a current-target ``.mba`` and a missing-symbol ``.mba``
+The test writes a current-target ``.mba`` and a missing-symbol ``.mba``
 to real LittleFS.  It proves metadata probe, load/relocation, entry execution,
 explicit unload, failed-load resource release, successful reload after the
 failure, artifact cleanup, and stage cleanup.  Timing output is informational
@@ -25,24 +16,16 @@ and is not a performance threshold.  ZUI's required Display dependency is
 satisfied by an explicitly declared dummy display; display behavior is not an
 asserted boundary of this service-DUT test.
 
-Both variants erase only their test settings/filesystem/stage partitions at
+The test erases only their test settings/filesystem/stage partitions at
 boot.  Flashing invalidates any secondary image occupying the shortened slot1,
 so device execution requires a dedicated C2 and approval of the exact flash
 command.
 
 Build-only preflight from ``west topdir``::
 
-   west build -p always -d build/meshbus-llext-c2-boot \
-     -b idea_mesh_tracker_c2/nrf54l15/cpuapp \
-     sdk-meshbus/tests/subsys/meshbus/services/llext/service_dut -- \
-     -DCONFIG_MESHBUS_LLEXT_BOOT_SERVICES=y \
-     -DCONFIG_MESHBUS_LLEXT_MAX_SERVICES=2 \
-     -DCONFIG_MESHBUS_LLEXT_DEFAULT_BOOT_DELAY=3000
-
    west build -p always -d build/meshbus-llext-c2-app \
      -b idea_mesh_tracker_c2/nrf54l15/cpuapp \
-     sdk-meshbus/tests/subsys/meshbus/services/llext/service_dut -- \
+     meshbus/tests/subsys/meshbus/services/llext/service_dut -- \
      -DCONFIG_DISPLAY=y -DCONFIG_U8G2=y -DCONFIG_ZUI=y \
-     -DCONFIG_MESHBUS_LLEXT_APP_SERVICES=y \
      -DCONFIG_MESHBUS_LLEXT_APP_HEAP_RESERVE_SIZE=32768 \
      -DCONFIG_MESHBUS_LLEXT_APP_MAX_HEAP_SIZE=32768

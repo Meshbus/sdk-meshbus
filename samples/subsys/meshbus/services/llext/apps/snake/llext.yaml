@@ -1,5 +1,4 @@
 id: snake
-type: app
 name: Snake
 version: 1.0.0
 entry-point: snake_app_main

@@ -2,7 +2,7 @@
 
 Meshbus does not assign or enforce an LLEXT ABI version. Each published
 firmware release has a matching EDK with the same application version, and each
-`.mba` or `.mbs` package records that EDK version as build provenance.
+`.mba` package records that EDK version as build provenance.
 
 The loader applies these hard metadata gates:
 

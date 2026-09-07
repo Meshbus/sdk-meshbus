@@ -45,7 +45,6 @@ config ZUI_HEAP_SIZE
 config MESHBUS_DESKTOP_LAUNCHER
 	bool "Desktop launcher and external app runtime"
 	depends on MESHBUS_LLEXT
-	depends on MESHBUS_LLEXT_APP_SERVICES
 	select MESHBUS_FS
 	help
 	  Enable the Desktop Launcher view. The Launcher opens a file picker rooted

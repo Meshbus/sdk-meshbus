@@ -43,7 +43,6 @@ FS_FSTAB_DECLARE_ENTRY(MESHBUS_FS_EXTRA_NODE);
 static const char *const product_dirs[] = {
 	MESHBUS_FS_APPS_PATH,
 	MESHBUS_FS_GAMES_PATH,
-	MESHBUS_FS_SVCS_PATH,
 };
 
 /* -------------------------------------------------------------------------- */
@@ -80,8 +79,7 @@ static bool managed_dir_protected(const char *path)
 {
 	return strcmp(path, MESHBUS_FS_EXTRA_MOUNT_POINT) == 0 ||
 	       strcmp(path, MESHBUS_FS_APPS_PATH) == 0 ||
-	       strcmp(path, MESHBUS_FS_GAMES_PATH) == 0 ||
-	       strcmp(path, MESHBUS_FS_SVCS_PATH) == 0;
+	       strcmp(path, MESHBUS_FS_GAMES_PATH) == 0;
 }
 
 static const char *path_basename(const char *path)

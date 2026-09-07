@@ -7,7 +7,7 @@
 #include <zephyr/llext/symbol.h>
 #include <zephyr/meshbus/llext.h>
 
-#include "service_api.h"
+#include "app_api.h"
 
 static const struct meshbus_llext_app_metadata app_metadata
 	MESHBUS_LLEXT_APP_METADATA_ATTR = {

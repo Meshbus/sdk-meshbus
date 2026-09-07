@@ -3,18 +3,14 @@
 
 menuconfig MESHBUS_LLEXT
 	bool "Meshbus LLEXT Extension Manager"
-	depends on LLEXT
+	depends on LLEXT && ZUI
 	depends on FILE_SYSTEM
 	select MESHBUS_FS
 	select LLEXT_HEAP_DYNAMIC
-	select THREAD_STACK_INFO
-	select DYNAMIC_THREAD
-	select DYNAMIC_THREAD_ALLOC
 	default n
 	help
-	  Enable the Meshbus LLEXT extension manager. Exactly one runtime
-	  role is selected below: boot service extensions (.mbs), or Desktop
-	  foreground app extensions (.mba).
+	  Enable metadata inspection and loading of Desktop foreground apps
+	  (.mba). Desktop owns execution; one app can be loaded at a time.
 
 config MESHBUS_LLEXT_BRIDGE
 	bool "Meshbus LLEXT Bridge and exports"
@@ -27,7 +23,7 @@ config MESHBUS_LLEXT_BRIDGE
 	  Enable centralized Meshbus LLEXT bridge and EXPORT_SYMBOL tables.
 	  This option keeps service LLEXT integration code in
 	  subsys/meshbus/services/llext while allowing it to be disabled
-	  independently from the boot service loader.
+	  independently from the Desktop app loader.
 
 if MESHBUS_LLEXT
 
@@ -39,58 +35,14 @@ config MESHBUS_LLEXT_LOG_LEVEL
 	  Sets the log level for the Meshbus LLEXT extension manager.
 	  0 = Off, 1 = Error, 2 = Warning, 3 = Info, 4 = Debug.
 
-choice MESHBUS_LLEXT_SERVICE_MODE
-	prompt "Meshbus LLEXT service mode"
-	default MESHBUS_LLEXT_APP_SERVICES if MESHBUS_DESKTOP
-	default MESHBUS_LLEXT_BOOT_SERVICES
-	help
-	  Select whether this firmware loads boot service extensions (.mbs)
-	  or Desktop foreground app extensions (.mba). Zephyr LLEXT currently
-	  uses a single global LLEXT heap, so these modes are intentionally
-	  compile-time exclusive.
-
-config MESHBUS_LLEXT_BOOT_SERVICES
-	bool "Boot service extensions (.mbs)"
-	help
-	  Enable boot scanning and loading of service extensions from
-	  MESHBUS_LLEXT_DEFAULT_PATH. This is intended for repeater, sensor,
-	  room, and other headless/service roles.
-
-config MESHBUS_LLEXT_APP_SERVICES
-	bool "Desktop app extensions (.mba)"
-	depends on ZUI
-	help
-	  Enable path-based Desktop app probe/load/unload APIs for .mba
-	  artifacts. This role requires ZUI and is intended for interactive
-	  client devices that prioritize Desktop and foreground apps.
-
-endchoice
-
-config MESHBUS_LLEXT_MAX_SERVICES
-	int "Maximum number of boot services"
-	depends on MESHBUS_LLEXT_BOOT_SERVICES
-	default 4
-	range 1 32
-	help
-	  Maximum number of service extensions discovered and loaded at boot.
-
-config MESHBUS_LLEXT_DEFAULT_PATH
-	string "Default extension storage path"
-	depends on MESHBUS_LLEXT_BOOT_SERVICES
-	default "/extra/svcs"
-	help
-	  Default filesystem path where service extensions are stored.
-
 config MESHBUS_LLEXT_APP_DEFAULT_PATH
 	string "Default Desktop app extension path"
-	depends on MESHBUS_LLEXT_APP_SERVICES
 	default "/extra/apps"
 	help
 	  Default filesystem path where Desktop app extensions are stored.
 
 config MESHBUS_LLEXT_APP_MAX_HEAP_SIZE
 	int "Maximum Desktop app LLEXT heap estimate"
-	depends on MESHBUS_LLEXT_APP_SERVICES
 	default 16384
 	range 1024 1048576
 	help
@@ -99,17 +51,15 @@ config MESHBUS_LLEXT_APP_MAX_HEAP_SIZE
 
 config MESHBUS_LLEXT_APP_HEAP_RESERVE_SIZE
 	int "Maximum dynamic LLEXT heap budget for one Desktop app"
-	depends on MESHBUS_LLEXT_APP_SERVICES
 	default 16384
 	range 0 1048576
 	help
 	  Maximum dynamic LLEXT heap budget accepted for one foreground
-	  Desktop app. App-service mode allocates this heap lazily when an
+	  Desktop app. The loader allocates this heap lazily when an
 	  app is loaded; it is not reserved during firmware boot.
 
 config MESHBUS_LLEXT_APP_SYSTEM_HEAP_HEADROOM_SIZE
 	int "System heap headroom beside a maximum Desktop app"
-	depends on MESHBUS_LLEXT_APP_SERVICES
 	default 4096
 	range 0 1048576
 	help
@@ -122,62 +72,19 @@ config MESHBUS_LLEXT_APP_SYSTEM_HEAP_HEADROOM_SIZE
 	  testing with the target app and services.
 
 config MESHBUS_LLEXT_DEFAULT_ENABLED
-	bool "Default LLEXT boot scan enabled"
+	bool "Default LLEXT app loading enabled"
 	default y
 	help
-	  Default enable state for the LLEXT manager. In boot-service mode this
-	  gates the boot scan. In app-service mode this gates new app probe/load
-	  requests. This value is used before settings are loaded.
-
-config MESHBUS_LLEXT_DEFAULT_BOOT_DELAY
-	int "Default LLEXT boot delay (ms)"
-	default 0
-	range 0 60000
-	help
-	  Delay before initial service scan during boot.
-	  This value is used before settings are loaded. Changes affect the next
-	  boot scan, not already-running services.
-
-config MESHBUS_LLEXT_INIT_STACK_SIZE
-	int "LLEXT loader init thread stack size"
-	default 4096
-	help
-	  Stack size used by the Meshbus LLEXT initialization thread. Service
-	  runtime thread stacks are always defined by each .mbs metadata
-	  stack-size field.
-
-config MESHBUS_LLEXT_SERVICE_MAX_STACK_SIZE
-	int "Maximum service thread stack size"
-	depends on MESHBUS_LLEXT_BOOT_SERVICES
-	default 8192
-	range 512 65536
-	help
-	  Maximum stack-size accepted from a boot service .mbs metadata blob.
-	  Services with larger stack requests are skipped during boot discovery.
-
-config MESHBUS_LLEXT_SERVICE_MAX_HEAP_SIZE
-	int "Maximum service LLEXT heap estimate"
-	depends on MESHBUS_LLEXT_BOOT_SERVICES
-	default 65536
-	range 1024 1048576
-	help
-	  Maximum heap-size accepted from one boot service .mbs metadata blob.
-	  The value is generated by west meshbus llext and represents an estimate.
+	  Default enable state for new app probe/load requests. Disabling the
+	  loader does not interrupt an already loaded application.
 
 config MESHBUS_LLEXT_TOTAL_HEAP_MAX_SIZE
 	int "Maximum total LLEXT heap reservation"
 	default 131072
 	range 1024 1048576
 	help
-	  Maximum dynamic LLEXT heap allocation after summing the active role's
-	  heap-size estimates and adding the configured margin.
-
-config MESHBUS_LLEXT_SERVICE_PRIORITY
-	int "LLEXT runtime thread priority"
-	default 5
-	help
-	  Priority used for the LLEXT initialization thread and each boot-service
-	  runtime thread.
+	  Maximum dynamic LLEXT heap allocation for one app after adding
+	  the configured margin to its heap-size estimate.
 
 config MESHBUS_LLEXT_DYNAMIC_HEAP_MARGIN_PERCENT
 	int "Dynamic LLEXT heap margin percent"
@@ -185,8 +92,8 @@ config MESHBUS_LLEXT_DYNAMIC_HEAP_MARGIN_PERCENT
 	default 5
 	range 0 100
 	help
-	  Percent margin added to the sum of heap-size values recorded in
-	  extension metadata before Meshbus allocates memory from the system
+	  Percent margin added to the heap-size value recorded in
+	  app metadata before Meshbus allocates memory from the system
 	  heap and initializes the Zephyr LLEXT heap.
 
 config MESHBUS_LLEXT_SHELL
@@ -194,6 +101,6 @@ config MESHBUS_LLEXT_SHELL
 	depends on MESHBUS_SHELL
 	default y
 	help
-	  Enable meshbus llext service shell commands.
+	  Enable meshbus llext application configuration commands.
 
 endif # MESHBUS_LLEXT

@@ -1,5 +1,4 @@
 id: microcity
-type: app
 name: MicroCity
 version: 1.3.0-fobe.1
 entry-point: microcity_app_main

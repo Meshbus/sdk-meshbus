@@ -1,7 +1,0 @@
-id: blinky
-type: service
-name: Blinky Service
-description: Periodic LED heartbeat service.
-version: 1.0.0
-entry-point: blink_thread_entry
-stack-size: 2048

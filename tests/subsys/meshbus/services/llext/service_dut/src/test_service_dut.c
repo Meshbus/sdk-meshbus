@@ -17,7 +17,7 @@
 #include <zephyr/sys/atomic.h>
 #include <zephyr/ztest.h>
 
-#include "service_api.h"
+#include "app_api.h"
 
 /* C2 real-storage and real-loader service-DUT coverage. */
 
@@ -33,10 +33,6 @@
 #define PARTITION_END(node_id)   (DT_REG_ADDR(node_id) + DT_REG_SIZE(node_id))
 #define TEST_STAGE_MAGIC         0x4d424c58U
 #define TEST_STAGE_PREPARED      1U
-#define EXIT_SERVICE_ID          "mb_exit"
-#define EXIT_SERVICE_PATH        "/extra/svcs/mb_exit.mbs"
-#define BAD_SERVICE_ID           "mb_badsym"
-#define BAD_SERVICE_PATH         "/extra/svcs/mb_badsym.mbs"
 #define TEST_APP_ID              "mb_app"
 #define TEST_APP_PATH            "/extra/apps/mb_app.mba"
 #define BAD_APP_PATH             "/extra/apps/mb_badsymapp.mba"
@@ -50,7 +46,6 @@ struct test_stage_record {
 
 static struct test_stage_record test_stage;
 static int test_storage_prepare_rc;
-static atomic_t exit_count;
 static atomic_t app_count;
 
 BUILD_ASSERT(!IS_ENABLED(CONFIG_FLASH_SIMULATOR), "C2 scenario must use real RRAM");
@@ -86,9 +81,6 @@ BUILD_ASSERT(PARTITION_END(PRODUCT_PARTITION_NODE) <= DT_REG_SIZE(RRAM_NODE),
 int mb_llext_test_hook(int event)
 {
 	switch (event) {
-	case MB_LLEXT_TEST_EVT_EXIT:
-		atomic_inc(&exit_count);
-		return 0;
 	case MB_LLEXT_TEST_EVT_APP:
 		atomic_inc(&app_count);
 		return 0;
@@ -98,30 +90,17 @@ int mb_llext_test_hook(int event)
 }
 EXPORT_SYMBOL(mb_llext_test_hook);
 
-#if IS_ENABLED(CONFIG_MESHBUS_LLEXT_BOOT_SERVICES)
-static const uint8_t exit_service_ext[] __aligned(4) = {
-#include "mb_exit_service.inc"
-};
-static const uint8_t bad_symbol_service_ext[] __aligned(4) = {
-#include "mb_badsym_service.inc"
-};
-#endif
-
-#if IS_ENABLED(CONFIG_MESHBUS_LLEXT_APP_SERVICES)
 static const uint8_t app_ext[] __aligned(4) = {
 #include "mb_app.inc"
 };
 static const uint8_t bad_symbol_app_ext[] __aligned(4) = {
 #include "mb_badsymapp.inc"
 };
-#endif
 
-#if IS_ENABLED(CONFIG_MESHBUS_LLEXT_APP_SERVICES)
 static uint32_t elapsed_us(uint64_t started)
 {
 	return (uint32_t)k_cyc_to_us_floor64(k_cycle_get_64() - started);
 }
-#endif
 
 static int stage_write(void)
 {
@@ -243,62 +222,16 @@ static void *suite_setup(void)
 	zassert_ok(test_storage_prepare_rc, "test storage preparation failed: %d",
 		   test_storage_prepare_rc);
 	zassert_equal(test_stage.magic, TEST_STAGE_MAGIC, "test stage marker missing");
-	zassert_ok(ensure_directory("/extra/svcs"), "service directory create failed");
 	zassert_ok(ensure_directory("/extra/apps"), "app directory create failed");
-	atomic_clear(&exit_count);
 	atomic_clear(&app_count);
 
-#if IS_ENABLED(CONFIG_MESHBUS_LLEXT_BOOT_SERVICES)
-	zassert_ok(write_file(EXIT_SERVICE_PATH, exit_service_ext, sizeof(exit_service_ext)),
-		   "valid service seed failed");
-	zassert_ok(write_file(BAD_SERVICE_PATH, bad_symbol_service_ext,
-			      sizeof(bad_symbol_service_ext)),
-		   "bad service seed failed");
-	k_sleep(K_MSEC(CONFIG_MESHBUS_LLEXT_DEFAULT_BOOT_DELAY + 1000));
-#endif
-
-#if IS_ENABLED(CONFIG_MESHBUS_LLEXT_APP_SERVICES)
 	zassert_ok(write_file(TEST_APP_PATH, app_ext, sizeof(app_ext)), "valid app seed failed");
 	zassert_ok(write_file(BAD_APP_PATH, bad_symbol_app_ext, sizeof(bad_symbol_app_ext)),
 		   "bad app seed failed");
-#endif
 
 	return NULL;
 }
 
-#if IS_ENABLED(CONFIG_MESHBUS_LLEXT_BOOT_SERVICES)
-ZTEST(meshbus_llext_service_dut, test_real_littlefs_boot_service_runtime)
-{
-	struct meshbus_llext_service_info info;
-	size_t count;
-
-	zassert_ok(meshbus_llext_service_count(&count), "service count failed");
-	zassert_equal(count, 2U, "unexpected service count");
-	zassert_ok(meshbus_llext_service_status(EXIT_SERVICE_ID, &info),
-		   "returning service status failed");
-	zassert_equal(info.state, MESHBUS_LLEXT_STATE_EXITED, "returning service did not teardown");
-	zassert_equal(info.last_error, 0, "returning service error mismatch");
-	zassert_true(strcmp(info.edk_version, "0.1.0") == 0,
-		     "returning service EDK version mismatch");
-	zassert_true(strcmp(info.target, CONFIG_BOARD_TARGET) == 0,
-		     "returning service target mismatch");
-	zassert_equal(atomic_get(&exit_count), 1, "returning service entry count mismatch");
-
-	zassert_ok(meshbus_llext_service_status(BAD_SERVICE_ID, &info),
-		   "bad service status failed");
-	zassert_equal(info.state, MESHBUS_LLEXT_STATE_FAULTED,
-		      "missing-symbol service state mismatch");
-	zassert_equal(info.last_error, -ENOEXEC, "missing-symbol service error mismatch");
-
-	cleanup_file(EXIT_SERVICE_PATH);
-	cleanup_file(BAD_SERVICE_PATH);
-	zassert_ok(stage_erase(), "stage cleanup failed");
-	printk("MB_LLEXT_DUT_RESULT pass mode=boot services=%u exit_count=%ld cleanup=1\n",
-	       (unsigned int)count, (long)atomic_get(&exit_count));
-}
-#endif
-
-#if IS_ENABLED(CONFIG_MESHBUS_LLEXT_APP_SERVICES)
 ZTEST(meshbus_llext_service_dut, test_real_littlefs_app_runtime)
 {
 	struct meshbus_llext_app_session *session = NULL;
@@ -346,6 +279,5 @@ ZTEST(meshbus_llext_service_dut, test_real_littlefs_app_runtime)
 	printk("MB_LLEXT_DUT_RESULT pass mode=app entry_count=%ld recovery=1 cleanup=1\n",
 	       (long)atomic_get(&app_count));
 }
-#endif
 
 ZTEST_SUITE(meshbus_llext_service_dut, NULL, suite_setup, NULL, NULL, NULL);

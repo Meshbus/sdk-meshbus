@@ -28,7 +28,7 @@ Current limitations:
   estimates about 72 KB of LLEXT heap and therefore needs the C2 host app
   reserve to be larger than the earlier 64 KB MicroCity-only setting.
 
-Build with the installed Rust `meshbus` CLI and a released app-profile EDK
+Build with the installed Rust `meshbus` CLI and a released EDK
 for the intended Desktop host. Set `ZEPHYR_SDK_INSTALL_DIR` and install CMake
 and Ninja; no Firmware source checkout is required:
 

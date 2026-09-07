@@ -104,13 +104,6 @@ static const struct meshbus_llext_zbus_desc zbus_descs[MESHBUS_LLEXT_ZBUS_CHANNE
 		.publish_allowed = true,
 	},
 #endif
-#if defined(CONFIG_MESHBUS_LLEXT)
-	[MESHBUS_LLEXT_ZBUS_LLEXT_EVENT_CHAN] = {
-		.chan = &meshbus_llext_state_chan,
-		.msg_size = sizeof(struct meshbus_llext_state_event),
-		.publish_allowed = true,
-	},
-#endif
 #if defined(CONFIG_MESHBUS_MESSAGE)
 	[MESHBUS_LLEXT_ZBUS_MESSAGE_SEND_TO_NODE_REQUEST_CHAN] = {
 		.chan = &meshbus_message_send_to_node_request_chan,
@@ -134,11 +127,6 @@ static const struct meshbus_llext_zbus_desc zbus_descs[MESHBUS_LLEXT_ZBUS_CHANNE
 	},
 #endif
 #if defined(CONFIG_MESHBUS_MESHCORE)
-	[MESHBUS_LLEXT_ZBUS_MESHCORE_CONFIG_RESET_CHAN] = {
-		.chan = &meshbus_meshcore_config_reset_chan,
-		.msg_size = sizeof(meshbus_meshcore_config_reset_event),
-		.publish_allowed = true,
-	},
 	[MESHBUS_LLEXT_ZBUS_MESHCORE_ADVERT_REQUEST_CHAN] = {
 		.chan = &meshbus_meshcore_advert_request_chan,
 		.msg_size = sizeof(meshbus_meshcore_advert_request_event),

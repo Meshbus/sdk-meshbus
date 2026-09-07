@@ -1,24 +1,4 @@
 tests:
-  subsys.meshbus.llext.service_dut.c2.boot_services:
-    tags:
-      - meshbus
-      - llext
-      - littlefs
-      - service_dut
-    harness: ztest
-    harness_config:
-      fixture:
-        - c2
-        - test-filesystem
-    extra_configs:
-      - CONFIG_MESHBUS_LLEXT_BOOT_SERVICES=y
-      - CONFIG_MESHBUS_LLEXT_MAX_SERVICES=2
-      - CONFIG_MESHBUS_LLEXT_DEFAULT_BOOT_DELAY=3000
-    timeout: 30
-    platform_allow:
-      - idea_mesh_tracker_c2/nrf54l15/cpuapp
-    integration_platforms:
-      - idea_mesh_tracker_c2/nrf54l15/cpuapp
   subsys.meshbus.llext.service_dut.c2.app:
     tags:
       - meshbus
@@ -34,7 +14,6 @@ tests:
       - CONFIG_DISPLAY=y
       - CONFIG_U8G2=y
       - CONFIG_ZUI=y
-      - CONFIG_MESHBUS_LLEXT_APP_SERVICES=y
       - CONFIG_MESHBUS_LLEXT_APP_HEAP_RESERVE_SIZE=32768
       - CONFIG_MESHBUS_LLEXT_APP_MAX_HEAP_SIZE=32768
     timeout: 30
