@@ -108,3 +108,5 @@
 		reg = <0x0 0x1>;
 	};
 };
+
+#include "idea_mesh_tracker_c2_peripherals.dtsi"
