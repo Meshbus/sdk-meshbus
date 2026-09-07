@@ -141,3 +141,9 @@ ZephyrModuleFile.txt
 node_modules
 
 scripts/__pycache__/
+
+# Local agent specifications, tickets, and evidence
+/.scratch/
+
+# Reproducible standalone host CLI dependencies
+!/scripts/meshbus/Cargo.lock
