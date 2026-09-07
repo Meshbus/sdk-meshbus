@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (c) 2026 FoBE Studio
 
-"""Serial subcommand for west remote."""
+"""Serial forwarding adapter used by west remote device."""
 
 from __future__ import annotations
 
-import argparse
 import contextlib
 import os
 import shlex
@@ -46,6 +45,7 @@ DEFAULT_REMOTE_ESPTOOL_CFG = "/tmp/meshbus-esptool-usb-jtag-reset.cfg"
 REMOTE_RFC2217_AUTO_PORT_MIN = 42900
 DASHBOARD_RENDER_INTERVAL_SECONDS = 0.5
 DASHBOARD_LOOP_SLEEP_SECONDS = 0.1
+_INFO_ENABLED = True
 PREEMPT_SERIAL_SETTLE_SECONDS = 0.25
 RFC2217_IDLE_SLEEP_SECONDS = 0.001
 RFC2217_SOCKET_BUFFER_SIZE = 256 * 1024
@@ -66,26 +66,9 @@ C_GRAY = "\033[38;5;245m"
 C_PANEL = "\033[38;5;67m"
 
 
-HELP_EPILOG = """\
-Examples:
-  west remote serial build-host.example.com /dev/tty.usbmodem211201
-  west remote serial build-host.example.com /dev/tty.usbmodem211201 --baudrate 921600
-  west remote serial build-host.example.com /dev/tty.usbmodem211201 --rfc2217-only --remote-rfc2217-port 49221
-  west remote serial build-host.example.com /dev/tty.usbmodem211201 --rfc2217-only --esp-reset-strategy usb-jtag --remote-rfc2217-port 49221
-
-The command maps the local serial device to a remote PTY through RFC2217 over
-an SSH reverse tunnel. By default, the remote serial name is the same as the
-local device path. The command keeps running until interrupted, then removes
-the remote symlink it created.
-
-The remote /dev path is a PTY and is intended for serial logs and shell access.
-For tools that need DTR/RTS control, such as esptool flashing, use
---rfc2217-only and pass the printed rfc2217:// URL as the device.
-
-ESP USB Serial/JTAG ports are detected automatically. Their RFC2217 DTR/RTS
-control is converted locally into the USB Serial/JTAG reset sequence unless
---esp-reset-strategy default is used.
-"""
+def _inf(*args, **kwargs) -> None:
+    if _INFO_ENABLED:
+        log.inf(*args, **kwargs)
 
 
 REMOTE_BRIDGE_CODE = r"""
@@ -205,107 +188,22 @@ finally:
 """
 
 
-class SerialCommand:
-    """Register and run the remote serial subcommand."""
+class SerialAdapter:
+    """Run the remote serial forwarding adapter."""
 
-    def add_parser(self, subparsers):
-        parser = subparsers.add_parser(
-            "serial",
-            help="map a local serial device to the remote host",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            description="Map a local serial device to the remote host with the same device name.",
-        )
-        parser.add_argument("ssh_host", help="SSH host that will receive the serial mapping")
-        parser.add_argument(
-            "local_serial",
-            help="Local serial device path, for example /dev/tty.usbmodem211201",
-        )
-        parser.add_argument(
-            "--remote-serial",
-            default=None,
-            help="Remote serial symlink path (default: same as local_serial)",
-        )
-        parser.add_argument(
-            "--baudrate",
-            type=int,
-            default=DEFAULT_BAUDRATE,
-            help=f"Serial baudrate used by the local RFC2217 endpoint (default: {DEFAULT_BAUDRATE})",
-        )
-        parser.add_argument(
-            "--remote-python",
-            default=None,
-            help="Remote Python executable with pyserial installed",
-        )
-        parser.add_argument(
-            "--remote-rfc2217-port",
-            type=int,
-            default=None,
-            help=(
-                "Remote loopback TCP port for the SSH reverse tunnel "
-                f"(default: random free remote port >= {REMOTE_RFC2217_AUTO_PORT_MIN})"
-            ),
-        )
-        parser.add_argument(
-            "--local-rfc2217-port",
-            type=int,
-            default=0,
-            help="Local loopback TCP port for the RFC2217 server (default: random)",
-        )
-        parser.add_argument(
-            "--no-replace-symlink",
-            action="store_true",
-            help="Fail if the remote serial symlink already exists",
-        )
-        parser.add_argument(
-            "--rfc2217-only",
-            action="store_true",
-            help=(
-                "Only expose the remote RFC2217 endpoint; do not create a "
-                "remote PTY symlink. Use this for esptool/west flash."
-            ),
-        )
-        parser.add_argument(
-            "--esp-reset-strategy",
-            choices=("auto", "usb-jtag", "default", "remote-cfg"),
-            default="auto",
-            help=(
-                "ESP reset handling for remote esptool examples: auto detects "
-                "ESP USB Serial/JTAG ports and proxies reset locally, usb-jtag "
-                "forces the local proxy, default disables it, remote-cfg uses "
-                "the legacy remote ESPTOOL_CFGFILE profile (default: auto)"
-            ),
-        )
-        parser.add_argument(
-            "--esp-usb-jtag-reset",
-            dest="esp_reset_strategy",
-            action="store_const",
-            const="usb-jtag",
-            help="Deprecated alias for --esp-reset-strategy usb-jtag",
-        )
-        parser.add_argument(
-            "--remote-esptool-cfg",
-            default=DEFAULT_REMOTE_ESPTOOL_CFG,
-            help=(
-                "Remote temporary esptool config path used only with "
-                "--esp-reset-strategy remote-cfg "
-                f"(default: {DEFAULT_REMOTE_ESPTOOL_CFG})"
-            ),
-        )
-        parser.add_argument(
-            "--ready-timeout",
-            type=float,
-            default=REMOTE_SERIAL_LINK_TIMEOUT,
-            help=f"Seconds to wait for the remote PTY bridge (default: {REMOTE_SERIAL_LINK_TIMEOUT})",
-        )
-        parser.add_argument(
-            "--no-dashboard",
-            action="store_true",
-            help="Disable the live terminal dashboard even when stdout is a TTY",
-        )
-        parser.set_defaults(handler=self.run)
-        return parser
-
-    def run(self, args) -> int:
+    def run(
+        self,
+        args,
+        *,
+        stop_event: threading.Event | None = None,
+        manage_signals: bool = True,
+        quiet: bool = False,
+        ready_callback=None,
+        telemetry_callback=None,
+    ) -> int:
+        global _INFO_ENABLED
+        previous_info_enabled = _INFO_ENABLED
+        _INFO_ENABLED = not quiet
         _require_pyserial()
         local_serial = _validate_device_path(args.local_serial, "local serial")
         remote_serial = _validate_device_path(
@@ -326,6 +224,8 @@ class SerialCommand:
             remote_python = args.remote_python or _discover_remote_python(args.ssh_host)
         runtime = _RuntimeState()
         metrics = _SerialMetrics()
+        if telemetry_callback is not None:
+            telemetry_callback(runtime, metrics)
         reset_proxy_policy = _reset_proxy_policy(esp_reset_strategy, args.rfc2217_only)
         local_server = _Rfc2217Server(
             local_serial.as_posix(),
@@ -338,13 +238,16 @@ class SerialCommand:
         bridge: subprocess.Popen | None = None
         remote_esptool_cfg: PurePosixPath | None = None
         last_remote_pty = ""
-        stop = threading.Event()
+        stop = stop_event or threading.Event()
 
         def request_stop(_signum=None, _frame=None):
             stop.set()
 
-        old_sigint = signal.signal(signal.SIGINT, request_stop)
-        old_sigterm = signal.signal(signal.SIGTERM, request_stop)
+        old_sigint = None
+        old_sigterm = None
+        if manage_signals:
+            old_sigint = signal.signal(signal.SIGINT, request_stop)
+            old_sigterm = signal.signal(signal.SIGTERM, request_stop)
         try:
             local_server.start()
             remote_rfc2217_port = args.remote_rfc2217_port or _allocate_remote_tcp_port(
@@ -369,7 +272,7 @@ class SerialCommand:
             runtime.local_rfc2217 = f"{local_server.host}:{local_server.port}"
             runtime.remote_rfc2217 = f"127.0.0.1:{remote_rfc2217_port}"
             runtime.remote_rfc2217_url = remote_rfc2217_url
-            log.inf(
+            _inf(
                 "local RFC2217 endpoint: "
                 f"{local_server.host}:{local_server.port}; "
                 "remote tunnel endpoint: "
@@ -382,20 +285,20 @@ class SerialCommand:
                 )
                 _write_remote_esptool_cfg(args.ssh_host, remote_esptool_cfg.as_posix())
                 runtime.remote_esptool_cfg = remote_esptool_cfg.as_posix()
-                log.inf("ESP reset strategy: remote-cfg (" + esp_reset_reason + ")")
-                log.inf(f"remote esptool config: {remote_esptool_cfg}")
+                _inf("ESP reset strategy: remote-cfg (" + esp_reset_reason + ")")
+                _inf(f"remote esptool config: {remote_esptool_cfg}")
             elif esp_reset_strategy == "usb-jtag-proxy":
-                log.inf("ESP reset strategy: usb-jtag proxy (" + esp_reset_reason + ")")
+                _inf("ESP reset strategy: usb-jtag proxy (" + esp_reset_reason + ")")
             else:
-                log.inf("ESP reset strategy: default (" + esp_reset_reason + ")")
+                _inf("ESP reset strategy: default (" + esp_reset_reason + ")")
             if args.rfc2217_only:
-                log.inf(f"remote RFC2217 device URL: {remote_rfc2217_url}")
-                log.inf(
+                _inf(f"remote RFC2217 device URL: {remote_rfc2217_url}")
+                _inf(
                     "ESP32 flash example: "
                     + _west_flash_example(remote_rfc2217_url, remote_esptool_cfg)
                 )
                 runtime.bridge_state = "rfc2217-only"
-                log.inf("press Ctrl-C to stop the remote RFC2217 tunnel")
+                _inf("press Ctrl-C to stop the remote RFC2217 tunnel")
             else:
                 bridge = _start_remote_bridge(
                     args.ssh_host,
@@ -410,18 +313,26 @@ class SerialCommand:
                 runtime.remote_pty = ready.remote_pty
                 last_remote_pty = ready.remote_pty
                 runtime.bridge_state = "mapped"
-                log.inf(f"remote serial mapped: {ready.remote_link} -> {ready.remote_pty}")
-                log.inf(
+                _inf(f"remote serial mapped: {ready.remote_link} -> {ready.remote_pty}")
+                _inf(
                     "remote PTY is for serial logs/shell. Direct RFC2217 clients "
                     "can temporarily preempt it; the PTY will be restored after "
                     "the direct client disconnects."
                 )
                 if remote_esptool_cfg is not None:
-                    log.inf(
+                    _inf(
                         "ESP32 flash example: "
                         + _west_flash_example(remote_rfc2217_url, remote_esptool_cfg)
                     )
-                log.inf("press Ctrl-C to stop and remove the remote serial mapping")
+                _inf("press Ctrl-C to stop and remove the remote serial mapping")
+
+            if ready_callback is not None:
+                ready_callback(
+                    {
+                        "url": remote_rfc2217_url,
+                        "pty": runtime.remote_serial if not args.rfc2217_only else None,
+                    }
+                )
 
             dashboard = None
             if sys.stdout.isatty() and not args.no_dashboard:
@@ -448,7 +359,7 @@ class SerialCommand:
                         _drain_pipe(bridge.stderr)
                         runtime.bridge_state = "restoring"
                         if dashboard is None:
-                            log.inf("remote PTY bridge disconnected; restoring serial symlink")
+                            _inf("remote PTY bridge disconnected; restoring serial symlink")
                         bridge = _start_remote_bridge(
                             args.ssh_host,
                             remote_python,
@@ -464,15 +375,16 @@ class SerialCommand:
                         last_remote_pty = ready.remote_pty
                         runtime.bridge_state = "mapped"
                         if dashboard is None:
-                            log.inf(f"remote serial restored: {ready.remote_link} -> {ready.remote_pty}")
+                            _inf(f"remote serial restored: {ready.remote_link} -> {ready.remote_pty}")
                 if dashboard is not None:
                     dashboard.render()
                 time.sleep(DASHBOARD_LOOP_SLEEP_SECONDS if dashboard is not None else 0.2)
         finally:
             if "dashboard" in locals() and dashboard is not None:
                 dashboard.stop()
-            signal.signal(signal.SIGINT, old_sigint)
-            signal.signal(signal.SIGTERM, old_sigterm)
+            if manage_signals:
+                signal.signal(signal.SIGINT, old_sigint)
+                signal.signal(signal.SIGTERM, old_sigterm)
             _stop_processes(processes)
             local_server.stop()
             if not args.rfc2217_only and last_remote_pty:
@@ -483,6 +395,7 @@ class SerialCommand:
                 )
             if remote_esptool_cfg is not None:
                 _cleanup_remote_file(args.ssh_host, remote_esptool_cfg.as_posix())
+            _INFO_ENABLED = previous_info_enabled
         return 0
 
 
@@ -1511,7 +1424,7 @@ def _start_reverse_tunnel(
         f"127.0.0.1:{remote_port}:{local_host}:{local_port}",
         host,
     ]
-    log.inf("starting SSH reverse tunnel: " + shlex.join(cmd))
+    _inf("starting SSH reverse tunnel: " + shlex.join(cmd))
     return subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 
@@ -1552,7 +1465,7 @@ def _allocate_remote_tcp_port(host: str, remote_python: str | None) -> int:
         log.die("remote RFC2217 port allocator returned invalid output: " + result.stdout.strip())
     if port < REMOTE_RFC2217_AUTO_PORT_MIN:
         log.die(f"remote RFC2217 port allocator returned out-of-range port: {port}")
-    log.inf(f"allocated remote RFC2217 port: {port}")
+    _inf(f"allocated remote RFC2217 port: {port}")
     return port
 
 
@@ -1579,7 +1492,7 @@ def _start_remote_bridge(
         ]
     )
     if not quiet:
-        log.inf("starting remote PTY bridge on " + host)
+        _inf("starting remote PTY bridge on " + host)
     return subprocess.Popen(
         ["ssh", "-o", "BatchMode=yes", host, remote_cmd],
         stdin=subprocess.PIPE,
@@ -1605,7 +1518,7 @@ def _wait_remote_ready(process: subprocess.Popen, timeout: float) -> _RemoteRead
             if len(parts) != 3:
                 log.die(f"invalid remote bridge ready line: {line}")
             return _RemoteReady(parts[1], parts[2])
-        log.inf("remote bridge: " + line)
+        _inf("remote bridge: " + line)
 
     stderr = _drain_pipe(process.stderr)
     log.die(f"timed out waiting for remote serial mapping; stderr: {stderr}")

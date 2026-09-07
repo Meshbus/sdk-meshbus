@@ -16,25 +16,23 @@ REMOTE_COMMAND_DIR = Path(__file__).resolve().parent
 if str(REMOTE_COMMAND_DIR) not in sys.path:
     sys.path.insert(0, str(REMOTE_COMMAND_DIR))
 
-from remote_gdb import GdbCommand
-from remote_serial import SerialCommand
+from remote_device import DeviceCommand
 
 
 HELP_EPILOG = """\
 Examples:
-  west remote gdb dev-host.example.com --target nrf54l --probe <probe-id>
-  west remote serial dev-host.example.com /dev/tty.usbmodem...
+  west remote device dev-host.example.com --probe <probe-id> --serial /dev/tty.usbmodem...
 
-Run these commands on the machine with the USB devices. The SSH destination
+Run this command on the machine with the USB devices. The SSH destination
 is the development host that will consume the forwarded endpoints, regardless
-of which machine runs Codex. Use separate processes for multiple devices.
+of which machine runs Codex. Use one process per attached device.
 
 See scripts/remote/README.md for host roles and authorization boundaries.
 """
 
 
 class Remote(WestCommand):
-    """Forward GDB and serial access to the development host."""
+    """Forward one device's GDB and serial access to the development host."""
 
     def __init__(self):
         super().__init__(
@@ -43,8 +41,7 @@ class Remote(WestCommand):
             "Expose this machine's GDB and serial endpoints on an SSH development host.",
             accepts_unknown_args=True,
         )
-        self._gdb = GdbCommand()
-        self._serial = SerialCommand()
+        self._device = DeviceCommand(die=self.die, err=self.err, inf=self.inf)
 
     def do_add_parser(self, parser_adder):
         parser = parser_adder.add_parser(
@@ -55,8 +52,7 @@ class Remote(WestCommand):
             epilog=HELP_EPILOG,
         )
         subparsers = parser.add_subparsers(dest="subcommand", required=True)
-        self._gdb.add_parser(subparsers)
-        self._serial.add_parser(subparsers)
+        self._device.add_parser(subparsers)
         return parser
 
     def do_run(self, args, unknown_args):

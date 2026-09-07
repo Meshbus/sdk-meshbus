@@ -1,42 +1,41 @@
-# West Remote Hardware Transports
+# West Remote Device Transport
 
-`west remote` provides only `gdb` and `serial`. It forwards debug probes and
-serial ports attached to the machine running the command to an SSH development
-host. It does not synchronize sources, build, run Twister, manage workspaces,
-or download artifacts.
+`west remote device` forwards the GDB and serial endpoints for one device
+attached to the machine running the command to an SSH development host. It does
+not synchronize sources, build, run Twister, manage workspaces, or download
+artifacts.
 
 ## Host Roles
 
-- **Device host:** the machine with the USB probes and serial devices. Run
-  `west remote gdb` and `west remote serial` here.
-- **Development host:** the SSH destination passed to those commands. Run
-  your editor/Codex, ordinary `west build`, debugger, flash runner, and serial
-  client here, using the forwarded loopback endpoints.
+- **Device host:** the machine with the USB probe and serial device. Run
+  `west remote device` here.
+- **Development host:** the SSH destination passed to the command. Run the
+  editor/Codex, ordinary `west build`, debugger, flash runner, and serial client
+  here, using the forwarded loopback endpoints.
 
 These roles do not depend on where Codex runs. For example, Codex and the build
-workspace can live on a remote Linux computer while several devices are plugged
-into your local Mac. Run the forwarding commands on the Mac, targeting Linux.
-If the USB devices are on the remote computer and development is local, run
-the forwarding commands there, targeting the local computer's SSH server.
-The device host must be able to SSH into the development host in either case.
+workspace can live on a remote Linux computer while devices are plugged into a
+local Mac. Run the forwarding command on the Mac, targeting Linux. The device
+host must be able to SSH into the development host.
 
 ```text
 Development host                    Device host
-GDB / flash / serial client          USB debug probes / UARTs
+GDB / flash / serial client          USB debug probe / UART
         |                                   ^
-        +--- loopback endpoint --- SSH -----+
-                                   reverse tunnel initiated by device host
+        +--- loopback endpoints -- SSH -----+
+                                   reverse tunnels initiated by device host
 ```
 
 This is GDB/RFC2217 forwarding, not arbitrary USB passthrough.
 
 ## Requirements And Safety
 
-- On the device host: a west workspace exposing this SDK, SSH, and pyOCD for
-  GDB or pyserial for serial forwarding, with permission to access the devices.
+- On the device host: a west workspace exposing this SDK, SSH, pyOCD, pyserial,
+  and permission to access the devices.
 - On the development host: an SSH server accepting reverse forwarding. Python
-  is needed for automatic remote port allocation; the PTY bridge also requires
-  pyserial. Fixed ports with `--rfc2217-only` avoid the remote Python bridge.
+  is needed when a remote PTY is requested with `--serial-pty`.
+- SSH authentication must work non-interactively because the transport uses
+  `BatchMode=yes`.
 - Debug, flash, reset, and serial forwarding require explicit authorization.
   Serial clients can change DTR/RTS and cause resets; forwarding is not a
   passive observation guarantee.
@@ -44,72 +43,110 @@ This is GDB/RFC2217 forwarding, not arbitrary USB passthrough.
   development host as trusted; forwarded endpoints have no per-client login.
 - Never commit credentials, keys, or live host/device maps.
 
-Read `west remote gdb --help` or `west remote serial --help` before use.
+Read `west remote device --help` before use.
 
-## GDB And Flashing
+## Forward One Device
 
-Run one process per probe on the **device host**, selecting the probe explicitly
-when several are connected. Example placeholders below must be replaced:
+Run one process per attached device on the **device host**. Select the probe and
+serial device explicitly when several devices are connected:
 
 ```sh
-west remote gdb dev-host.example.com --target nrf54l --probe <probe-a> --port 57065 --pyocd-opt=--telnet-port=0
-west remote gdb dev-host.example.com --target nrf54l --probe <probe-b> --port 57066 --pyocd-opt=--telnet-port=0
+west remote device dev-host.example.com \
+  --target nrf54l \
+  --probe <probe-a> \
+  --serial /dev/tty.usbmodemA \
+  --gdb-port 57065 \
+  --serial-port 49221
 ```
 
-Run each command in its own terminal. The extra pyOCD option chooses a free
-semihosting telnet port so concurrent servers do not share its default port.
-Omit `--port` to allocate GDB ports automatically and use the printed endpoints.
-For different local and remote port numbers, use `--local-gdb-port` and
-`--remote-gdb-port` instead.
+The defaults are GDB port `57065`, serial port `49221`, lazy pyOCD startup, and
+direct RFC2217 serial forwarding. Ctrl-C stops both tunnels and their local
+servers.
 
-On the **development host**, connect GDB with
-`target extended-remote 127.0.0.1:57065`, or flash a selected build:
+An interactive terminal uses a colored live dashboard. It refreshes four times
+per second and shows:
+
+- SSH tunnel, GDB client, pyOCD stage, serial client, and PTY/RFC2217 bridge
+  states.
+- Three-second moving transfer rates and cumulative bytes in both directions
+  for GDB and serial.
+- GDB sessions, flashes, serial sessions, preemptions, endpoints, probe, baud
+  rate, and uptime.
+
+When stdout is redirected, or when `--no-dashboard` is passed, output falls
+back to the concise ready summary:
+
+```text
+Remote  host   dev-host.example.com
+GDB     ready  127.0.0.1:57065
+Flash          west flash -r gdb -- --gdb-port 57065
+Serial  ready  rfc2217://127.0.0.1:49221
+Device  ready  press Ctrl-C to stop
+```
+
+Failures are reported after the dashboard closes. Add `--verbose` when
+diagnosing startup to disable the dashboard and show raw pyOCD, SSH, RFC2217,
+and PTY bridge warnings and logs.
+
+For a second device, use another process with distinct ports:
+
+```sh
+west remote device dev-host.example.com \
+  --target nrf54l \
+  --probe <probe-b> \
+  --serial /dev/tty.usbmodemB \
+  --gdb-port 57066 \
+  --serial-port 49222 \
+  --pyocd-opt=--telnet-port=0
+```
+
+On the **development host**, flash a selected build and open its serial port:
 
 ```sh
 west flash --no-rebuild -d <build-dir> -r gdb -- --gdb-port 57065
-```
-
-The SDK's GDB runner remains available through `west flash`; there is no
-separate `remote flash` subcommand. The runner loads the selected ELF. It does
-not replace product-specific signed-image, partition, or multi-image flashing
-requirements. Keep the build/artifact-to-probe mapping explicit.
-
-By default, pyOCD starts only when a GDB client connects and stops on disconnect.
-`--persistent-pyocd` keeps it running and may hold or halt the target. Ctrl-C
-stops the forwarding process.
-
-## Serial Monitoring And Serial Flashing
-
-For RFC2217 clients, run one process per UART on the **device host**:
-
-```sh
-west remote serial dev-host.example.com /dev/tty.usbmodemA --rfc2217-only --remote-rfc2217-port 49221
-west remote serial dev-host.example.com /dev/tty.usbmodemB --rfc2217-only --remote-rfc2217-port 49222
-```
-
-The **development host** can open `rfc2217://127.0.0.1:49221` or
-`rfc2217://127.0.0.1:49222` with a compatible monitor or serial flash tool.
-For example, use a pyserial monitor or a compatible ESP build's flash runner:
-
-```sh
 python -m serial.tools.miniterm rfc2217://127.0.0.1:49221 115200
-west flash --no-rebuild -d <esp-build-dir> --esp-device rfc2217://127.0.0.1:49221
 ```
 
-Use one client per UART at a time; a new direct connection preempts the old one.
-ESP USB Serial/JTAG reset handling is selected by `--esp-reset-strategy`.
+The SDK's GDB runner loads the selected ELF. It does not replace
+product-specific signed-image, partition, or multi-image flashing requirements.
+Keep the build/artifact-to-device mapping explicit.
 
-Without `--rfc2217-only`, the tool creates a PTY on the development host with a
-symlink matching the device path (or `--remote-serial`). This requires permission
-to create that `/dev` link. Existing symlinks are replaced by default; use
-`--no-replace-symlink` to refuse replacement. The PTY supports logs and shell
-access, but not transparent DTR/RTS control. Use RFC2217 directly for flashing.
-After direct-client preemption the bridge recreates the PTY; a monitor that
-held the old PTY may need to reopen it.
+By default, pyOCD starts only when a GDB client connects and stops on
+disconnect. `--persistent-pyocd` keeps it running and may hold or halt the
+target.
 
-The device host retries opening the same serial path after a disconnect. A
-changed device path requires restarting with the new path. Ctrl-C stops the
-forwarding and removes the PTY link created by that process.
+## Forward Only One Endpoint
 
-Transport startup alone is not runtime or hardware validation. Save separate
-serial logs and record the device and artifact for each authorized operation.
+The public command remains device-oriented, but either endpoint can be disabled
+when a task needs only the other one:
+
+```sh
+west remote device dev-host.example.com --no-serial --probe <probe-a>
+west remote device dev-host.example.com --no-gdb --serial /dev/tty.usbmodemA
+```
+
+## Optional Remote PTY
+
+Direct RFC2217 is the default and is required by clients that need transparent
+DTR/RTS control. Add `--serial-pty` to also create a PTY symlink on the
+development host:
+
+```sh
+west remote device dev-host.example.com \
+  --no-gdb \
+  --serial /dev/tty.usbmodemA \
+  --serial-pty \
+  --remote-serial /dev/meshbus-c2-uart
+```
+
+Creating a link under `/dev` requires sufficient permission on the development
+host.
+
+The PTY suits logs and shell access but does not transparently carry DTR/RTS.
+A direct RFC2217 client temporarily preempts the PTY bridge; reopen a monitor
+that held the old PTY after the bridge is restored.
+
+The device host retries the same serial path after a disconnect. A changed
+device path requires restarting the command. Transport startup alone is not
+runtime or hardware validation. Save separate serial logs and record the device
+and artifact for each authorized operation.
