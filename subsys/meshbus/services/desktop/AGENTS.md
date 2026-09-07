@@ -18,6 +18,7 @@ reusable UI components belong in public ZUI.
 - Keep user-visible text in the central text contract and maintain every
   selectable language pack with matching symbols and format arguments.
 
-Use local test metadata for focused integration checks and a current consuming
-product build for composition. Pixel, input, display, and timing behavior remain
-unverified until observed on the applicable hardware.
+Select focused checks from local test metadata. Add a consuming product build
+when the change affects product composition. Pixel, input, display, and timing
+claims require observation on the applicable hardware; perform those checks
+when required by the task's acceptance criteria and already authorized.

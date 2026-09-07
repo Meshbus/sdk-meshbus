@@ -81,7 +81,8 @@ Run from `west topdir`. Select the narrowest leaf and platform declared by its
 
 ```sh
 west twister -T <sdk-path>/tests/subsys/meshbus/<leaf> \
-  -p <platform-from-testcase> --inline-logs -v -c
+  -p <platform-from-testcase> -O <west-root>/twister-out/<task> \
+  --inline-logs -v -c
 ```
 
 If a parallel run fails with generated configuration or setup noise, rerun the
@@ -90,5 +91,6 @@ the first relevant build log, runtime log, or assertion, patch only an in-scope
 cause, and rerun the same narrow command before expanding coverage.
 
 Before completion, report changed public contracts, testcase IDs, platforms,
-substituted and real boundaries, exact commands and results, cleanup, and every
-higher evidence layer that remains unverified.
+substituted and real boundaries, exact commands and results, and cleanup where
+applicable. Name higher evidence layers that remain unverified when relevant
+to the task's acceptance criteria or claims.
