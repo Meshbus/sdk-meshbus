@@ -1,0 +1,52 @@
+/* Copyright (c) 2026 FoBE Studio; SPDX-License-Identifier: Apache-2.0 */
+
+/ {
+	/delete-node/ fstab;
+
+	chosen {
+		zephyr,code-partition = &boot_partition;
+	};
+};
+
+&i2c20 {
+	status = "disabled";
+};
+
+&spi00 {
+	status = "disabled";
+};
+
+&adc {
+	status = "disabled";
+};
+
+&cpuapp_rram {
+	/delete-node/ partitions;
+
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x0 DT_SIZE_K(128)>;
+		};
+
+		/*
+		 * Stable Client recovery ABI: [0x20000, 0x165000) is the entire
+		 * CPUAPP application allocation. MCUboot intentionally does not
+		 * encode the application's slot/storage/extra boundaries, so the
+		 * application may repartition this window without reflashing the
+		 * bootloader. Recovery is destructive: an upload may overwrite any
+		 * application-owned data in the window. Progressive erase touches
+		 * only sectors reached by the upload. The top 96 KiB FLPR allocation
+		 * is outside this range.
+		 */
+		slot0_partition: partition@20000 {
+			label = "image-0";
+			reg = <0x20000 DT_SIZE_K(1300)>;
+		};
+	};
+};

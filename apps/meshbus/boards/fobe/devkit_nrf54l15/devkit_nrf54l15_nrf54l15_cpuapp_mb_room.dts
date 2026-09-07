@@ -1,0 +1,5 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+
+/dts-v1/;
+#include "devkit_nrf54l15_nrf54l15_cpuapp_meshbus_common.dtsi"
+#include "devkit_nrf54l15_firmware_partitions.dtsi"

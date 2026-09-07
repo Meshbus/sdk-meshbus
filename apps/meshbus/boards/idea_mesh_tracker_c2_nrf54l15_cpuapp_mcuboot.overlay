@@ -1,0 +1,104 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * MCUboot only needs the recovery UART, boot mode retention, and status
+ * indication path. Keep application peripherals out of the bootloader image.
+ */
+/ {
+
+	chosen {
+		zephyr,code-partition = &boot_partition;
+		/delete-property/ zephyr,display;
+	};
+};
+
+&peripheral_power {
+	status = "disabled";
+};
+
+&i2c20 {
+	status = "disabled";
+};
+
+&ssd1306 {
+	status = "disabled";
+};
+
+&encoder {
+	status = "disabled";
+};
+
+&vbatt {
+	status = "disabled";
+};
+
+&fuel_gauge {
+	status = "disabled";
+};
+
+&charger {
+	status = "disabled";
+};
+
+&i2c21 {
+	status = "disabled";
+};
+
+&spi00 {
+	status = "disabled";
+};
+
+&sx1262 {
+	status = "disabled";
+};
+
+&adc {
+	status = "disabled";
+};
+
+&pwm20 {
+	status = "disabled";
+};
+
+&uart22 {
+	status = "disabled";
+};
+
+&l76k {
+	status = "disabled";
+};
+
+&cpuapp_rram {
+	/delete-node/ partitions;
+
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x0 DT_SIZE_K(128)>;
+		};
+
+		/*
+		 * Stable C2 recovery ABI: [0x20000, 0x165000) is the entire
+		 * CPUAPP application allocation. MCUboot intentionally does not
+		 * encode the application's slot/storage/extra boundaries, so the
+		 * application may repartition this window without reflashing the
+		 * bootloader. Recovery is destructive: an upload may overwrite any
+		 * application-owned data in the window. Progressive erase touches
+		 * only sectors reached by the upload. The top 96 KiB FLPR allocation
+		 * is outside this range.
+		 */
+		slot0_partition: partition@20000 {
+			label = "image-0";
+			reg = <0x20000 DT_SIZE_K(1300)>;
+		};
+	};
+};

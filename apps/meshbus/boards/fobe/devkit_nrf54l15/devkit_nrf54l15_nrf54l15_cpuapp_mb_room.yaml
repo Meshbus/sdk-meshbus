@@ -1,0 +1,23 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+identifier: devkit_nrf54l15/nrf54l15/cpuapp/mb_room
+name: FoBE DevKit nRF54L15 Meshbus Room
+vendor: fobe
+arch: arm
+toolchain:
+  - zephyr
+sysbuild: true
+ram: 188
+flash: 1428
+supported:
+  - adc
+  - counter
+  - dmic
+  - gpio
+  - i2c
+  - pwm
+  - retained_mem
+  - spi
+  - watchdog
+  - i2s

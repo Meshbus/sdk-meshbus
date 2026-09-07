@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
+# MCUboot keeps SB_CONFIG_BOOT_SIGNATURE_KEY_FILE; only APP signing is deferred.
+set_config_string(${ZCMAKE_APPLICATION} CONFIG_MCUBOOT_SIGNATURE_KEY_FILE "")
+set_config_bool(${ZCMAKE_APPLICATION} CONFIG_MCUBOOT_GENERATE_UNSIGNED_IMAGE n)

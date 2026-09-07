@@ -1,0 +1,21 @@
+/* Copyright (c) 2026 FoBE Studio; SPDX-License-Identifier: Apache-2.0 */
+
+#include "devkit_nrf54l15_firmware_partitions.dtsi"
+
+/ {
+	chosen {
+		zephyr,code-partition = &boot_partition;
+	};
+};
+
+&i2c20 {
+	status = "disabled";
+};
+
+&spi00 {
+	status = "disabled";
+};
+
+&adc {
+	status = "disabled";
+};
