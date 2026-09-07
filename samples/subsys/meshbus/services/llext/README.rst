@@ -9,10 +9,10 @@ Build and install
 *****************
 
 Use the Rust ``meshbus`` CLI with an EDK exported from the consuming firmware.
-This directory is not a standalone firmware application. The firmware repository's
+This directory is not a standalone firmware application. This repository's root
 ``DISTRIBUTION.md`` describes EDK creation, verification and qualification.
 
-From the firmware workspace, build representative C and C++ applications::
+From the Zephyr workspace, build representative C and C++ applications::
 
   meshbus llext --llext-sdk /path/to/edk.tar.xz -o build/llext \
     meshbus/samples/subsys/meshbus/services/llext/apps/snake

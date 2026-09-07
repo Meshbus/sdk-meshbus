@@ -1,8 +1,9 @@
-# Meshbus SDK Entry
+# Meshbus Repository Entry
 
-This is an independent Git repository for reusable services, public APIs,
-drivers, protocols, UI components, samples, and tests. Product composition,
-boot/release policy, host CLI, and distribution belong to the firmware repository.
+This repository owns both the reusable Meshbus Zephyr module and the product
+firmware at `apps/meshbus/`. Product composition, boot/release policy, the host
+CLI, and distribution are maintained here. The parent directory is a local
+Zephyr west workspace, not a product source repository.
 
 Before substantive changes, review, or validation, read this root `AGENTS.md`
 and applicable local rules along each target path. Reuse instructions already
@@ -11,13 +12,19 @@ Public headers, schemas,
 Kconfig, CMake, devicetree, test metadata, source, and tests remain the technical
 sources of truth.
 
-Use `git rev-parse --show-toplevel` for the SDK Git root and `west topdir` for
-the consuming workspace. Keep SDK work and firmware-product work separately
-scoped. Treat sibling west project sources, toolchains, and shared caches as
+Use `git rev-parse --show-toplevel` from this repository for the source root
+and `west topdir` for the workspace. The active manifest is `west.yml` here;
+`apps/meshbus/` is a consumer of this same module. Firmware and SDK changes share
+one Git history. Treat sibling west projects, toolchains, and shared caches as
 read-only build context unless the user requests changes there.
+
+Read `DEVELOPMENT.md` for environment, workspace, build, or test work, and
+`DISTRIBUTION.md` for packaging, signing, update, or release work.
 
 Read these local rules only when the task enters their scope:
 
+- `apps/meshbus/AGENTS.md` for product composition and sysbuild policy.
+- `apps/meshbus/boards/AGENTS.md` for product device profiles and partitions.
 - `include/zephyr/meshbus/AGENTS.md` for public Meshbus API and ABI.
 - `subsys/meshbus/services/AGENTS.md` for service runtime and persistence.
 - `subsys/meshbus/services/desktop/AGENTS.md` for Desktop and ZUI integration.
@@ -39,11 +46,15 @@ Treat existing generated artifacts as evidence; do not edit them by hand.
 For authorized validation, generate outputs in a task-specific directory and
 preserve unrelated build outputs.
 
-Use the tracker or ticket location already established for the task. A missing
-SDK-local tracker configuration does not block source review, diagnosis, or
-other work independent of tracker writes. Determine a destination only when a
-required write has no established location; do not copy a consuming product's
-tracker configuration into this repository merely to satisfy a skill.
+Local specifications and tickets live under the ignored `.scratch/` directory.
+Use the tracker or ticket location already established for the task. Missing
+tracker configuration does not block work independent of tracker writes.
+Read `docs/agents/issue-tracker.md` when writing or fetching tickets and
+`docs/agents/triage-labels.md` when setting their category, triage, or progress.
+For domain terminology or architectural decisions, follow
+`docs/agents/domain.md`, root `CONTEXT.md`, and relevant `docs/adr/` entries.
+Historical records may use the former workspace `app/` and SDK `meshbus/`
+paths. Preserve dated evidence; use current repository paths for new work.
 
 Select the smallest build or test that proves the affected behavior. Read the
 nearest `sample.yaml` or `testcase.yaml` for supported targets and scenarios,

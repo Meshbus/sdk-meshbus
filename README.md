@@ -1,22 +1,38 @@
-# Meshbus SDK
+# Meshbus
 
-`sdk-meshbus` is the Zephyr module that provides the reusable Meshbus platform
-layer. It contains the Meshbus and DFU subsystems, the embedded U8G2 and ZUI
-graphics stack, supported boards and drivers, samples and subsystem tests.
+This repository contains the Meshbus Zephyr module, product firmware at
+`apps/meshbus/`, and host tools under `scripts/`. The parent directory is a
+local Zephyr workspace. Product and SDK code share this Git repository;
+firmware and CLI versions retain independent release trains.
 
-Product firmware is intentionally not part of this repository. The separate
-Meshbus firmware repository owns its single `app/`, board role variants,
-role-service matrix, sysbuild policy, signing policy, and release images. It
-also owns the standalone Rust `meshbus` CLI, EDK and DFOTA packaging, and
-client distribution. Install that CLI to consume a released EDK; SDK samples
-do not require the firmware source checkout.
+## Workspace setup
+
+With this checkout at `<workspace>/meshbus`, initialize from `<workspace>`:
+
+```sh
+west init -l meshbus
+west update
+west zephyr-export
+```
+
+For an existing workspace, inspect `west config manifest.path` first; it should
+select `meshbus`. Do not reinitialize or update dependencies just to relocate
+application sources. `west.yml` is the only Meshbus manifest. It follows rolling
+development branches and records fixed revisions where specified; release
+artifacts must retain resolved project SHAs, toolchain, configuration, and
+signing identity. No outer workspace source repository is required.
+
+See [product targets and builds](apps/meshbus/README.md),
+[development and validation](DEVELOPMENT.md), and
+[distribution and release gates](DISTRIBUTION.md). C2 builds require an explicit
+Ed25519 key; a build alone does not establish hardware or release qualification.
 
 ## Zephyr integration
 
 The module descriptor at `zephyr/module.yml` exports this repository as a
 Zephyr CMake/Kconfig module and contributes its board, devicetree, and module
 extension roots. A consuming west workspace must make `sdk-meshbus` visible as
-a west project or through `ZEPHYR_EXTRA_MODULES` before calling
+the west manifest repository, a west project, or through `ZEPHYR_EXTRA_MODULES` before calling
 `find_package(Zephyr)`.
 
 The active workspace manifest is also responsible for resolving the external
@@ -40,14 +56,17 @@ depend on Meshbus service Kconfig symbols.
 - `subsys/u8g2/` and `subsys/zui/`: embedded display/UI components
 - `boards/`, `drivers/`, and `dts/`: SDK hardware integration
 - `samples/` and `tests/`: reusable SDK validation surfaces
-- `scripts/`: SDK build helpers and general zui/mklfs/remote west extensions
+- `apps/meshbus/`: product composition, device profiles, and sysbuild policy
+- `scripts/`: Rust CLI and meshbus/release/zui/mklfs/remote west extensions
+- `CONTEXT.md` and `docs/adr/`: domain vocabulary and accepted decisions
+- `.scratch/`: ignored local specifications, tickets, and historical evidence
 
 Run Zephyr commands from the west workspace root. For example:
 
 ```sh
 west build -p auto -b qemu_x86 \
-  sdk-meshbus/tests/subsys/meshbus/services/clock
-west twister -T sdk-meshbus/tests/subsys/meshbus/services/clock \
+  meshbus/tests/subsys/meshbus/services/clock
+west twister -T meshbus/tests/subsys/meshbus/services/clock \
   -p qemu_x86 --inline-logs -v
 ```
 
@@ -56,9 +75,8 @@ declared by its local `sample.yaml` or `testcase.yaml`.
 
 ## Development workflow
 
-Read the [SDK entry guide](AGENTS.md) and the nearest local `AGENTS.md` before
-changing an owned area. Source ownership and Git history remain separate from
-any consuming firmware repository. Local `sample.yaml` and `testcase.yaml`
+Read the [agent entry guide](AGENTS.md) and the nearest local `AGENTS.md` before
+changing an owned area. Product and SDK work share root guidance and Git history. Local `sample.yaml` and `testcase.yaml`
 files define supported build and test surfaces.
 
 The serial console helper is an ordinary SDK tool at `scripts/serial_use.py`;
