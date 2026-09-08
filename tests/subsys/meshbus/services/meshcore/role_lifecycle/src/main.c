@@ -21,6 +21,8 @@ static bool fail_submit;
 static bool hold_init;
 static bool hold_deinit;
 static bool check_reentrant;
+static bool boot_identity_captured;
+static uint8_t boot_public_key[32];
 K_SEM_DEFINE(deinit_entered, 0, 1);
 K_SEM_DEFINE(deinit_release, 0, 1);
 K_SEM_DEFINE(init_entered, 0, 1);
@@ -92,6 +94,13 @@ void __wrap_meshcore_deinit(void)
 int __real_meshcore_init(void);
 int __wrap_meshcore_init(void)
 {
+	if (!boot_identity_captured) {
+		meshcore_common_node_identity_t identity;
+
+		zassert_ok(meshcore_platform_node_identity_get(&identity));
+		memcpy(boot_public_key, identity.public_key, sizeof(boot_public_key));
+		boot_identity_captured = true;
+	}
 	if (hold_init) {
 		hold_init = false;
 		k_sem_give(&init_entered);
@@ -332,6 +341,16 @@ ZTEST(role_lifecycle, test_live_role_and_persistence)
 #endif
 
 	zassert_ok(meshbus_meshcore_config_get(&cfg));
+
+#if defined(TEST_REQUIRE_RUNTIME)
+	/* The first engine initialization must see the eventual receive identity,
+	 * including on blank storage, before any outgoing request can refresh it.
+	 */
+	zassert_true(boot_identity_captured);
+	zassert_equal(cfg.public_key.size, sizeof(boot_public_key));
+	zassert_mem_equal(boot_public_key, cfg.public_key.bytes, sizeof(boot_public_key),
+			  "Engine started before the local identity was ready");
+#endif
 	if (retained.step == 1) {
 #if defined(TEST_REQUIRE_RUNTIME)
 		uint8_t consumed_seed[32];

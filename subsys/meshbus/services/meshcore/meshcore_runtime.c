@@ -311,15 +311,18 @@ static int meshcore_runtime_init(void)
 
 	k_work_init_delayable(&meshcore_work, meshcore_runtime_work_handler);
 
-	rc = meshcore_init();
-	if (rc != 0) {
-		LOG_ERR("meshcore_init failed: %d", rc);
-		return rc;
-	}
-
+	/* The engine snapshots the receive identity during initialization. Prepare
+	 * defaults first so a new device can receive before its first transmission.
+	 */
 	rc = meshbus_meshcore_backend_bootstrap_defaults();
 	if (rc != 0) {
 		LOG_ERR("bootstrap defaults failed: %d", rc);
+		return rc;
+	}
+
+	rc = meshcore_init();
+	if (rc != 0) {
+		LOG_ERR("meshcore_init failed: %d", rc);
 		return rc;
 	}
 
