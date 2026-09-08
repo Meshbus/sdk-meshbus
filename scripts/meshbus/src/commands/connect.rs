@@ -1427,6 +1427,10 @@ impl SerialSession {
             }
             while let Some(line_end) = self.pending.iter().position(|byte| *byte == b'\n') {
                 let line = self.pending.drain(..=line_end).collect::<Vec<_>>();
+                let (log, line) = split_serial_log_prefix(&line);
+                if !log.is_empty() {
+                    write_device_log(log, quiet_logs, log_file, color)?;
+                }
                 let delimiter = line.get(..2);
                 if delimiter == Some(&START) || delimiter == Some(&CONTINUE) {
                     if delimiter == Some(&START) {
@@ -1447,8 +1451,6 @@ impl SerialSession {
                         decoded.clear();
                         started = false;
                     }
-                } else {
-                    write_device_log(&line, quiet_logs, log_file, color)?;
                 }
             }
         }
@@ -1456,6 +1458,16 @@ impl SerialSession {
             "timed out after {timeout} s waiting for firmware"
         )))
     }
+}
+
+fn split_serial_log_prefix(line: &[u8]) -> (&[u8], &[u8]) {
+    // UART logs can end mid-line immediately before an SMP fragment. Keep the
+    // log bytes, but let packet length and CRC validation decide frame validity.
+    let offset = line
+        .windows(2)
+        .position(|bytes| bytes == START || bytes == CONTINUE)
+        .unwrap_or(line.len());
+    line.split_at(offset)
 }
 
 fn serial_line_pacing_delay(line_length: usize, baudrate: u32) -> Duration {
@@ -1545,6 +1557,14 @@ fn background_read_loop<F>(
         }
         while let Some(line_end) = pending.iter().position(|byte| *byte == b'\n') {
             let line = pending.drain(..=line_end).collect::<Vec<_>>();
+            let (log, line) = split_serial_log_prefix(&line);
+            if !log.is_empty()
+                && let Err(error) =
+                    background_device_log(log, &mut printer, log_file.as_mut(), quiet_logs, color)
+            {
+                let _ = sender.send(SerialEvent::Error(error));
+                break 'read;
+            }
             let delimiter = line.get(..2);
             if delimiter == Some(&START) || delimiter == Some(&CONTINUE) {
                 if delimiter == Some(&START) {
@@ -1581,11 +1601,6 @@ fn background_read_loop<F>(
                         started = false;
                     }
                 }
-            } else if let Err(error) =
-                background_device_log(&line, &mut printer, log_file.as_mut(), quiet_logs, color)
-            {
-                let _ = sender.send(SerialEvent::Error(error));
-                break 'read;
             }
         }
     }
@@ -2102,6 +2117,90 @@ mod tests {
             complete_serial_frame(&encoded).unwrap(),
             Some(frame.to_vec())
         );
+    }
+
+    #[cfg(unix)]
+    fn receive_prefixed_serial_response(background: bool, corrupt_crc: bool) {
+        let runtime = Runtime::load().unwrap();
+        let command = runtime.by_path(&["radio", "status"]).unwrap();
+        let mut frame = build_smp_request(command, &[0x5a; 128], 42).unwrap();
+        frame[0] |= 1; // Read response.
+        let mut wrapped = ((frame.len() + 2) as u16).to_be_bytes().to_vec();
+        wrapped.extend_from_slice(&frame);
+        let crc = CRC16.checksum(&frame) ^ u16::from(corrupt_crc);
+        wrapped.extend_from_slice(&crc.to_be_bytes());
+
+        let (mut host, mut device) = serialport::TTYPort::pair().unwrap();
+        host.set_timeout(Duration::from_millis(20)).unwrap();
+        let mut session = SerialSession {
+            port: Box::new(host),
+            baudrate: 115_200,
+            pending: Vec::new(),
+            background: None,
+            next_sequence: 0,
+        };
+        let logs = tempfile::NamedTempFile::new().unwrap();
+        let log_path = logs.path().to_path_buf();
+        if background {
+            let args = ConnectArgs {
+                port: String::new(),
+                baudrate: 115_200,
+                timeout: 1.0,
+                remote_timeout: 1.0,
+                command: None,
+                json: false,
+                quiet_logs: true,
+                color: ConnectColor::Never,
+                log_file: Some(log_path.clone()),
+                no_history: true,
+                yes: false,
+            };
+            session.start_background(&args, |_| Ok(())).unwrap();
+        }
+        // Split a marker across reads, and prefix both START and CONTINUE.
+        // Ordinary logs between fragments must not disturb packet assembly.
+        let writer = thread::spawn(move || {
+            device.write_all(b"boot log\n[00:00:00.123] \x06").unwrap();
+            thread::sleep(Duration::from_millis(50));
+            device.write_all(&START[1..]).unwrap();
+            device
+                .write_all(BASE64.encode(&wrapped[..48]).as_bytes())
+                .unwrap();
+            device
+                .write_all(b"\nintervening log\n[00:00:00.124] ")
+                .unwrap();
+            device.write_all(&CONTINUE).unwrap();
+            device
+                .write_all(BASE64.encode(&wrapped[48..]).as_bytes())
+                .unwrap();
+            device.write_all(b"\n").unwrap();
+            device
+        });
+        let result = session.receive(1.0, true, Some(&log_path), ConnectColor::Never, command, 42);
+        let _device = writer.join().unwrap();
+        if corrupt_crc {
+            assert!(result.unwrap_err().to_string().contains("CRC"));
+        } else {
+            assert_eq!(result.unwrap(), frame);
+        }
+        assert_eq!(
+            std::fs::read(&log_path).unwrap(),
+            b"boot log\n[00:00:00.123] intervening log\n[00:00:00.124] "
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn synchronous_serial_recovers_log_prefixed_frames() {
+        receive_prefixed_serial_response(false, false);
+        receive_prefixed_serial_response(false, true);
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn background_serial_recovers_log_prefixed_frames() {
+        receive_prefixed_serial_response(true, false);
+        receive_prefixed_serial_response(true, true);
     }
 
     #[test]
