@@ -199,8 +199,8 @@ const char DESKTOP_TEXT_GNSS_SATELLITES_RELOAD[] = "Satellites reload";
 const char DESKTOP_TEXT_GNSS_NO_SATELLITES[] = "No satellites";
 const char DESKTOP_TEXT_GNSS_RELOAD_FAILED[] = "Reload failed";
 
-const char DESKTOP_TEXT_LAUNCHER_LOAD_FAILED_FORMAT[] = "Load failed (%d)";
 const char DESKTOP_TEXT_LAUNCHER_START_FAILED_FORMAT[] = "Start failed (%d)";
+const char DESKTOP_TEXT_LAUNCHER_CLEANUP_FAILED_FORMAT[] = "Could not close app (%d)";
 const char DESKTOP_TEXT_LAUNCHER_ACTION_DELETE[] = "Delete";
 const char DESKTOP_TEXT_LAUNCHER_ACTION_PROPERTIES[] = "Properties";
 const char DESKTOP_TEXT_LAUNCHER_DELETE_TITLE[] = "Delete app?";

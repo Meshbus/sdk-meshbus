@@ -177,13 +177,15 @@ const struct meshbus_desktop_app_desc *meshbus_desktop_app_registry_get_by_id(co
  *
  * @param desc External app launch descriptor. The Desktop runtime copies
  *             `id` and `display_name`, stores `user_data`, and calls
- *             `cleanup(user_data)` after the app entry returns.
+ *             `cleanup(user_data)` after the app thread is joined. On start
+ *             failure, ownership of `user_data` remains with the caller and
+ *             cleanup is not called.
  *
  * @retval 0 Launch flow request accepted (asynchronous).
  * @retval -EINVAL Invalid @p id, @p entry or @p stack_size.
  * @retval -ENODEV Desktop service is not initialized.
  * @retval -EBUSY Desktop launcher scene is not currently active or an app is
- *		 already active.
+ *		 already active, or an MBA Session still requires reclamation.
  * @retval -EEXIST @p id conflicts with an existing static/external app.
  * @retval -ENOMEM Failed to allocate external app runtime resources.
  * @retval -ENOTSUP Desktop launcher/external app runtime support is disabled

@@ -22,6 +22,7 @@ if(CONFIG_MESHBUS_DESKTOP)
 
 	zephyr_library_sources(
 		runtime.c
+		app_runtime.c
 		dashboard.c
 		main_menu.c
 		power_menu.c

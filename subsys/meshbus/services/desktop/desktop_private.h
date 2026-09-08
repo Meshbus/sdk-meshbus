@@ -180,6 +180,15 @@ uint32_t desktop_input_pressed_mask_get(void);
 void desktop_input_drop_counts_get(struct desktop_input_drop_counts *counts);
 bool desktop_open_app(struct zui_desktop *desktop, meshbus_desktop_app_handle_t handle,
 		      uint32_t return_screen_id);
+/* The app runtime owns each MBA Session, including failed reclamation.
+ * A new launch retries retained resources before loading the selected path.
+ */
+int desktop_mba_start(struct zui_desktop *desktop, const char *path);
+/* Joins a returning thread before reclaiming its session and restoring Desktop.
+ * Join failure keeps the exit pending; MBA cleanup failure restores Desktop,
+ * reports the error and retains the session until another explicit launch.
+ */
+int desktop_app_complete_exit(struct zui_desktop *desktop, k_timeout_t timeout);
 
 int desktop_dashboard_init(struct zui_desktop *desktop);
 void desktop_dashboard_deinit(struct zui_desktop *desktop);
@@ -192,6 +201,7 @@ void desktop_main_menu_deinit(struct zui_desktop *desktop);
 
 int desktop_launcher_init(struct zui_desktop *desktop);
 void desktop_launcher_deinit(struct zui_desktop *desktop);
+void desktop_launcher_show_cleanup_error(struct zui_desktop *desktop, int error);
 
 int desktop_power_menu_init(struct zui_desktop *desktop);
 void desktop_power_menu_deinit(struct zui_desktop *desktop);

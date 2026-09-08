@@ -37,7 +37,6 @@ K_THREAD_STACK_DEFINE(meshbus_desktop_thread_stack, CONFIG_MESHBUS_DESKTOP_THREA
 static struct k_thread meshbus_desktop_thread;
 
 static struct zui_desktop *desktop_instance;
-static void zui_desktop_complete_app_exit(struct zui_desktop *desktop);
 
 #if IS_ENABLED(CONFIG_MESHBUS_DESKTOP_PERF_LOG)
 static uint32_t zui_desktop_cycles_since_us(uint32_t start_cycles)
@@ -351,41 +350,6 @@ int zui_desktop_register_screen(struct zui_desktop *desktop, uint32_t id,
 	return ret;
 }
 
-bool desktop_open_app(struct zui_desktop *desktop, meshbus_desktop_app_handle_t handle,
-		      uint32_t return_screen_id)
-{
-	const struct meshbus_desktop_app_desc *app;
-	int ret;
-
-	if (desktop == NULL || !meshbus_desktop_app_handle_is_valid(handle)) {
-		return false;
-	}
-
-	ret = meshbus_desktop_app_registry_resolve_handle(handle, &app);
-	if (ret != 0 || app == NULL || app->app_main == NULL) {
-		LOG_WRN("App handle invalid: handle=0x%08x (%d)", (unsigned)handle, ret);
-		return false;
-	}
-
-	desktop->active_app_handle = handle;
-	desktop->active_app = app;
-	desktop->app_return_screen_id = return_screen_id;
-	(void)zui_host_set_layer_enabled(desktop->host, ZUI_LAYER_DESKTOP, false);
-	ret = desktop_app_registry_start(desktop, handle);
-	if (ret != 0) {
-		LOG_WRN("App start failed: id=%s handle=0x%08x (%d)",
-			app->id != NULL ? app->id : "(null)", (unsigned)handle, ret);
-		desktop->active_app = NULL;
-		desktop->active_app_handle = MESHBUS_DESKTOP_APP_HANDLE_INVALID;
-		(void)zui_host_set_layer_enabled(desktop->host, ZUI_LAYER_DESKTOP, true);
-		(void)zui_host_send_layer_to_front(desktop->host, ZUI_LAYER_DESKTOP);
-		(void)zui_desktop_switch(desktop, return_screen_id);
-		return false;
-	}
-
-	return true;
-}
-
 static struct zui_desktop *zui_desktop_alloc(void)
 {
 	struct zui_desktop *desktop;
@@ -617,7 +581,7 @@ static void meshbus_desktop_thread_entry(void *arg1, void *arg2, void *arg3)
 		uint32_t loop_start_cycles = k_cycle_get_32();
 #endif
 		(void)k_sem_take(&desktop->redraw_sem, zui_desktop_wait_timeout(desktop));
-		zui_desktop_complete_app_exit(desktop);
+		(void)desktop_app_complete_exit(desktop, K_FOREVER);
 		desktop_power_menu_poll(desktop);
 		zui_desktop_refresh_sleep_policy(desktop);
 		zui_desktop_drain_input(desktop);
@@ -685,100 +649,6 @@ int zui_desktop_submit_input(struct zui_desktop *desktop, const struct zui_input
 
 	k_sem_give(&desktop->redraw_sem);
 	return 0;
-}
-
-bool meshbus_desktop_external_app_is_active(void)
-{
-#if !defined(CONFIG_MESHBUS_DESKTOP_LAUNCHER)
-	return false;
-#else
-	struct zui_desktop *desktop = desktop_instance;
-	meshbus_desktop_app_handle_t handle;
-
-	if (desktop == NULL) {
-		return false;
-	}
-
-	handle = desktop->active_app_handle;
-	return desktop_app_registry_is_external_handle(handle) &&
-	       desktop_app_registry_is_running(handle);
-#endif
-}
-
-void zui_desktop_request_app_exit(struct zui_desktop *desktop)
-{
-	if (desktop == NULL) {
-		return;
-	}
-
-	atomic_set(&desktop->app_exit_pending, 1);
-	k_sem_give(&desktop->redraw_sem);
-}
-
-static void zui_desktop_complete_app_exit(struct zui_desktop *desktop)
-{
-	meshbus_desktop_app_handle_t handle;
-	int ret;
-
-	if (desktop == NULL || !atomic_cas(&desktop->app_exit_pending, 1, 0)) {
-		return;
-	}
-
-	handle = desktop->active_app_handle;
-	ret = desktop_app_registry_complete_exit(handle, K_FOREVER);
-	if (ret != 0) {
-		LOG_ERR("Failed to reclaim app thread: handle=0x%08x (%d)",
-			(unsigned int)handle, ret);
-		return;
-	}
-
-	if (desktop_app_registry_is_external_handle(handle)) {
-		ret = desktop_app_registry_external_release(handle);
-		if (ret != 0) {
-			LOG_ERR("Failed to release external app: handle=0x%08x (%d)",
-				(unsigned int)handle, ret);
-		}
-	}
-
-	desktop->active_app = NULL;
-	desktop->active_app_handle = MESHBUS_DESKTOP_APP_HANDLE_INVALID;
-	if (desktop->host != NULL && desktop->router != NULL) {
-		(void)zui_host_set_layer_enabled(desktop->host, ZUI_LAYER_DESKTOP, true);
-		(void)zui_host_send_layer_to_front(desktop->host, ZUI_LAYER_DESKTOP);
-		(void)zui_desktop_switch(desktop, desktop->app_return_screen_id);
-	}
-}
-
-int meshbus_desktop_external_app_start(const struct meshbus_desktop_external_app_desc *desc)
-{
-#if !defined(CONFIG_MESHBUS_DESKTOP_LAUNCHER)
-	ARG_UNUSED(desc);
-	return -ENOTSUP;
-#else
-	meshbus_desktop_app_handle_t handle = MESHBUS_DESKTOP_APP_HANDLE_INVALID;
-	struct zui_desktop *desktop = desktop_instance;
-	int ret;
-
-	if (desktop == NULL) {
-		return -ENODEV;
-	}
-	if (desktop->router == NULL ||
-	    zui_router_current(desktop->router) != MESHBUS_DESKTOP_VIEW_LAUNCHER) {
-		return -EBUSY;
-	}
-
-	ret = desktop_app_registry_external_prepare(desc, &handle);
-	if (ret != 0) {
-		return ret;
-	}
-
-	if (!desktop_open_app(desktop, handle, MESHBUS_DESKTOP_VIEW_LAUNCHER)) {
-		(void)desktop_app_registry_external_release(handle);
-		return -EBUSY;
-	}
-
-	return 0;
-#endif
 }
 
 int meshbus_desktop_init(void)

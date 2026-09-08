@@ -281,10 +281,10 @@ static bool launcher_probe(const char *path, char *name, size_t name_size,
 	return true;
 }
 
-static void launcher_external_app_cleanup(void *user_data)
+void desktop_launcher_show_cleanup_error(struct zui_desktop *desktop, int error)
 {
-	if (user_data != NULL) {
-		(void)meshbus_llext_app_unload(user_data);
+	if (launcher.desktop == desktop) {
+		launcher_show_error(&launcher, DESKTOP_TEXT_LAUNCHER_CLEANUP_FAILED_FORMAT, error);
 	}
 }
 
@@ -292,9 +292,6 @@ static void launcher_selected(struct zui_file_picker *picker, const char *path,
 			      const struct zui_input_event *event, void *user_data)
 {
 	struct desktop_launcher *app = user_data;
-	struct meshbus_llext_app_session *session = NULL;
-	struct meshbus_llext_app_info info;
-	meshbus_llext_app_entry_t entry = NULL;
 	int rc;
 
 	ARG_UNUSED(picker);
@@ -304,39 +301,9 @@ static void launcher_selected(struct zui_file_picker *picker, const char *path,
 		return;
 	}
 
-	rc = meshbus_llext_app_load(path, &session);
+	rc = desktop_mba_start(app->desktop, path);
 	if (rc != 0) {
-		LOG_WRN("External app load failed: path='%s' rc=%d", path, rc);
-		launcher_show_error(app, DESKTOP_TEXT_LAUNCHER_LOAD_FAILED_FORMAT, rc);
-		return;
-	}
-
-	rc = meshbus_llext_app_get_info(session, &info);
-	if (rc != 0) {
-		(void)meshbus_llext_app_unload(session);
-		launcher_show_error(app, DESKTOP_TEXT_LAUNCHER_LOAD_FAILED_FORMAT, rc);
-		return;
-	}
-
-	rc = meshbus_llext_app_get_entry(session, &entry);
-	if (rc != 0) {
-		(void)meshbus_llext_app_unload(session);
-		launcher_show_error(app, DESKTOP_TEXT_LAUNCHER_LOAD_FAILED_FORMAT, rc);
-		return;
-	}
-
-	rc = meshbus_desktop_external_app_start(
-		&(const struct meshbus_desktop_external_app_desc){
-			.id = info.id,
-			.display_name = info.name,
-			.app_main = (meshbus_desktop_app_main_t)entry,
-			.stack_size = info.stack_size,
-			.user_data = session,
-			.cleanup = launcher_external_app_cleanup,
-		});
-	if (rc != 0) {
-		LOG_WRN("External app start failed: id='%s' rc=%d", info.id, rc);
-		(void)meshbus_llext_app_unload(session);
+		LOG_WRN("MBA start failed: path='%s' rc=%d", path, rc);
 		launcher_show_error(app, DESKTOP_TEXT_LAUNCHER_START_FAILED_FORMAT, rc);
 	}
 }
