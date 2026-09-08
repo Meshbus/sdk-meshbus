@@ -1,0 +1,38 @@
+/* Dedicated test storage; never select product storage. See README.rst. */
+/delete-node/ &storage_partition;
+
+&slot1_partition {
+	reg = <0x0c2000 0x0a2000>;
+};
+
+&cpuapp_rram {
+	partitions {
+		storage_partition: partition@164000 {
+			compatible = "zephyr,mapped-partition";
+			label = "mba-test-settings";
+			reg = <0x164000 0x003000>;
+		};
+		extra_partition: partition@167000 {
+			compatible = "zephyr,mapped-partition";
+			label = "mba-test-filesystem";
+			reg = <0x167000 0x00d000>;
+		};
+		product_storage_partition: partition@174000 {
+			compatible = "zephyr,mapped-partition";
+			label = "product-storage-preserved";
+			reg = <0x174000 0x009000>;
+		};
+	};
+};
+
+/ {
+	chosen {
+		zephyr,settings-partition = &storage_partition;
+		zephyr,display = &mba_dummy_display;
+	};
+	mba_dummy_display: mba-dummy-display {
+		compatible = "zephyr,dummy-dc";
+		width = <128>;
+		height = <64>;
+	};
+};

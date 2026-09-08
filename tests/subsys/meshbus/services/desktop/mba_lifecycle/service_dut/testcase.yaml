@@ -1,0 +1,16 @@
+tests:
+  subsys.meshbus.desktop.mba_lifecycle.service_dut:
+    tags: [meshbus, desktop, llext, service_dut]
+    harness: ztest
+    harness_config:
+      fixture: meshbus_mba_devkit_test_storage
+    platform_allow: [devkit_nrf54l15/nrf54l15/cpuapp]
+  subsys.meshbus.desktop.mba_lifecycle.service_dut.shuffled:
+    tags: [meshbus, desktop, llext, service_dut, shuffle]
+    harness: ztest
+    harness_config:
+      fixture: meshbus_mba_devkit_test_storage
+    extra_configs:
+      - CONFIG_ZTEST_SHUFFLE=y
+      - CONFIG_TIMER_RANDOM_INITIAL_STATE=826366246
+    platform_allow: [devkit_nrf54l15/nrf54l15/cpuapp]
