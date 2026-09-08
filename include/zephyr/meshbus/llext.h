@@ -262,7 +262,11 @@ int meshbus_llext_app_probe(const char *path, struct meshbus_llext_app_info *inf
  * when LLEXT is disabled by configuration.
  *
  * @param path Full filesystem path to a `.mba` file.
- * @param session_out Output loaded app session handle.
+ * @param session_out Output app session handle. On failure this is normally
+ *                    NULL. If failure cleanup also fails, a non-NULL handle
+ *                    retains the partial resources; the caller must keep it
+ *                    and retry meshbus_llext_app_unload() before loading again.
+ *                    Such a session has no callable app entry.
  *
  * @retval 0 on success.
  * @retval -EINVAL if arguments are invalid.
@@ -270,7 +274,7 @@ int meshbus_llext_app_probe(const char *path, struct meshbus_llext_app_info *inf
  * @retval -EBUSY if another app session is loaded or loading.
  * @retval -E2BIG if the app heap estimate exceeds the configured app budget.
  * @retval -ENOEXEC if metadata, bring-up, or entry resolution fails.
- * @retval negative errno from filesystem or Zephyr LLEXT loading.
+ * @retval negative errno from filesystem, Zephyr LLEXT loading, or failure cleanup.
  */
 int meshbus_llext_app_load(const char *path,
 			   struct meshbus_llext_app_session **session_out);
@@ -291,12 +295,15 @@ int meshbus_llext_app_get_info(const struct meshbus_llext_app_session *session,
 /**
  * @brief Return the typed Desktop app entry for a loaded app session.
  *
+ * The entry is unavailable once unloading begins, including when reclamation
+ * fails and the session is retained for a later retry.
+ *
  * @param session Loaded app session.
  * @param entry_out Output Desktop-compatible blocking entry function.
  *
  * @retval 0 on success.
  * @retval -EINVAL if arguments are invalid.
- * @retval -ENOENT if @p session is not a loaded app session.
+ * @retval -ENOENT if @p session has no executable app entry.
  */
 int meshbus_llext_app_get_entry(const struct meshbus_llext_app_session *session,
 				meshbus_llext_app_entry_t *entry_out);
@@ -306,6 +313,9 @@ int meshbus_llext_app_get_entry(const struct meshbus_llext_app_session *session,
  *
  * The caller must ensure no app-owned callbacks, work items, timers, or ZBus
  * observers can still call into extension code.
+ * On failure the session remains owned by the caller and blocks new loads;
+ * keep the handle and retry unloading. This also reclaims a partial session
+ * returned when load failure cleanup could not finish.
  *
  * @param session Loaded app session.
  *

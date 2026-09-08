@@ -729,6 +729,7 @@ int meshbus_llext_app_load(const char *path,
 	bool brought_up = false;
 	bool domain_added = false;
 	const void *sym;
+	int cleanup_rc;
 	int rc;
 
 	if (session_out == NULL) {
@@ -822,10 +823,24 @@ int meshbus_llext_app_load(const char *path,
 	return 0;
 
 fail:
-	(void)loaded_resource_cleanup(&ext, &brought_up, &domain_added);
+	cleanup_rc = loaded_resource_cleanup(&ext, &brought_up, &domain_added);
 	k_mutex_lock(&app_mutex, K_FOREVER);
 	memset(&app_session, 0, sizeof(app_session));
+	if (cleanup_rc != 0) {
+		app_session.metadata = metadata;
+		app_metadata_fill_info(&app_session.info, path, &metadata, cleanup_rc);
+		cstr_copy(app_session.path, sizeof(app_session.path), path);
+		app_session.ext = ext;
+		app_session.brought_up = brought_up;
+		app_session.domain_added = domain_added;
+		app_session.in_use = true;
+		*session_out = &app_session;
+	}
 	k_mutex_unlock(&app_mutex);
+	if (cleanup_rc != 0) {
+		LOG_ERR("App load failed: %d; cleanup failed: %d", rc, cleanup_rc);
+		return cleanup_rc;
+	}
 	meshbus_llext_heap_release_if_idle();
 	return rc;
 }
@@ -891,6 +906,8 @@ int meshbus_llext_app_unload(struct meshbus_llext_app_session *session)
 	brought_up = app_session.brought_up;
 	domain_added = app_session.domain_added;
 	app_session.unloading = true;
+	/* Teardown can partially succeed even when reclamation reports an error. */
+	app_session.entry_fn = NULL;
 	k_mutex_unlock(&app_mutex);
 
 	rc = loaded_resource_cleanup(&ext, &brought_up, &domain_added);

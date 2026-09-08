@@ -82,6 +82,12 @@ and run in Desktop, independently of the current MeshCore Role.
 The C2 host does not require publisher approval or a package signature.
 _Avoid_: LLEXT app
 
+**MBA Session**:
+One attempt to run an MBA in Desktop, including any resources retained after
+loading or execution fails. It ends only when all host-owned resources have
+been reclaimed; returning from the application does not by itself end it.
+_Avoid_: Loaded package, running MBA
+
 ## Release Trust
 
 **Production Image Key**:
