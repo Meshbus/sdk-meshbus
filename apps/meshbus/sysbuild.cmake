@@ -9,15 +9,6 @@ if("${BOARD}/${BOARD_QUALIFIERS}" STREQUAL "${c2_target}" AND
     "'-DSB_CONFIG_BOOT_SIGNATURE_KEY_FILE=\"/absolute/path/to/key.pem\"'")
 endif()
 
-if(SB_CONFIG_MESHBUS_C2_EXTERNAL_SIGNING)
-  if(NOT "${BOARD}/${BOARD_QUALIFIERS}" STREQUAL "${c2_target}")
-    message(FATAL_ERROR "External signing is supported only for the C2")
-  endif()
-  get_property(image_conf_scripts TARGET ${DEFAULT_IMAGE} PROPERTY IMAGE_CONF_SCRIPT)
-  list(APPEND image_conf_scripts "${APP_DIR}/sysbuild/c2_external_signing.cmake")
-  set_target_properties(${DEFAULT_IMAGE} PROPERTIES IMAGE_CONF_SCRIPT "${image_conf_scripts}")
-endif()
-
 zephyr_file(CONF_FILES "${APP_DIR}/boards"
   KCONF mcuboot_board_conf
   SUFFIX mcuboot

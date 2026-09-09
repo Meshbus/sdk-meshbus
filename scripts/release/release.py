@@ -415,187 +415,58 @@ def generate_spdx(build, sysbuild, output, identity, source_root, required):
             "status": "generated"}
 
 
-def c2_external_context(build_dir, public_key):
+def verify_native_signature(build_dir, public_key):
+    """Verify Zephyr's signed APP against the public key actually built into MCUboot."""
     build = app_build(build_dir).resolve(strict=True)
-    sysbuild = build.parent
-    info = yaml_file(build / "build_info.yml")
-    app_conf = config(build / "zephyr/.config")
-    boot_conf = config(sysbuild / "mcuboot/zephyr/.config")
-    sys_conf = config(sysbuild / "zephyr/.config", "SB_CONFIG_")
-    board = info["cmake"]["board"]
-    target = "/".join(p for p in (board["name"], board.get("qualifiers")) if p)
-    art.require(target in GA_FIRMWARE_TARGETS and app_conf.get("CONFIG_BOARD_TARGET") == target,
-                "external signing requires the exact C2 target")
-    art.require(sys_conf.get("SB_CONFIG_MESHBUS_C2_EXTERNAL_SIGNING") == "y",
-                "C2 build was not prepared for external signing")
-    art.require(app_conf.get("CONFIG_MCUBOOT_SIGNATURE_KEY_FILE", "") == "" and
-                app_conf.get("CONFIG_MCUBOOT_GENERATE_UNSIGNED_IMAGE") != "y",
-                "external-signing APP must not contain a signing key or generated unsigned image")
-    art.require(app_conf.get("CONFIG_MCUBOOT_IMGTOOL_OVERWRITE_ONLY") == "y" and
-                app_conf.get("CONFIG_MCUBOOT_BOOTLOADER_MODE_SINGLE_APP") == "y" and
-                app_conf.get("CONFIG_MCUBOOT_EXTRA_IMGTOOL_ARGS", "") == "" and
-                not app_conf.get("CONFIG_MCUBOOT_ENCRYPTION_KEY_FILE") and
-                not any(app_conf.get(option) == "y" for option in (
-                    "CONFIG_MCUBOOT_IMGTOOL_UUID_VID",
-                    "CONFIG_MCUBOOT_IMGTOOL_UUID_CID",
-                    "CONFIG_MCUBOOT_GENERATE_CONFIRMED_IMAGE",
-                    "CONFIG_MCUBOOT_BOOTLOADER_USES_SHA512",
-                    "CONFIG_MCUBOOT_BOOTLOADER_SIGNATURE_TYPE_PURE",
-                )) and
-                app_conf.get("CONFIG_BUILD_OUTPUT_BIN") == "y",
-                "unsupported C2 imgtool configuration")
-    art.require(boot_conf.get("CONFIG_BOOT_SIGNATURE_TYPE_ED25519") == "y" and
-                boot_conf.get("CONFIG_BOOT_VALIDATE_SLOT0") == "y" and
-                boot_conf.get("CONFIG_BOOT_SIGNATURE_KEY_FILE"),
-                "C2 MCUboot must embed an Ed25519 verification key and validate slot0")
-    art.require(boot_conf.get("CONFIG_MCUBOOT_SERIAL") == "y" and
-                boot_conf.get("CONFIG_BOOT_SERIAL_UART") == "y" and
-                boot_conf.get("CONFIG_MCUBOOT_BOOT_BLUETOOTH") != "y" and
-                boot_conf.get("CONFIG_BT") != "y",
-                "C2 MCUboot recovery must be UART-only")
-
+    boot = build.parent / "mcuboot/zephyr"
+    public_key = Path(public_key).resolve(strict=True)
+    tool = imgtool()
     app_runner = yaml_file(build / "zephyr/runners.yaml")["config"]
     app_name = app_runner["bin_file"]
-    art.require("/" not in app_name and "\\" not in app_name and
-                app_name.endswith(".bin") and "signed" not in app_name,
-                "external-signing APP runner must select an unsigned binary")
-    unsigned = build / "zephyr" / app_name
-    unsigned_data = art.read(unsigned, MAX_IMAGE)
-
-    boot_runner = yaml_file(sysbuild / "mcuboot/zephyr/runners.yaml")["config"]
-    boot_name = boot_runner["bin_file"]
-    art.require("/" not in boot_name and "\\" not in boot_name and boot_name.endswith(".bin"),
-                "invalid MCUboot binary name")
-    boot = sysbuild / "mcuboot/zephyr" / boot_name
-    boot_data = art.read(boot, MAX_IMAGE)
-
-    public_key = Path(public_key).resolve(strict=True)
-    art.read(public_key, 64 * 1024)
-    tool = imgtool()
-    tool_state = git_state(tool.parents[1])
-    art.require(tool_state["revision"] and not tool_state["dirty"],
-                "external signing requires a clean, committed MCUboot signer")
+    art.require(Path(app_name).name == app_name and app_name.endswith(".signed.bin"),
+                "package requires the native signed application image")
+    boot_name = yaml_file(boot / "runners.yaml")["config"]["bin_file"]
+    art.require(Path(boot_name).name == boot_name, "invalid MCUboot binary name")
+    boot_data = art.read(boot / boot_name, MAX_IMAGE)
     with tempfile.TemporaryDirectory() as temporary:
-        raw_public = Path(temporary) / "public.raw"
-        generated_public = Path(temporary) / "autogen-pubkey.c"
+        raw = Path(temporary) / "public.raw"
+        generated = Path(temporary) / "autogen-pubkey.c"
         run([sys.executable, tool, "keyinfo", "-k", public_key, "--require", "public"])
-        run([sys.executable, tool, "getpub", "-k", public_key,
-             "-e", "raw", "-o", raw_public])
-        run([sys.executable, tool, "getpub", "-k", public_key, "-o", generated_public])
-        public_data = art.read(raw_public, 4096)
-        generated_public_data = art.read(generated_public, 64 * 1024)
-    embedded_public = art.read(sysbuild / "mcuboot/zephyr/autogen-pubkey.c", 64 * 1024)
-    art.require(embedded_public == generated_public_data,
-                "C2 MCUboot generated public key differs from the selected key")
-    art.require(public_data in boot_data, "C2 MCUboot binary does not contain the selected public key")
-
-    version_header = build / "zephyr/include/generated/zephyr/app_version.h"
-    version = macro(version_header, "APP_VERSION_STRING")
-    parameters = {
-        "align": 1,
-        "header_size": int(app_conf["CONFIG_ROM_START_OFFSET"], 0),
-        "overwrite_only": True,
-        "slot_size": int(app_conf["CONFIG_FLASH_LOAD_SIZE"], 0),
-        "version": app_conf["CONFIG_MCUBOOT_IMGTOOL_SIGN_VERSION"],
-    }
-    art.require(parameters["header_size"] > 0 and parameters["slot_size"] > parameters["header_size"],
-                "invalid C2 signing bounds")
-    art.require(parameters["version"] == macro(version_header, "APP_VERSION_EXTENDED_STRING"),
-                "C2 image and firmware versions differ")
-    request = {
-        "firmware_version": version,
-        "mcuboot": {"sha256": art.digest(boot_data), "size": len(boot_data)},
-        "parameters": parameters,
-        "public_key_sha256": art.digest(public_data),
-        "signer": {"imgtool_sha256": art.digest(art.read(tool, 4 * 1024 * 1024)),
-                   "mcuboot_revision": tool_state["revision"]},
-        "target": target,
-        "unsigned_app": {"sha256": art.digest(unsigned_data), "size": len(unsigned_data)},
-    }
-    return {"build": build, "sysbuild": sysbuild, "tool": tool, "public_key": public_key,
-            "public_data": public_data, "request": request, "unsigned": unsigned}
+        run([sys.executable, tool, "getpub", "-k", public_key, "-e", "raw", "-o", raw])
+        run([sys.executable, tool, "getpub", "-k", public_key, "-o", generated])
+        public_data = art.read(raw, 4096)
+        art.require(art.read(generated) == art.read(boot / "autogen-pubkey.c") and
+                    public_data in boot_data,
+                    "MCUboot verification key differs from the selected public key")
+    signed = build / "zephyr" / app_name
+    run([sys.executable, tool, "verify", "-k", public_key, signed])
+    return {"method": "zephyr-imgtool", "key_sha256": art.digest(public_data),
+            "app_sha256": art.digest(art.read(signed, MAX_IMAGE)),
+            "mcuboot_sha256": art.digest(boot_data), "verified": True}
 
 
-def sign_c2(args):
-    context_data = c2_external_context(args.build_dir, args.image_public_key)
-    private_key = args.image_private_key.resolve(strict=True)
+def image_private_key(key_file, build_root):
+    """Validate a caller-owned PEM path without reading keys from the environment."""
+    art.require(key_file, "build requires --image-signing-key")
+    art.require("-----BEGIN" not in str(key_file) and "\n" not in str(key_file),
+                "--image-signing-key must be a file path, not PEM contents")
+    private_key = Path(key_file).resolve(strict=True)
     firmware_root = Path(__file__).resolve().parents[3]
     art.require(not private_key.is_relative_to(firmware_root) and
-                not private_key.is_relative_to(context_data["sysbuild"]),
-                "C2 private key must remain outside source and build trees")
+                not private_key.is_relative_to(build_root),
+                "Image private key must remain outside source and build trees")
     if os.name == "posix":
         art.require(private_key.stat().st_mode & 0o077 == 0,
-                    "C2 private key must not be group- or world-accessible")
+                    "Image private key must not be group- or world-accessible")
     art.read(private_key, 64 * 1024)
-
-    with tempfile.TemporaryDirectory() as temporary:
-        temporary = Path(temporary)
-        private_public = temporary / "private-public.raw"
-        signed = temporary / "app.signed.bin"
-        run([sys.executable, context_data["tool"], "keyinfo", "-k", private_key,
-             "--require", "private"])
-        run([sys.executable, context_data["tool"], "getpub", "-k", private_key,
-             "-e", "raw", "-o", private_public])
-        art.require(art.read(private_public, 4096) == context_data["public_data"],
-                    "C2 private and public keys do not match")
-        parameters = context_data["request"]["parameters"]
-        run([sys.executable, context_data["tool"], "sign", "-k", private_key,
-             "-v", parameters["version"], "-H", parameters["header_size"],
-             "-S", parameters["slot_size"], "--overwrite-only", "--align", 1,
-             context_data["unsigned"], signed])
-        run([sys.executable, context_data["tool"], "verify", "-k",
-             context_data["public_key"], signed])
-        signed_data = art.read(signed, MAX_IMAGE)
-        record = {
-            "kind": "c2-image-signature",
-            "output": {"file": "app.signed.bin", "sha256": art.digest(signed_data),
-                       "size": len(signed_data)},
-            "request": context_data["request"],
-            "request_sha256": json_digest(context_data["request"]),
-            "schema": 1,
-        }
-        output = args.output.resolve()
-        art.require(not output.is_relative_to(context_data["sysbuild"]),
-                    "signing output must be outside the build tree")
-        art.clean_destination(output)
-        shutil.copyfile(signed, output / "app.signed.bin")
-        art.write_json(output / "signing-record.json", record)
-        art.checksums(output)
-    return output
+    return private_key
 
 
-def verify_c2_signature(build_dir, signed_dir, public_key):
-    context_data = c2_external_context(build_dir, public_key)
-    signed_dir = Path(signed_dir).resolve(strict=True)
-    art.verify_checksums(signed_dir)
-    names = {path.relative_to(signed_dir).as_posix() for path in art.files(signed_dir)}
-    art.require(names == {"SHA256SUMS", "app.signed.bin", "signing-record.json"},
-                "unexpected C2 signing bundle contents")
-    signed = signed_dir / "app.signed.bin"
-    signed_data = art.read(signed, MAX_IMAGE)
-    expected = {
-        "kind": "c2-image-signature",
-        "output": {"file": "app.signed.bin", "sha256": art.digest(signed_data),
-                   "size": len(signed_data)},
-        "request": context_data["request"],
-        "request_sha256": json_digest(context_data["request"]),
-        "schema": 1,
-    }
-    record = json.loads(art.read(signed_dir / "signing-record.json", 1024 * 1024))
-    art.require(record == expected, "C2 signing record does not match the build request")
-    run([sys.executable, context_data["tool"], "verify", "-k",
-         context_data["public_key"], signed])
-    return {"data": signed_data, "record": record, "files": art.files(signed_dir)}
-
-
-def firmware(build_dir, output, development, signed_c2=None, image_public_key=None):
+def firmware(build_dir, output, development, image_public_key=None):
     build, info, conf, target, version, source_root, source = context(build_dir)
     product = next((t for t in targets(source_root / "apps/meshbus/boards") if t["board"] == target), None)
     art.require(product, "not a qualified product target")
     release_target = target in GA_FIRMWARE_TARGETS
-    art.require(bool(signed_c2) == bool(image_public_key),
-                "--signed-c2 and --image-public-key must be used together")
-    art.require(not signed_c2 or release_target, "external signing is supported only for C2")
     clean = all(not p["dirty"] for p in [source["firmware"], *source["projects"].values()])
     art.require(development or clean, "candidate requires clean committed source; use --development")
     art.require(development or not source["off_manifest"],
@@ -607,15 +478,8 @@ def firmware(build_dir, output, development, signed_c2=None, image_public_key=No
                 (sysbuild / "mcuboot/zephyr/.config").is_file(), "product requires full sysbuild and MCUboot output")
     if release_target:
         boot_conf = config(sysbuild / "mcuboot/zephyr/.config")
-        art.require(development or signed_c2,
-                    "production C2 package requires a separate signing bundle")
-        if signed_c2:
-            art.require(image_public_key, "C2 signing bundle requires --image-public-key")
-            external_signature = verify_c2_signature(build, signed_c2, image_public_key)
-        else:
-            art.require(conf.get("CONFIG_MCUBOOT_SIGNATURE_KEY_FILE"),
-                        "C2 application signing key is missing")
-            external_signature = None
+        art.require(conf.get("CONFIG_MCUBOOT_SIGNATURE_KEY_FILE"),
+                    "application signing key configuration is missing")
         art.require(boot_conf.get("CONFIG_BOOT_SIGNATURE_TYPE_ED25519") == "y" and
                     boot_conf.get("CONFIG_BOOT_VALIDATE_SLOT0") == "y",
                     "C2 MCUboot must verify Ed25519 authorization on every boot")
@@ -624,8 +488,8 @@ def firmware(build_dir, output, development, signed_c2=None, image_public_key=No
                     boot_conf.get("CONFIG_MCUBOOT_BOOT_BLUETOOTH") != "y" and
                     boot_conf.get("CONFIG_BT") != "y",
                     "C2 MCUboot recovery must be UART-only")
-    else:
-        external_signature = None
+    public_key = Path(image_public_key) if image_public_key else sysbuild / "image-public.pem"
+    signing = verify_native_signature(build, public_key) if release_target or image_public_key else None
     llext = conf.get("CONFIG_MESHBUS_LLEXT") == "y"
     # Fail before writing a partial product if its required EDK tool is absent.
     edk_command = cli_command(require_explicit=not development) if llext else None
@@ -635,9 +499,9 @@ def firmware(build_dir, output, development, signed_c2=None, image_public_key=No
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary)
         segments, images, inputs = [], [], {}
-        if external_signature:
-            for path in external_signature["files"]:
-                inputs[path] = art.digest(art.read(path))
+        if signing:
+            inputs[public_key] = art.digest(art.read(public_key))
+            shutil.copyfile(public_key, root / "image-public.pem")
         for domain, directory in [("mcuboot", sysbuild / "mcuboot"), ("app", build)]:
             settings = config(directory / "zephyr/.config")
             number = lambda key: int(settings[key], 0)
@@ -645,13 +509,8 @@ def firmware(build_dir, output, development, signed_c2=None, image_public_key=No
             name = runner["bin_file"]
             selected_path = directory / "zephyr" / name
             signed_image = "signed" in name
-            if external_signature and domain == "app":
-                name = "app.signed.bin"
-                data = external_signature["data"]
-                signed_image = True
-            else:
-                data = art.read(selected_path, MAX_IMAGE)
-            if release_target and domain == "app" and not external_signature:
+            data = art.read(selected_path, MAX_IMAGE)
+            if release_target and domain == "app":
                 art.require(name.endswith(".signed.bin"), "C2 package requires the signed application image")
             for path in (selected_path, directory / "zephyr/.config",
                          directory / "zephyr/zephyr.dts", directory / "zephyr/runners.yaml"):
@@ -663,9 +522,7 @@ def firmware(build_dir, output, development, signed_c2=None, image_public_key=No
                         address + len(data) <= base + size, f"{domain} binary exceeds partition")
             filename = f"{domain}.bin"
             (root / filename).write_bytes(data)
-            if external_signature and domain == "app":
-                (root / "app.hex").write_text(full_hex([(base, data)]), encoding="ascii", newline="\n")
-            elif runner.get("hex_file"):
+            if runner.get("hex_file"):
                 path = directory / "zephyr" / runner["hex_file"]
                 if path.is_file():
                     shutil.copyfile(path, root / f"{domain}.hex")
@@ -703,12 +560,8 @@ def firmware(build_dir, output, development, signed_c2=None, image_public_key=No
                   "validation": {"build": "passed", "hardware": "not-run", "production_release": "not-qualified"}}
         if edk_tool:
             record["edk_tool"] = edk_tool
-        if external_signature:
-            record["signing"] = {
-                "key_sha256": external_signature["record"]["request"]["public_key_sha256"],
-                "request_sha256": external_signature["record"]["request_sha256"],
-                "verified": True,
-            }
+        if signing:
+            record["signing"] = signing
         art.write_json(root / "flash-map.json", record)
         shutil.copyfile(source_root / "LICENSE", root / "LICENSE.txt")
         (root / "NOTICE.txt").write_text(
@@ -747,15 +600,11 @@ def build_products(args):
         selected_targets = release_targets(application / "boards")
     art.require(args.development or all(target["board"] in GA_FIRMWARE_TARGETS for target in selected_targets),
                 "qualification fixtures require --development")
-    c2_selected = any(target["board"] in GA_FIRMWARE_TARGETS for target in selected_targets)
+    release_selected = any(target["board"] in GA_FIRMWARE_TARGETS for target in selected_targets)
     image_key_arg = getattr(args, "image_signing_key", None)
-    image_key = None
-    if c2_selected:
-        art.require(args.development,
-                    "production C2 build and signing must use the separate protected CI signer")
-        art.require(image_key_arg, "C2 development build requires --image-signing-key")
-        image_key = image_key_arg.resolve(strict=True)
+    needs_key = release_selected or image_key_arg
     version = art.digest(art.read(application / "VERSION"))[:12]
+    image_key = image_private_key(image_key_arg, args.build_root.resolve()) if needs_key else None
     for target in selected_targets:
         directory = args.build_root.resolve() / version / product_name(target)
         command = ["west", "build", "-p", "always", "--sysbuild", "-b", target["board"],
@@ -768,6 +617,10 @@ def build_products(args):
         if definitions:
             command += ["--", *definitions]
         run(command, cwd=workspace)
+        if image_key:
+            directory.mkdir(parents=True, exist_ok=True)
+            run([sys.executable, imgtool(), "getpub", "-k", image_key,
+                 "-e", "pem", "-o", directory / "image-public.pem"])
         firmware(directory, args.output, args.development)
 
 
@@ -928,21 +781,14 @@ def add_arguments(parser):
                        help="Device ID or one ordinary fully qualified board target; repeatable")
     build.add_argument("--build-root", type=Path, required=True)
     build.add_argument("--image-signing-key", type=Path,
-                       help="Development Ed25519 key file; production signing uses protected CI")
+                       help="Ed25519 private PEM file passed to Zephyr native build signing")
     fw = sub.add_parser("firmware", help="Package an existing sysbuild without rebuilding firmware")
     fw.add_argument("--build-dir", type=Path, required=True)
-    fw.add_argument("--signed-c2", type=Path,
-                    help="Verified output directory from the separate sign-c2 command")
     fw.add_argument("--image-public-key", type=Path,
-                    help="Public-only Ed25519 key embedded in C2 MCUboot")
+                    help="Verification public PEM; defaults to <sysbuild>/image-public.pem")
     for command in (build, fw):
         command.add_argument("--output", type=Path, required=True)
         command.add_argument("--development", action="store_true")
-    sign = sub.add_parser("sign-c2", help="Sign one externally prepared C2 application")
-    sign.add_argument("--build-dir", type=Path, required=True)
-    sign.add_argument("--image-private-key", type=Path, required=True)
-    sign.add_argument("--image-public-key", type=Path, required=True)
-    sign.add_argument("--output", type=Path, required=True)
     cli = sub.add_parser("cli", help="Explicitly build and archive the native Rust CLI")
     cli.add_argument("--workspace", type=Path, default=Path("."))
     cli.add_argument("--output", type=Path, required=True)
@@ -965,9 +811,7 @@ def execute(args):
             build_products(args)
         elif args.release_command == "firmware":
             print(json.dumps({"part": str(firmware(args.build_dir, args.output, args.development,
-                                                   args.signed_c2, args.image_public_key))}))
-        elif args.release_command == "sign-c2":
-            print(json.dumps({"signing_bundle": str(sign_c2(args))}))
+                                                   args.image_public_key))}))
         elif args.release_command == "cli":
             print(json.dumps({"part": str(client(args))}))
         elif args.release_command == "assemble":

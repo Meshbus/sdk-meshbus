@@ -54,60 +54,61 @@ set, currently only `idea_mesh_tracker_c2/nrf54l15/cpuapp`. The old DevKit
 product role profiles have been removed; the SDK base board remains available
 for samples and tests. DevKit product support is deferred.
 
+Meshbus uses Zephyr's native MCUboot build-time signing. All official board
+models share one Ed25519 Production Image Key across firmware versions; the
+DFOTA Manifest Key remains independent. Board identity and image layout still
+come from the selected target, not from the signing key.
+
+Keep the private PEM outside the source and build trees and pass its file path:
+
 ```sh
 west release matrix
 west release build --workspace "$PWD" \
-  --build-root build/candidate-builds --output build/candidate --development \
-  --image-signing-key /absolute/path/to/development-ed25519.pem
+  --image-signing-key /absolute/private/meshbus-image-v1.pem \
+  --build-root build/products --output build/candidate
 ```
 
-Use `--target <board-id>` or `--target <fully-qualified-board-target>` to select
-the same device firmware:
+Use `--target idea_mesh_tracker_c2` or
+`--target idea_mesh_tracker_c2/nrf54l15/cpuapp` to select C2 explicitly. All
+selected official boards use the same supplied key file. There is no implicit
+test key or PEM-content environment-variable interface. Use `--development`
+when rehearsing with uncommitted sources or dependencies; this changes
+packaging qualification, not the signing algorithm or key source.
+
+The release entry point passes the file path through Zephyr's standard
+`SB_CONFIG_BOOT_SIGNATURE_KEY_FILE`. Zephyr embeds the public key in MCUboot
+and invokes imgtool to produce the signed APP. No custom image configuration
+script or separate Meshbus signing command is needed.
+
+The release host or CI owns the private file, its backup and cleanup. On POSIX
+it must have mode `0600` or stricter. Meshbus does not create, copy, or delete
+private key files. Keep the file available while building, rebuilding, or
+exporting the EDK, because Zephyr may invoke signing again. Never commit private
+PEM contents or include them in logs or published artifacts. In CI, provision a
+private file before invoking the command and remove it when the job finishes.
+
+Each sysbuild retains `image-public.pem`. Packaging verifies the native signed
+APP, checks that this public key matches MCUboot's generated and linked key,
+and records the key fingerprint and APP/MCUboot digests. The firmware archive
+includes the public PEM. Signature verification needs no private key. The
+standalone packaging command is:
 
 ```sh
-west release build --target idea_mesh_tracker_c2 \
-  --build-root build/products --output build/candidate-c2 --development \
-  --image-signing-key /absolute/path/to/development-ed25519.pem
-west release build --target idea_mesh_tracker_c2/nrf54l15/cpuapp \
-  --build-root build/products --output build/candidate-c2 --development \
-  --image-signing-key /absolute/path/to/development-ed25519.pem
+west release firmware --build-dir build/<sysbuild-dir> \
+  --output build/candidate-repack
 ```
 
-The integrated `--image-signing-key` path is development-only. Production
-builds embed a reviewed public key and pass the unsigned APP to a separate
-protected CI signer; the production private key must never enter a build job.
+For builds made directly with `west build`, supply
+`--image-public-key /absolute/path/to/public.pem` when packaging. Such builds
+use the ordinary Zephyr key-file option and must enable APP/MCUboot metadata for
+release packaging. Keep the configured private PEM path available for any
+rebuild or EDK export.
+If the path changes, rerun `west release build` with the new file path instead
+of editing generated build configuration.
 
-The same external handoff can be rehearsed with a disposable test key. The
-private PEM and signing output must be outside the source and sysbuild trees;
-on POSIX the private PEM must have mode `0600` or stricter.
-
-```sh
-west build -p always --sysbuild \
-  -b idea_mesh_tracker_c2/nrf54l15/cpuapp meshbus/apps/meshbus \
-  -d build/c2-public-key -- \
-  '-DSB_CONFIG_BOOT_SIGNATURE_KEY_FILE="/absolute/path/to/public-ed25519.pem"' \
-  -DSB_CONFIG_MESHBUS_C2_EXTERNAL_SIGNING=y \
-  -DCONFIG_BUILD_OUTPUT_META=y \
-  -Dmcuboot_CONFIG_BUILD_OUTPUT_META=y
-chmod 600 /absolute/path/to/private-ed25519.pem
-west release sign-c2 --build-dir build/c2-public-key \
-  --image-private-key /absolute/path/to/private-ed25519.pem \
-  --image-public-key /absolute/path/to/public-ed25519.pem \
-  --output /absolute/path/to/signing-bundle
-west release firmware --build-dir build/c2-public-key \
-  --signed-c2 /absolute/path/to/signing-bundle \
-  --image-public-key /absolute/path/to/public-ed25519.pem \
-  --output build/candidate-c2 --development
-```
-
-`sign-c2` accepts only the exact C2 external-signing build. It requires
-a public-only PEM that matches MCUboot's generated and linked key, requires a
-clean committed MCUboot signer, matches the private key, signs with the final
-build parameters, and verifies the result. Its deterministic handoff contains
-only `app.signed.bin`, `signing-record.json`, and `SHA256SUMS`; the record binds
-the unsigned APP, MCUboot binary, key fingerprint, target, versions, signing
-parameters, MCUboot revision, and `imgtool.py` digest. Packaging independently
-revalidates that handoff and records its request digest.
+The former external-signing mode and `sign-c2`/`--signed-c2` interfaces have been
+removed. Rebuild historical external-signing build trees through the native
+flow; existing dated evidence is retained as historical evidence.
 
 Use separate workspaces for
 separate firmware versions; this command never checks out Git revisions or
@@ -217,31 +218,18 @@ Historical source images must be the originally retained signed bytes.
 
 ## CI and candidate assembly
 
-Firmware CI and CLI CI are independent. The firmware production workflow must
-freeze resolved dependencies, build only C2 on Linux using the reviewed
-Production Image public key, and pass an immutable unsigned APP artifact to a
-separate signing job. Only a push to protected `main` may enter the
-`production-signing` environment and read its PEM secret. The signed output is
-still an Engineering Candidate until the separate GA gates pass.
+Firmware CI and CLI CI are independent. Firmware releases use the same native
+build-and-sign command locally on a trusted release host or in protected CI.
+Freeze and review the source/dependency revisions before supplying the shared
+Production Image Key. The build system, toolchain, and build scripts are now
+inside the signing trust boundary, as accepted in ADR 0010.
 
-The signing job must use only digest/SHA-pinned actions and a reviewed immutable
-signer tool, with read-only repository permissions, no pull-request trigger,
-no cache containing the PEM, and no execution of the unsigned artifact. It must
-match the secret key fingerprint to the tracked public key, bind the output to
-the build request digest, verify the completed image independently, and remove
-the temporary PEM before exit. Required review and CODEOWNERS for workflow,
-signer, and key-policy changes are part of the key boundary. Every protected
-`main` push may create a signed candidate; only an approved version tag may
-publish one.
-
-The public-key-only build, immutable signing handoff, post-sign verification,
-and signed-image packaging interfaces are implemented. The production workflow
-is still intentionally inactive: the repository has no reviewed production
-public key or `production-signing` environment, and the current private
-organization repository plan does not provide branch protection or rulesets.
-Do not expose the Production Image private key until all three prerequisites
-exist. The signer does not delete a caller-owned key file, so CI must materialize
-the PEM in an ephemeral location and remove it on every exit path.
+Production secrets must not be available to pull requests, forks, or unreviewed
+build inputs. Keep an encrypted backup of the shared key and retain its reviewed
+public fingerprint. CI automation is not provisioned by the release command;
+it must configure secret access and runner cleanup separately. Signing produces
+a candidate, not a public release: tags, publication, and qualification remain
+separate actions.
 
 **macOS Intel toolchain limitation:** Zephyr SDK 1.0.1 has no Intel bundle.
 SDK 0.17.4 is the last available Intel bundle, but its GCC 12.2 cannot compile
@@ -315,9 +303,9 @@ Before promoting a candidate, all of these gates must be explicit passes:
 
 - a clean committed Meshbus revision and dependency revisions with
   `apps/meshbus/VERSION` set to 1.0.0;
-- protected `main`, reviewed Production Image public key, protected PEM secret,
+- reviewed release source, reviewed Production Image public key, protected PEM secret,
   key-pair fingerprint match, and tested backup/rotation procedure;
-- reproducible C2 build, independent signing, cryptographic image verification,
+- reproducible C2 native build/signing, independent cryptographic image verification,
   SPDX/license completion, archive authentication, and immutable provenance;
 - C2 hardware tests for normal boot, unsigned/wrong-key/tampered rejection,
   UART recovery, absence of BLE recovery, SWD full erase/programming, retained

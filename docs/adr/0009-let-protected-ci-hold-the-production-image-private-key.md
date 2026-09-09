@@ -1,8 +1,11 @@
 ---
-status: accepted
+status: superseded by ADR-0010
 ---
 
 # Let protected CI hold the production image private key
+
+Historical policy, superseded by [ADR 0010](0010-use-native-zephyr-build-signing.md).
+The separate-job requirement below no longer governs current release builds.
 
 Firmware 1.0.0 stores the exportable Ed25519 Production Image private key as a
 PEM secret in a protected production-signing CI environment. Every successful

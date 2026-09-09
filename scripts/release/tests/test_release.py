@@ -382,93 +382,105 @@ class ArtifactTests(unittest.TestCase):
 
 class SigningTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="C2 signing tests ")
+        self.temp = tempfile.TemporaryDirectory(prefix="native signing tests ")
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.private = self.root / "private.pem"
         self.public = self.root / "public.pem"
-        tool = release.imgtool()
-        release.run([sys.executable, tool, "keygen", "-k", self.private, "-t", "ed25519"])
+        self.tool = release.imgtool()
+        release.run([sys.executable, self.tool, "keygen", "-k", self.private, "-t", "ed25519"])
         self.private.chmod(0o600)
-        release.run([sys.executable, tool, "getpub", "-k", self.private,
+        release.run([sys.executable, self.tool, "getpub", "-k", self.private,
                      "-e", "pem", "-o", self.public])
-        raw_public = self.root / "public.raw"
-        release.run([sys.executable, tool, "getpub", "-k", self.public,
-                     "-e", "raw", "-o", raw_public])
-
+        raw = self.root / "public.raw"
+        release.run([sys.executable, self.tool, "getpub", "-k", self.public,
+                     "-e", "raw", "-o", raw])
         self.sysbuild = self.root / "sysbuild"
-        app = self.sysbuild / "meshbus"
-        app_zephyr = app / "zephyr"
-        boot_zephyr = self.sysbuild / "mcuboot/zephyr"
-        (app_zephyr / "include/generated/zephyr").mkdir(parents=True)
-        boot_zephyr.mkdir(parents=True)
-        (self.sysbuild / "zephyr").mkdir()
-        target = "idea_mesh_tracker_c2/nrf54l15/cpuapp"
-        art.write_json(app / "build_info.yml", {"cmake": {"board": {
-            "name": "idea_mesh_tracker_c2", "qualifiers": "nrf54l15/cpuapp"}}})
-        (self.sysbuild / "zephyr/.config").write_text(
-            "SB_CONFIG_MESHBUS_C2_EXTERNAL_SIGNING=y\n")
-        (app_zephyr / ".config").write_text(
-            f'CONFIG_BOARD_TARGET="{target}"\n'
-            "CONFIG_BOOTLOADER_MCUBOOT=y\n"
-            "CONFIG_BUILD_OUTPUT_BIN=y\n"
-            "CONFIG_FLASH_LOAD_SIZE=0x1000\n"
-            "CONFIG_ROM_START_OFFSET=0x20\n"
-            'CONFIG_MCUBOOT_SIGNATURE_KEY_FILE=""\n'
-            'CONFIG_MCUBOOT_IMGTOOL_SIGN_VERSION="1.2.3+0"\n'
-            "CONFIG_MCUBOOT_IMGTOOL_OVERWRITE_ONLY=y\n"
-            'CONFIG_MCUBOOT_EXTRA_IMGTOOL_ARGS=""\n'
-            "CONFIG_MCUBOOT_BOOTLOADER_MODE_SINGLE_APP=y\n")
-        (app_zephyr / "runners.yaml").write_text("config:\n  bin_file: zephyr.bin\n")
-        (app_zephyr / "zephyr.bin").write_bytes(b"\x00" * 0x20 + b"test application")
-        (app_zephyr / "include/generated/zephyr/app_version.h").write_text(
-            '#define APP_VERSION_STRING "1.2.3"\n'
-            '#define APP_VERSION_EXTENDED_STRING "1.2.3+0"\n')
-        (boot_zephyr / ".config").write_text(
-            'CONFIG_BOOT_SIGNATURE_KEY_FILE="public.pem"\n'
-            "CONFIG_BOOT_SIGNATURE_TYPE_ED25519=y\n"
-            "CONFIG_BOOT_VALIDATE_SLOT0=y\n"
-            "CONFIG_MCUBOOT_SERIAL=y\n"
-            "CONFIG_BOOT_SERIAL_UART=y\n")
-        (boot_zephyr / "runners.yaml").write_text("config:\n  bin_file: zephyr.bin\n")
-        (boot_zephyr / "zephyr.bin").write_bytes(
-            b"boot-prefix" + raw_public.read_bytes() + b"boot-suffix")
-        release.run([sys.executable, tool, "getpub", "-k", self.public,
-                     "-o", boot_zephyr / "autogen-pubkey.c"])
+        app = self.sysbuild / "meshbus/zephyr"
+        boot = self.sysbuild / "mcuboot/zephyr"
+        app.mkdir(parents=True)
+        boot.mkdir(parents=True)
+        (app / ".config").write_text("CONFIG_BOOTLOADER_MCUBOOT=y\n")
+        (app / "runners.yaml").write_text("config:\n  bin_file: zephyr.signed.bin\n")
+        (app / "zephyr.bin").write_bytes(bytes(32) + b"test application")
+        release.run([sys.executable, self.tool, "sign", "-k", self.private,
+                     "-v", "1.2.3", "-H", "32", "-S", "4096", "--align", "1",
+                     "--overwrite-only", app / "zephyr.bin", app / "zephyr.signed.bin"])
+        (boot / "runners.yaml").write_text("config:\n  bin_file: zephyr.bin\n")
+        (boot / "zephyr.bin").write_bytes(b"boot-prefix" + raw.read_bytes())
+        release.run([sys.executable, self.tool, "getpub", "-k", self.public,
+                     "-o", boot / "autogen-pubkey.c"])
+        (self.root / "meshbus/apps/meshbus").mkdir(parents=True)
+        (self.root / "meshbus/west.yml").write_text("manifest: {}\n")
+        (self.root / "meshbus/apps/meshbus/VERSION").write_text("VERSION_MAJOR = 1\n")
+        copy_board_metadata(self.root)
 
-    def test_external_signing_is_reproducible_and_bound_to_the_build(self):
-        outputs = []
-        for name in ("first", "second"):
-            args = argparse.Namespace(build_dir=self.sysbuild, image_private_key=self.private,
-                                      image_public_key=self.public, output=self.root / name)
-            outputs.append(release.sign_c2(args))
-            art.verify_checksums(outputs[-1])
-        self.assertEqual((outputs[0] / "app.signed.bin").read_bytes(),
-                         (outputs[1] / "app.signed.bin").read_bytes())
-        verified = release.verify_c2_signature(self.sysbuild, outputs[0], self.public)
-        self.assertEqual(verified["record"]["request"]["target"],
-                         "idea_mesh_tracker_c2/nrf54l15/cpuapp")
-        self.assertNotIn(str(self.private), (outputs[0] / "signing-record.json").read_text())
+    def test_native_verification_rejects_wrong_key_and_tampering(self):
+        result = release.verify_native_signature(self.sysbuild, self.public)
+        self.assertTrue(result["verified"])
+        self.assertEqual(result["method"], "zephyr-imgtool")
+        other = self.root / "other.pem"
+        release.run([sys.executable, self.tool, "keygen", "-t", "ed25519", "-k", other])
+        release.run([sys.executable, self.tool, "getpub", "-k", other,
+                     "-e", "pem", "-o", self.root / "other-public.pem"])
+        with self.assertRaisesRegex(ValueError, "verification key differs"):
+            release.verify_native_signature(self.sysbuild, self.root / "other-public.pem")
+        signed = self.sysbuild / "meshbus/zephyr/zephyr.signed.bin"
+        data = bytearray(signed.read_bytes())
+        data[32] ^= 1
+        signed.write_bytes(data)
+        with self.assertRaises(subprocess.CalledProcessError):
+            release.verify_native_signature(self.sysbuild, self.public)
 
-        unsigned = self.sysbuild / "meshbus/zephyr/zephyr.bin"
-        original = unsigned.read_bytes()
-        unsigned.write_bytes(original[:-1] + bytes([original[-1] ^ 1]))
-        with self.assertRaisesRegex(ValueError, "does not match the build request"):
-            release.verify_c2_signature(self.sysbuild, outputs[0], self.public)
-        unsigned.write_bytes(original)
+    def test_native_build_preserves_key_and_exports_public_pem(self):
+        args = argparse.Namespace(workspace=self.root, target=[], build_root=self.root / "build",
+                                  output=self.root / "parts", development=False, image_signing_key=None)
+        real_run = release.run
+        keys = []
 
-        wrong_private = self.root / "wrong-private.pem"
-        release.run([sys.executable, release.imgtool(), "keygen", "-k", wrong_private,
-                     "-t", "ed25519"])
-        wrong_private.chmod(0o600)
-        args = argparse.Namespace(build_dir=self.sysbuild, image_private_key=wrong_private,
-                                  image_public_key=self.public, output=self.root / "wrong")
-        with self.assertRaisesRegex(ValueError, "do not match"):
-            release.sign_c2(args)
-        self.assertFalse(args.output.exists())
+        def run(command, **kwargs):
+            if command[:2] == ["west", "build"]:
+                definition = next(str(arg) for arg in command if str(arg).startswith("-DSB_CONFIG_BOOT_SIGNATURE_KEY_FILE="))
+                key = Path(definition.split("=", 1)[1].strip('"'))
+                self.assertTrue(key.read_bytes() == self.private.read_bytes())
+                keys.append(key)
+                return None
+            return real_run(command, **kwargs)
+
+        def package(*_):
+            self.assertTrue(keys[-1].exists(), "key must remain available during EDK export")
+
+        args.image_signing_key = self.private
+        with patch.object(release, "run", side_effect=run), \
+                patch.object(release, "firmware", side_effect=package):
+            release.build_products(args)
+        self.assertEqual(keys, [self.private.resolve()])
+        self.assertTrue(self.private.exists())
+        public = next(args.build_root.rglob("image-public.pem"))
+        self.assertEqual(public.read_bytes(), self.public.read_bytes())
+
+    def test_native_build_failure_preserves_caller_key(self):
+        args = argparse.Namespace(workspace=self.root, target=[], build_root=self.root / "build",
+                                  output=self.root / "parts", development=True, image_signing_key=self.private)
+        original = self.private.read_bytes()
+        with patch.object(release, "run", side_effect=RuntimeError("build failed")):
+            with self.assertRaisesRegex(RuntimeError, "build failed"):
+                release.build_products(args)
+        self.assertTrue(self.private.read_bytes() == original)
+
+    @unittest.skipUnless(os.name == "posix", "POSIX private key permissions")
+    def test_explicit_key_preserves_file_permission_checks(self):
+        self.private.chmod(0o644)
+        with self.assertRaisesRegex(ValueError, "must not be group- or world-accessible"):
+            release.image_private_key(self.private, self.sysbuild)
 
 
 class EntryTests(unittest.TestCase):
+    def test_signing_key_argument_rejects_pem_contents_without_echoing_them(self):
+        with self.assertRaises(ValueError) as raised:
+            release.image_private_key("-----BEGIN PRIVATE KEY-----\nnot-a-real-key\n", Path("unused-build").resolve())
+        self.assertNotIn("not-a-real-key", str(raised.exception))
+
     def test_current_and_legacy_sysbuild_domains_and_direct_image_paths(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -590,17 +602,19 @@ class EntryTests(unittest.TestCase):
             copy_board_metadata(workspace)
             image_key = workspace / "development-ed25519.pem"
             image_key.write_text("test key placeholder\n")
+            image_key.chmod(0o600)
             args = argparse.Namespace(workspace=workspace, target=[],
                                       build_root=workspace / "build", output=workspace / "parts",
                                       development=True, image_signing_key=image_key)
             directories = []
             for selector in ["idea_mesh_tracker_c2", "idea_mesh_tracker_c2/nrf54l15/cpuapp"]:
                 args.target = [selector]
-                with patch.object(release, "run") as invoked, patch.object(release, "firmware") as packaged:
+                with patch.object(release, "run") as invoked, patch.object(release, "firmware") as packaged, \
+                        patch.object(release, "imgtool", return_value=Path("imgtool.py")):
                     release.build_products(args)
-                invoked.assert_called_once()
+                self.assertEqual(invoked.call_count, 2)
                 packaged.assert_called_once()
-                command = invoked.call_args.args[0]
+                command = invoked.call_args_list[0].args[0]
                 self.assertIn("--sysbuild", command)
                 self.assertIn(workspace.resolve() / "meshbus/apps/meshbus", command)
                 self.assertEqual(command[command.index("-b") + 1], "idea_mesh_tracker_c2/nrf54l15/cpuapp")
@@ -610,7 +624,7 @@ class EntryTests(unittest.TestCase):
             self.assertEqual(directories[0], directories[1])
             self.assertEqual(directories[0].name, "idea_mesh_tracker_c2")
 
-    def test_c2_build_requires_a_development_key_and_rejects_integrated_production_signing(self):
+    def test_native_build_requires_a_file_even_with_legacy_environment_set(self):
         with tempfile.TemporaryDirectory() as temporary:
             workspace = Path(temporary)
             (workspace / "meshbus/apps/meshbus").mkdir(parents=True)
@@ -618,15 +632,10 @@ class EntryTests(unittest.TestCase):
             (workspace / "meshbus/apps/meshbus/VERSION").write_text("VERSION_MAJOR = 1\n")
             copy_board_metadata(workspace)
             args = argparse.Namespace(workspace=workspace, target=[], build_root=workspace / "build",
-                                      output=workspace / "parts", development=True, image_signing_key=None)
-            with self.assertRaisesRegex(ValueError, "requires --image-signing-key"):
-                release.build_products(args)
-            key = workspace / "development-ed25519.pem"
-            key.write_text("test key placeholder\n")
-            args.image_signing_key = key
-            args.development = False
-            with self.assertRaisesRegex(ValueError, "separate protected CI signer"):
-                release.build_products(args)
+                                      output=workspace / "parts", development=False, image_signing_key=None)
+            with patch.dict(os.environ, {"MESHBUS_IMAGE_PRIVATE_KEY": "unused legacy value"}):
+                with self.assertRaisesRegex(ValueError, "requires --image-signing-key"):
+                    release.build_products(args)
 
 
 class DiscoveryTests(unittest.TestCase):

@@ -60,14 +60,14 @@ MCUboot repository development key. For a local engineering build, append:
 -- '-DSB_CONFIG_BOOT_SIGNATURE_KEY_FILE="/absolute/path/to/development-ed25519.pem"'
 ```
 
-Do not use this integrated build path with the Production Image private key;
-production build and signing are separate CI jobs.
-
-The C2-only `SB_CONFIG_MESHBUS_C2_EXTERNAL_SIGNING` mode accepts a public-only
-PEM for MCUboot and leaves the APP runner on the unsigned `zephyr.bin`. Use the
-build, `sign-c2`, and package commands in `DISTRIBUTION.md` to exercise that
-handoff. The mode still requires an explicit key and is not available to
-DevKit qualification fixtures.
+For release builds, use `west release build --image-signing-key /absolute/path/to/key.pem`.
+This passes the caller-owned PEM path to Zephyr's native signing and exports a
+public PEM for verification. The release host or CI owns private-file storage,
+backup and cleanup; Meshbus does not accept private PEM contents through an
+environment variable. Keep the file available for builds and EDK export.
+See `DISTRIBUTION.md`. Production keys are used only with reviewed code on a
+trusted release host or protected CI; native builds and signing share the same
+trust boundary.
 
 Replace placeholders for the current task. Shared composition changes require
 all affected targets, not an arbitrary full matrix. Inspect both app and MCUboot

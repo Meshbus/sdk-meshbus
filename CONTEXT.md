@@ -91,8 +91,9 @@ _Avoid_: Loaded package, running MBA
 ## Release Trust
 
 **Production Image Key**:
-The production trust root used to authorize application images for execution by
-the bootloader.
+The Meshbus-wide production trust root shared by all official board models to
+authorize application images for execution by the bootloader. It identifies
+the publisher, not the compatible board or an individual device.
 _Avoid_: Firmware key, signing key
 
 **DFOTA Manifest Key**:
