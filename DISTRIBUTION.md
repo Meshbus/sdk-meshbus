@@ -50,8 +50,9 @@ keeps a remapping argument intact when a directory name contains spaces.
 Firmware-owned `apps/meshbus/boards/products.yml` declares each device's `id` and ordinary
 qualified `board` target. Duplicate device identities, role qualifiers, and
 malformed metadata are rejected. `west release matrix` reports the firmware GA
-set, currently only `idea_mesh_tracker_c2/nrf54l15/cpuapp`. DevKit migration is
-deferred and its old profiles are not release products.
+set, currently only `idea_mesh_tracker_c2/nrf54l15/cpuapp`. The old DevKit
+product role profiles have been removed; the SDK base board remains available
+for samples and tests. DevKit product support is deferred.
 
 ```sh
 west release matrix

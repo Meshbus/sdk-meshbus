@@ -1,26 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
 
 choice BOOTLOADER
-	default BOOTLOADER_MCUBOOT if $(BOARD) = "devkit_nrf54l15" || $(BOARD) = "idea_mesh_tracker_c2"
+	default BOOTLOADER_MCUBOOT if $(BOARD) = "idea_mesh_tracker_c2"
 endchoice
 
 config MERGED_HEX_FILES
-	default y if $(BOARD) = "devkit_nrf54l15" || $(BOARD) = "idea_mesh_tracker_c2"
+	default y if $(BOARD) = "idea_mesh_tracker_c2"
 
 choice MCUBOOT_MODE
-	default MCUBOOT_MODE_SINGLE_APP if "$(BOARD)/$(BOARD_QUALIFIERS)" = "devkit_nrf54l15/nrf54l15/cpuapp/mb_client"
 	default MCUBOOT_MODE_SINGLE_APP if "$(BOARD)/$(BOARD_QUALIFIERS)" = "idea_mesh_tracker_c2/nrf54l15/cpuapp"
-	default MCUBOOT_MODE_SWAP_USING_OFFSET if "$(BOARD)/$(BOARD_QUALIFIERS)" = "devkit_nrf54l15/nrf54l15/cpuapp/mb_repeater"
-	default MCUBOOT_MODE_SWAP_USING_OFFSET if "$(BOARD)/$(BOARD_QUALIFIERS)" = "devkit_nrf54l15/nrf54l15/cpuapp/mb_room"
-	default MCUBOOT_MODE_SWAP_USING_OFFSET if "$(BOARD)/$(BOARD_QUALIFIERS)" = "devkit_nrf54l15/nrf54l15/cpuapp/mb_sensor"
 endchoice
 
 choice BOOT_SIGNATURE_TYPE
-	default BOOT_SIGNATURE_TYPE_NONE if "$(BOARD)/$(BOARD_QUALIFIERS)" = "devkit_nrf54l15/nrf54l15/cpuapp/mb_client"
 	default BOOT_SIGNATURE_TYPE_ED25519 if "$(BOARD)/$(BOARD_QUALIFIERS)" = "idea_mesh_tracker_c2/nrf54l15/cpuapp"
-	default BOOT_SIGNATURE_TYPE_ED25519 if "$(BOARD)/$(BOARD_QUALIFIERS)" = "devkit_nrf54l15/nrf54l15/cpuapp/mb_repeater"
-	default BOOT_SIGNATURE_TYPE_ED25519 if "$(BOARD)/$(BOARD_QUALIFIERS)" = "devkit_nrf54l15/nrf54l15/cpuapp/mb_room"
-	default BOOT_SIGNATURE_TYPE_ED25519 if "$(BOARD)/$(BOARD_QUALIFIERS)" = "devkit_nrf54l15/nrf54l15/cpuapp/mb_sensor"
 endchoice
 
 # Never fall back to MCUboot's repository development key for the C2 product.
