@@ -158,31 +158,25 @@ static void meshcore_widget_draw(struct zui_draw_ctx *draw, void *user_data)
 
 	zui_draw_set_color(draw, ZUI_COLOR_BLACK);
 	zui_draw_set_font(draw, ZUI_FONT_PRIMARY);
-	zui_draw_bitmap(draw, (struct zui_point){.x = 7, .y = 14}, 52, 24,
+	zui_draw_bitmap(draw, (struct zui_point){.x = 7, .y = 18}, 52, 24,
 			ZUI_BITMAP_FORMAT_XBM, B_meshcore_52x24);
-	zui_draw_round_box(draw, &(struct zui_rect){.x = 5, .y = 38, .width = 56,
+	zui_draw_round_box(draw, &(struct zui_rect){.x = 5, .y = 42, .width = 56,
 						    .height = 12}, 5);
-	desktop_widget_frame(draw, 1, 13, 64, 39);
-	desktop_widget_frame(draw, 67, 13, 39, 18);
-	desktop_widget_frame(draw, 108, 13, 18, 18);
-	desktop_widget_frame(draw, 67, 34, 59, 18);
+	desktop_widget_frame(draw, 1, 17, 64, 39);
+	desktop_widget_frame(draw, 67, 17, 39, 18);
+	desktop_widget_frame(draw, 108, 17, 18, 18);
+	desktop_widget_frame(draw, 67, 38, 59, 18);
 
-	zui_draw_text_aligned(draw, (struct zui_point){.x = 86, .y = 22},
+	zui_draw_text_aligned(draw, (struct zui_point){.x = 86, .y = 26},
 			      ZUI_ALIGN_CENTER, ZUI_ALIGN_CENTER, model->region);
-	zui_draw_text_aligned(draw, (struct zui_point){.x = 117, .y = 22},
+	zui_draw_text_aligned(draw, (struct zui_point){.x = 117, .y = 26},
 			      ZUI_ALIGN_CENTER, ZUI_ALIGN_CENTER, model->channel);
-	zui_draw_text_aligned(draw, (struct zui_point){.x = 96, .y = 43},
+	zui_draw_text_aligned(draw, (struct zui_point){.x = 96, .y = 47},
 			      ZUI_ALIGN_CENTER, ZUI_ALIGN_CENTER, model->node_id);
 
 	zui_draw_set_color(draw, ZUI_COLOR_XOR);
-	zui_draw_text_aligned(draw, (struct zui_point){.x = 32, .y = 44},
+	zui_draw_text_aligned(draw, (struct zui_point){.x = 32, .y = 48},
 			      ZUI_ALIGN_CENTER, ZUI_ALIGN_CENTER, model->role);
-	zui_draw_set_color(draw, ZUI_COLOR_BLACK);
-
-	zui_draw_set_color(draw, ZUI_COLOR_XOR);
-	zui_draw_text_aligned(draw, (struct zui_point){.x = 6, .y = 60},
-			      ZUI_ALIGN_LEFT, ZUI_ALIGN_CENTER,
-			      DESKTOP_TEXT_WIDGET_MESHCORE_VERSION);
 	zui_draw_set_color(draw, ZUI_COLOR_BLACK);
 }
 

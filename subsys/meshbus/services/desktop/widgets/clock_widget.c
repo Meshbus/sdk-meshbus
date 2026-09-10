@@ -78,13 +78,12 @@ static void clock_widget_snapshot(struct clock_widget_model *model)
 	}
 
 	rc = sys_clock_gettime(SYS_CLOCK_REALTIME, &ts);
-	if (rc != 0 || ts.tv_sec <= 0) {
+	if (rc != 0 || (int64_t)ts.tv_sec <= CLOCK_WIDGET_SYNC_FALLBACK_UNIX) {
 		return;
 	}
 
 	desktop_widget_strcpy(model->sync_str, sizeof(model->sync_str),
-			      ((int64_t)ts.tv_sec > CLOCK_WIDGET_SYNC_FALLBACK_UNIX) ?
-			      DESKTOP_TEXT_WIDGET_CLOCK_SYNC : DESKTOP_TEXT_WIDGET_CLOCK_UNSYNC);
+			      DESKTOP_TEXT_WIDGET_CLOCK_SYNC);
 
 	if (cfg.time_format == meshbus_ClockConfig_ClockTimeFormat_TIME_FORMAT_12H) {
 		use_12h = true;
@@ -153,21 +152,29 @@ static void clock_widget_draw(struct zui_draw_ctx *draw, void *user_data)
 	zui_draw_set_color(draw, ZUI_COLOR_BLACK);
 	zui_draw_set_font(draw, ZUI_FONT_PRIMARY);
 
-	zui_draw_set_font_data(draw, F_segment_46);
-	clock_widget_draw_digit(draw, 7, 61, model->hh_str, 0U);
-	clock_widget_draw_digit(draw, 29, 61, model->hh_str, 1U);
-	clock_widget_draw_digit(draw, 57, 61, model->mm_str, 0U);
-	clock_widget_draw_digit(draw, 79, 61, model->mm_str, 1U);
+	if (model->available) {
+		zui_draw_set_font_data(draw, F_segment_46);
+		clock_widget_draw_digit(draw, 7, 61, model->hh_str, 0U);
+		clock_widget_draw_digit(draw, 29, 61, model->hh_str, 1U);
+		clock_widget_draw_digit(draw, 57, 61, model->mm_str, 0U);
+		clock_widget_draw_digit(draw, 79, 61, model->mm_str, 1U);
 
-	zui_draw_set_font_data(draw, F_segment_24);
-	clock_widget_draw_digit(draw, 102, 61, model->ss_str, 0U);
-	clock_widget_draw_digit(draw, 114, 61, model->ss_str, 1U);
+		zui_draw_set_font_data(draw, F_segment_24);
+		clock_widget_draw_digit(draw, 102, 61, model->ss_str, 0U);
+		clock_widget_draw_digit(draw, 114, 61, model->ss_str, 1U);
 
-	zui_draw_disc(draw, (struct zui_point){.x = 56, .y = 40}, 2);
-	zui_draw_disc(draw, (struct zui_point){.x = 55, .y = 53}, 2);
+		zui_draw_disc(draw, (struct zui_point){.x = 56, .y = 40}, 2);
+		zui_draw_disc(draw, (struct zui_point){.x = 55, .y = 53}, 2);
 
+		zui_draw_set_font(draw, ZUI_FONT_PRIMARY);
+		zui_draw_text(draw, (struct zui_point){.x = 4, .y = 38}, model->meridiem_str);
+	} else {
+		zui_draw_set_font(draw, ZUI_FONT_BIG_NUMBERS);
+		zui_draw_text_aligned(draw, (struct zui_point){.x = 64, .y = 47},
+				      ZUI_ALIGN_CENTER, ZUI_ALIGN_CENTER,
+				      DESKTOP_TEXT_WIDGET_CLOCK_PLACEHOLDER_TIME);
+	}
 	zui_draw_set_font(draw, ZUI_FONT_PRIMARY);
-	zui_draw_text(draw, (struct zui_point){.x = 4, .y = 38}, model->meridiem_str);
 
 	zui_draw_line(draw, (struct zui_point){.x = 0, .y = 26},
 		      (struct zui_point){.x = 127, .y = 26});

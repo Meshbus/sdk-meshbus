@@ -13,17 +13,18 @@ LOG_MODULE_DECLARE(meshbus_desktop, CONFIG_MESHBUS_DESKTOP_LOG_LEVEL);
 
 #define NODES_WIDGET_LATEST_LABEL_MAX 40U
 #define NODES_WIDGET_AGE_STR_MAX      8U
-#define NODES_WIDGET_COUNT_STR_MAX    16U
-#define NODES_WIDGET_LATEST_TEXT_W    85U
-#define NODES_WIDGET_SCROLL_DIV       2U
+#define NODES_WIDGET_COUNT_STR_MAX    20U
+#define NODES_WIDGET_NAME_RIGHT       96
+#define NODES_WIDGET_SCROLL_PAUSE_TICKS 5U
+#define NODES_WIDGET_SCROLL_STEP_PX    3U
 #define NODES_WIDGET_BODY_X	       1
 #define NODES_WIDGET_BODY_RIGHT       126
 #define NODES_WIDGET_BODY_Y	       13
 #define NODES_WIDGET_BODY_W	       126U
 #define NODES_WIDGET_BODY_BOTTOM      63
 #define NODES_WIDGET_HEADER_BOTTOM    25
-#define NODES_WIDGET_ROLE_Y	       37
-#define NODES_WIDGET_ROLE_ICON_Y      29
+#define NODES_WIDGET_COUNT_Y	       37
+#define NODES_WIDGET_COUNT_ICON_Y     29
 #define NODES_WIDGET_BROADCAST_Y      49
 #define NODES_WIDGET_BROADCAST_ICON_Y 42
 #define NODES_WIDGET_CONTACT_NAME_MAX    32U
@@ -44,22 +45,25 @@ struct nodes_widget_model {
 	uint32_t local_advert_ticks;
 	uint8_t store_count;
 	uint8_t store_size;
-	uint8_t cli_count;
-	uint8_t rpt_count;
 	uint32_t base_now_s;
 	uint32_t latest_last_seen_timestamp;
+	meshbus_contact_role latest_role;
 	bool has_contact;
 	bool local_advert_seen;
 	char latest_label[NODES_WIDGET_LATEST_LABEL_MAX];
+	char latest_age[NODES_WIDGET_AGE_STR_MAX];
+	char advert_age[NODES_WIDGET_COUNT_STR_MAX];
+	char count_text[4];
+	char progress_text[NODES_WIDGET_COUNT_STR_MAX];
+	float progress_ratio;
 };
 
 struct nodes_widget_snapshot {
 	uint8_t store_count;
 	uint8_t store_size;
-	uint8_t cli_count;
-	uint8_t rpt_count;
 	uint32_t base_now_s;
 	uint32_t latest_last_seen_timestamp;
+	meshbus_contact_role latest_role;
 	bool has_contact;
 	char latest_label[NODES_WIDGET_LATEST_LABEL_MAX];
 };
@@ -154,17 +158,20 @@ static void nodes_widget_format_contact_age(const struct nodes_widget_model *mod
 static void nodes_widget_format_advert_age(const struct nodes_widget_model *model,
 					   char *buf, size_t buf_size)
 {
+	char age[NODES_WIDGET_AGE_STR_MAX];
+
 	if (buf == NULL || buf_size == 0U) {
 		return;
 	}
 
 	if (model == NULL || !model->local_advert_seen) {
-		desktop_widget_strcpy(buf, buf_size, DESKTOP_TEXT_DISPLAY_NEVER);
+		desktop_widget_strcpy(buf, buf_size, DESKTOP_TEXT_NODES_DASH);
 		return;
 	}
 
-	nodes_widget_format_time_ago(buf, buf_size,
+	nodes_widget_format_time_ago(age, sizeof(age),
 				     nodes_widget_ticks_ms(model->local_advert_ticks));
+	(void)snprintk(buf, buf_size, DESKTOP_TEXT_WIDGET_NODES_ADVERT_REQUEST_FORMAT, age);
 }
 
 static void nodes_widget_format_prefix_hex(const uint8_t *bytes, size_t len,
@@ -189,20 +196,27 @@ static void nodes_widget_format_prefix_hex(const uint8_t *bytes, size_t len,
 	out[off] = '\0';
 }
 
-#if defined(CONFIG_MESHBUS_CONTACT)
 static const char *nodes_widget_role_token(meshbus_contact_role role)
 {
-	return role == MESHBUS_CONTACT_ROLE_REPEATER ? DESKTOP_TEXT_WIDGET_NODES_RPT :
-						    DESKTOP_TEXT_WIDGET_NODES_CLI;
+	switch (role) {
+	case MESHBUS_CONTACT_ROLE_CHAT:
+		return DESKTOP_TEXT_WIDGET_NODES_CLI;
+	case MESHBUS_CONTACT_ROLE_REPEATER:
+		return DESKTOP_TEXT_WIDGET_NODES_RPT;
+	case MESHBUS_CONTACT_ROLE_ROOM:
+		return DESKTOP_TEXT_WIDGET_NODES_ROOM;
+	case MESHBUS_CONTACT_ROLE_SENSOR:
+		return DESKTOP_TEXT_WIDGET_NODES_SENSOR;
+	default:
+		return DESKTOP_TEXT_WIDGET_NODES_ROLE_UNKNOWN;
+	}
 }
 
+#if defined(CONFIG_MESHBUS_CONTACT)
 static uint32_t nodes_widget_latest_sort_key(const meshbus_contact *contact)
 {
 	if (contact == NULL) {
 		return 0U;
-	}
-	if (contact->first_seen_timestamp > 0U) {
-		return contact->first_seen_timestamp;
 	}
 	return contact->last_seen_timestamp;
 }
@@ -236,8 +250,7 @@ static void nodes_widget_format_latest_label(const meshbus_contact *contact,
 		}
 	}
 
-	(void)snprintk(out, out_size, DESKTOP_TEXT_WIDGET_NODES_CONTACT_FORMAT,
-		       nodes_widget_role_token(contact->role), name);
+	desktop_widget_strcpy(out, out_size, name);
 }
 
 static uint8_t nodes_widget_store_size_get(struct nodes_widget_state *state)
@@ -295,12 +308,6 @@ static void nodes_widget_snapshot_read(struct nodes_widget_state *state,
 		}
 
 		found_count++;
-		if (contact.role == MESHBUS_CONTACT_ROLE_REPEATER) {
-			snapshot->rpt_count++;
-		} else if (contact.role == MESHBUS_CONTACT_ROLE_CHAT) {
-			snapshot->cli_count++;
-		}
-
 		key = nodes_widget_latest_sort_key(&contact);
 		if (!snapshot->has_contact || key > latest_key ||
 		    (key == latest_key && slot >= latest_slot)) {
@@ -315,6 +322,7 @@ static void nodes_widget_snapshot_read(struct nodes_widget_state *state,
 		nodes_widget_format_latest_label(&latest, snapshot->latest_label,
 						 sizeof(snapshot->latest_label));
 		snapshot->latest_last_seen_timestamp = latest.last_seen_timestamp;
+		snapshot->latest_role = latest.role;
 	}
 	LOG_DBG("nodes widget: snapshot count=%u size=%u found=%u elapsed=%lldms",
 		(unsigned int)snapshot->store_count, (unsigned int)snapshot->store_size,
@@ -337,6 +345,20 @@ static void nodes_widget_snapshot_read(struct nodes_widget_state *state,
 }
 #endif
 
+static void nodes_widget_prepare_view(struct nodes_widget_model *model)
+{
+	const char *capacity_format = DESKTOP_TEXT_WIDGET_NODES_CAPACITY_FORMAT;
+
+	nodes_widget_format_contact_age(model, model->latest_age, sizeof(model->latest_age));
+	nodes_widget_format_advert_age(model, model->advert_age, sizeof(model->advert_age));
+	(void)snprintk(model->count_text, sizeof(model->count_text), "%u",
+		       (unsigned int)model->store_count);
+	(void)snprintk(model->progress_text, sizeof(model->progress_text), capacity_format,
+		       (unsigned int)model->store_count, (unsigned int)model->store_size);
+	model->progress_ratio = model->store_size > 0U ?
+		desktop_widget_usage_ratio(model->store_count, model->store_size) : 0.0f;
+}
+
 static bool nodes_widget_apply_snapshot(struct nodes_widget_model *model,
 					const struct nodes_widget_snapshot *snapshot)
 {
@@ -347,21 +369,19 @@ static bool nodes_widget_apply_snapshot(struct nodes_widget_model *model,
 		return false;
 	}
 
-	label_changed = strncmp(model->latest_label, snapshot->latest_label,
+	label_changed = model->latest_role != snapshot->latest_role ||
+			strncmp(model->latest_label, snapshot->latest_label,
 				sizeof(model->latest_label)) != 0;
 	changed = model->store_count != snapshot->store_count ||
 		  model->store_size != snapshot->store_size ||
-		  model->cli_count != snapshot->cli_count ||
-		  model->rpt_count != snapshot->rpt_count ||
 		  model->latest_last_seen_timestamp != snapshot->latest_last_seen_timestamp ||
 		  model->has_contact != snapshot->has_contact || label_changed;
 
 	model->store_count = snapshot->store_count;
 	model->store_size = snapshot->store_size;
-	model->cli_count = snapshot->cli_count;
-	model->rpt_count = snapshot->rpt_count;
 	model->base_now_s = snapshot->base_now_s;
 	model->latest_last_seen_timestamp = snapshot->latest_last_seen_timestamp;
+	model->latest_role = snapshot->latest_role;
 	model->has_contact = snapshot->has_contact;
 	desktop_widget_strcpy(model->latest_label, sizeof(model->latest_label),
 			      snapshot->latest_label);
@@ -369,6 +389,7 @@ static bool nodes_widget_apply_snapshot(struct nodes_widget_model *model,
 	if (label_changed) {
 		model->latest_label_scroll = 0U;
 	}
+	nodes_widget_prepare_view(model);
 
 	return changed;
 }
@@ -383,6 +404,7 @@ static void nodes_widget_model_defaults(struct nodes_widget_model *model)
 	model->base_now_s = nodes_widget_now_s();
 	desktop_widget_strcpy(model->latest_label, sizeof(model->latest_label),
 			      DESKTOP_TEXT_WIDGET_NODES_EMPTY);
+	nodes_widget_prepare_view(model);
 }
 
 static bool nodes_widget_refresh_summary(struct nodes_widget_state *state)
@@ -398,11 +420,30 @@ static bool nodes_widget_refresh_summary(struct nodes_widget_state *state)
 	return nodes_widget_apply_snapshot(&state->model, &snapshot);
 }
 
+static uint16_t nodes_widget_scroll_offset(uint16_t text_width, uint16_t width,
+					  uint32_t ticks)
+{
+	uint16_t distance;
+	uint32_t steps;
+	uint32_t phase;
+
+	if (text_width <= width) {
+		return 0;
+	}
+	distance = text_width - width;
+	steps = DIV_ROUND_UP(distance, NODES_WIDGET_SCROLL_STEP_PX);
+	phase = ticks % (2U * NODES_WIDGET_SCROLL_PAUSE_TICKS + steps);
+	if (phase < NODES_WIDGET_SCROLL_PAUSE_TICKS) {
+		return 0;
+	}
+	return MIN((phase - NODES_WIDGET_SCROLL_PAUSE_TICKS + 1U) *
+			   NODES_WIDGET_SCROLL_STEP_PX, distance);
+}
+
 static void nodes_widget_draw_scrolled_text(struct zui_draw_ctx *draw, struct zui_point pos,
 					   uint16_t width, const char *text, uint32_t scroll)
 {
 	uint16_t text_width;
-	size_t len;
 
 	if (draw == NULL || text == NULL) {
 		return;
@@ -414,15 +455,10 @@ static void nodes_widget_draw_scrolled_text(struct zui_draw_ctx *draw, struct zu
 		return;
 	}
 
-	len = strlen(text);
-	if (len == 0U) {
-		return;
-	}
-
 	zui_draw_set_clip(draw, &(struct zui_rect){.x = pos.x, .y = pos.y - 8,
 						   .width = width, .height = 10});
-	zui_draw_text_line_scrolled(draw, pos, width, text,
-				    (size_t)((scroll / NODES_WIDGET_SCROLL_DIV) % len), false);
+	pos.x -= nodes_widget_scroll_offset(text_width, width, scroll);
+	zui_draw_text(draw, pos, text);
 	zui_draw_clear_clip(draw);
 }
 
@@ -481,26 +517,10 @@ static void nodes_widget_draw(struct zui_draw_ctx *draw, void *user_data)
 {
 	struct nodes_widget_state *state = user_data;
 	const struct nodes_widget_model *model = state != NULL ? &state->model : NULL;
-	char latest_age[NODES_WIDGET_AGE_STR_MAX];
-	char advert_age[NODES_WIDGET_AGE_STR_MAX];
-	char role_counts[NODES_WIDGET_COUNT_STR_MAX];
-	char progress_text[NODES_WIDGET_COUNT_STR_MAX];
-	float progress_ratio = 0.0f;
+	int16_t name_x = 3;
 
 	if (model == NULL) {
 		return;
-	}
-
-	nodes_widget_format_contact_age(model, latest_age, sizeof(latest_age));
-	nodes_widget_format_advert_age(model, advert_age, sizeof(advert_age));
-	(void)snprintk(role_counts, sizeof(role_counts),
-		       DESKTOP_TEXT_WIDGET_NODES_ROLE_COUNTS_FORMAT,
-		       DESKTOP_TEXT_WIDGET_NODES_CLI, (unsigned int)model->cli_count,
-		       DESKTOP_TEXT_WIDGET_NODES_RPT, (unsigned int)model->rpt_count);
-	(void)snprintk(progress_text, sizeof(progress_text), "%u/%u",
-		       (unsigned int)model->store_count, (unsigned int)model->store_size);
-	if (model->store_size > 0U) {
-		progress_ratio = desktop_widget_usage_ratio(model->store_count, model->store_size);
 	}
 
 	zui_draw_set_color(draw, ZUI_COLOR_BLACK);
@@ -509,28 +529,40 @@ static void nodes_widget_draw(struct zui_draw_ctx *draw, void *user_data)
 
 	zui_draw_set_color(draw, ZUI_COLOR_XOR);
 	zui_draw_set_font(draw, ZUI_FONT_SECONDARY);
-	nodes_widget_draw_scrolled_text(draw, (struct zui_point){.x = 3, .y = 23},
-					NODES_WIDGET_LATEST_TEXT_W, model->latest_label,
+	if (model->has_contact) {
+		const char *role = nodes_widget_role_token(model->latest_role);
+		uint16_t badge_width = zui_draw_text_width(draw, role) + 4U;
+
+		zui_draw_rect(draw, &(struct zui_rect){.x = 3, .y = 14,
+						    .width = badge_width, .height = 11});
+		zui_draw_text(draw, (struct zui_point){.x = 5, .y = 23}, role);
+		name_x += badge_width + 3;
+	}
+	nodes_widget_draw_scrolled_text(draw, (struct zui_point){.x = name_x, .y = 23},
+					NODES_WIDGET_NAME_RIGHT - name_x, model->latest_label,
 					model->latest_label_scroll);
 	zui_draw_text_aligned(draw, (struct zui_point){.x = 124, .y = 23},
-			      ZUI_ALIGN_RIGHT, ZUI_ALIGN_BOTTOM, latest_age);
+			      ZUI_ALIGN_RIGHT, ZUI_ALIGN_BOTTOM, model->latest_age);
 
 	zui_draw_set_color(draw, ZUI_COLOR_BLACK);
 	zui_draw_set_font(draw, ZUI_FONT_PRIMARY);
-	zui_draw_text(draw, (struct zui_point){.x = 16, .y = NODES_WIDGET_ROLE_Y},
-		      role_counts);
+	zui_draw_text(draw, (struct zui_point){.x = 16, .y = NODES_WIDGET_COUNT_Y},
+		      DESKTOP_TEXT_NODES_TITLE);
+	zui_draw_text_aligned(draw, (struct zui_point){.x = 124, .y = NODES_WIDGET_COUNT_Y},
+			      ZUI_ALIGN_RIGHT, ZUI_ALIGN_BOTTOM, model->count_text);
+	zui_draw_set_font(draw, ZUI_FONT_SECONDARY);
 	zui_draw_text(draw, (struct zui_point){.x = 16, .y = NODES_WIDGET_BROADCAST_Y},
-		      DESKTOP_TEXT_WIDGET_NODES_BROADCAST);
+		      DESKTOP_TEXT_WIDGET_NODES_ADVERT);
 	zui_draw_icon(draw, (struct zui_point){.x = 5, .y = NODES_WIDGET_BROADCAST_ICON_Y},
 		      desktop_widget_common_icon(ZUI_ASSET_ICON_BUTTON_SELECT));
-	zui_draw_icon(draw, (struct zui_point){.x = 4, .y = NODES_WIDGET_ROLE_ICON_Y},
+	zui_draw_icon(draw, (struct zui_point){.x = 4, .y = NODES_WIDGET_COUNT_ICON_Y},
 		      &I_store_8x8);
 
 	zui_draw_set_font(draw, ZUI_FONT_SECONDARY);
 	zui_draw_text_aligned(draw, (struct zui_point){.x = 124, .y = NODES_WIDGET_BROADCAST_Y},
-			      ZUI_ALIGN_RIGHT, ZUI_ALIGN_BOTTOM, advert_age);
+			      ZUI_ALIGN_RIGHT, ZUI_ALIGN_BOTTOM, model->advert_age);
 
-	nodes_widget_draw_progress(draw, progress_ratio, progress_text);
+	nodes_widget_draw_progress(draw, model->progress_ratio, model->progress_text);
 	zui_draw_set_color(draw, ZUI_COLOR_BLACK);
 }
 
@@ -538,7 +570,11 @@ static bool nodes_widget_input(const struct zui_input_event *event, void *user_d
 {
 	struct nodes_widget_state *state = user_data;
 
-	if (event == NULL || state == NULL || event->code != ZUI_INPUT_CODE_SELECT ||
+	if (event == NULL || state == NULL) {
+		return false;
+	}
+
+	if (event->code != ZUI_INPUT_CODE_SELECT ||
 	    event->action != ZUI_INPUT_ACTION_LONG_PRESS) {
 		return false;
 	}
@@ -550,6 +586,7 @@ static bool nodes_widget_input(const struct zui_input_event *event, void *user_d
 	if (rc == 0) {
 		state->model.local_advert_seen = true;
 		state->model.local_advert_ticks = 0U;
+		nodes_widget_prepare_view(&state->model);
 		if (state->screen != NULL) {
 			(void)zui_screen_request_redraw(state->screen);
 		}
@@ -605,6 +642,7 @@ static uint32_t nodes_widget_tick(struct meshbus_desktop_dashboard_widget *wctx)
 	if (should_scan) {
 		(void)nodes_widget_refresh_summary(&nodes_widget);
 	}
+	nodes_widget_prepare_view(&nodes_widget.model);
 
 	if (nodes_widget.screen != NULL) {
 		(void)zui_screen_request_redraw(nodes_widget.screen);

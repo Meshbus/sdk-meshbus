@@ -259,11 +259,11 @@ static void radio_widget_draw(struct zui_draw_ctx *draw, void *user_data)
 		      model != NULL ? model->freq_str :
 				      DESKTOP_TEXT_WIDGET_RADIO_PLACEHOLDER_FREQUENCY);
 	zui_draw_set_font(draw, ZUI_FONT_PRIMARY);
-	zui_draw_round_rect(draw, &(struct zui_rect){.x = 42, .y = 15, .width = 18,
+	zui_draw_round_rect(draw, &(struct zui_rect){.x = 42, .y = 15, .width = 12,
 						     .height = 12}, 2);
-	zui_draw_round_rect(draw, &(struct zui_rect){.x = 62, .y = 15, .width = 31,
+	zui_draw_round_rect(draw, &(struct zui_rect){.x = 56, .y = 15, .width = 29,
 						     .height = 12}, 2);
-	zui_draw_round_rect(draw, &(struct zui_rect){.x = 96, .y = 15, .width = 28,
+	zui_draw_round_rect(draw, &(struct zui_rect){.x = 87, .y = 15, .width = 37,
 						     .height = 12}, 2);
 	zui_draw_round_rect(draw, &(struct zui_rect){.x = 42, .y = 46, .width = 29,
 						     .height = 12}, 2);
@@ -272,14 +272,14 @@ static void radio_widget_draw(struct zui_draw_ctx *draw, void *user_data)
 	zui_draw_round_box(draw, &(struct zui_rect){.x = 1, .y = 48, .width = 36,
 						    .height = 12}, 2);
 
-	zui_draw_text_aligned(draw, (struct zui_point){.x = 51, .y = 21},
+	zui_draw_text_aligned(draw, (struct zui_point){.x = 48, .y = 21},
 			      ZUI_ALIGN_CENTER, ZUI_ALIGN_CENTER,
 			      model != NULL ? model->lr_str : DESKTOP_TEXT_WIDGET_RADIO_LR);
-	zui_draw_text_aligned(draw, (struct zui_point){.x = 77, .y = 21},
+	zui_draw_text_aligned(draw, (struct zui_point){.x = 70, .y = 21},
 			      ZUI_ALIGN_CENTER, ZUI_ALIGN_CENTER,
 			      model != NULL ? model->bw_str :
 					      DESKTOP_TEXT_WIDGET_RADIO_PLACEHOLDER_VALUE);
-	zui_draw_text_aligned(draw, (struct zui_point){.x = 110, .y = 21},
+	zui_draw_text_aligned(draw, (struct zui_point){.x = 105, .y = 21},
 			      ZUI_ALIGN_CENTER, ZUI_ALIGN_CENTER,
 			      model != NULL ? model->txp_str :
 					      DESKTOP_TEXT_WIDGET_RADIO_PLACEHOLDER_VALUE);

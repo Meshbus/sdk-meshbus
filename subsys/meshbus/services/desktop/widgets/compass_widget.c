@@ -402,6 +402,17 @@ static void compass_widget_draw(struct zui_draw_ctx *draw, void *user_data)
 		compass_widget_draw_figure_eight_prompt(draw);
 		return;
 	}
+	if (model == NULL || !model->available || !model->active || !model->valid) {
+		/* A default zero heading is not evidence that the device points north. */
+		desktop_widget_frame(draw, 1, 13, 125, 48);
+		zui_draw_text_aligned(draw, (struct zui_point){.x = 64, .y = 25},
+				      ZUI_ALIGN_CENTER, ZUI_ALIGN_CENTER, status_str);
+		zui_draw_set_font(draw, ZUI_FONT_BIG_NUMBERS);
+		zui_draw_text_aligned(draw, (struct zui_point){.x = 64, .y = 46},
+				      ZUI_ALIGN_CENTER, ZUI_ALIGN_CENTER,
+				      DESKTOP_TEXT_WIDGET_COMPASS_PLACEHOLDER_HEADING);
+		return;
+	}
 
 	start_deg = compass_widget_floor_step((int32_t)heading - span_deg,
 							COMPASS_WIDGET_TICK_STEP_DEG);

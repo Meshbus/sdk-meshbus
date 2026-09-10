@@ -6,8 +6,8 @@ struct usage_widget_state {
 	bool sys_valid;
 	float sys_ratio;
 	float zui_ratio;
-	char sys_text[16];
-	char zui_text[16];
+	char sys_text[24];
+	char zui_text[24];
 };
 
 static struct usage_widget_state usage_widget;
@@ -25,8 +25,10 @@ static bool usage_widget_format_heap(char *text, size_t text_size, float *ratio,
 	}
 
 	*ratio = desktop_widget_usage_ratio(used, total);
-	(void)snprintk(text, text_size, "%u/%u", (unsigned int)used,
-		       (unsigned int)total);
+	(void)snprintk(text, text_size, DESKTOP_TEXT_WIDGET_USAGE_VALUE_FORMAT,
+		       (unsigned int)(*ratio * 100.0f + 0.5f),
+		       (unsigned int)(used / 1024U),
+		       (unsigned int)((used % 1024U) * 10U / 1024U));
 	return true;
 }
 

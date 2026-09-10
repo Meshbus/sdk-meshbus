@@ -16,7 +16,7 @@ LOG_MODULE_DECLARE(meshbus_desktop, CONFIG_MESHBUS_DESKTOP_LOG_LEVEL);
 #define TELEMETRY_WIDGET_COUNT_MAX      8U
 #define TELEMETRY_WIDGET_ROW_MAX        16U
 #define TELEMETRY_WIDGET_VISIBLE_LINES  4U
-#define TELEMETRY_WIDGET_LABEL_W        60U
+#define TELEMETRY_WIDGET_LABEL_W        36U
 #define TELEMETRY_WIDGET_FRAME_LEFT     1
 #define TELEMETRY_WIDGET_FRAME_RIGHT    126
 #define TELEMETRY_WIDGET_FRAME_TOP      13
@@ -26,6 +26,8 @@ LOG_MODULE_DECLARE(meshbus_desktop, CONFIG_MESHBUS_DESKTOP_LOG_LEVEL);
 struct telemetry_widget_row {
 	char label[TELEMETRY_WIDGET_LABEL_MAX];
 	char value[TELEMETRY_WIDGET_VALUE_MAX];
+	const char *unit;
+	bool degrees;
 };
 
 struct telemetry_widget_model {
@@ -34,16 +36,15 @@ struct telemetry_widget_model {
 	bool has_data;
 	uint32_t update_seq;
 	uint32_t row_count;
-	uint32_t total_count;
 	char latest_age[TELEMETRY_WIDGET_AGE_MAX];
-	char total[TELEMETRY_WIDGET_COUNT_MAX];
 	struct telemetry_widget_row rows[TELEMETRY_WIDGET_ROW_MAX];
 };
 
 struct telemetry_widget_state {
 	struct zui_screen *screen;
 	struct telemetry_widget_model model;
-	uint32_t selected_position;
+	uint32_t page_index;
+	char page[TELEMETRY_WIDGET_COUNT_MAX];
 };
 
 static struct telemetry_widget_state telemetry_widget;
@@ -58,24 +59,53 @@ static const char *telemetry_widget_channel_name(enum sensor_channel chan)
 	case SENSOR_CHAN_MAGN_XYZ:
 		return DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_MAGN;
 	case SENSOR_CHAN_DIE_TEMP:
-		return DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_DIE_TEMP;
+		return DESKTOP_TEXT_WIDGET_TELEMETRY_SHORT_DIE_TEMP;
 	case SENSOR_CHAN_AMBIENT_TEMP:
-		return DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_AMBIENT;
+		return DESKTOP_TEXT_WIDGET_TELEMETRY_SHORT_TEMP;
 	case SENSOR_CHAN_PRESS:
-		return DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_PRESS;
+		return DESKTOP_TEXT_WIDGET_TELEMETRY_SHORT_PRESS;
 	case SENSOR_CHAN_HUMIDITY:
-		return DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_HUMIDITY;
+		return DESKTOP_TEXT_WIDGET_TELEMETRY_SHORT_HUMIDITY;
 	case SENSOR_CHAN_AMBIENT_LIGHT:
 	case SENSOR_CHAN_LIGHT:
 		return DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_LIGHT;
 	case SENSOR_CHAN_VOLTAGE:
-		return DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_VOLTAGE;
+		return DESKTOP_TEXT_WIDGET_TELEMETRY_SHORT_VOLTAGE;
 	case SENSOR_CHAN_CURRENT:
-		return DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_CURRENT;
+		return DESKTOP_TEXT_WIDGET_TELEMETRY_SHORT_CURRENT;
 	case SENSOR_CHAN_GAUGE_STATE_OF_CHARGE:
-		return DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_BATTERY;
+		return DESKTOP_TEXT_WIDGET_TELEMETRY_SHORT_BATTERY;
 	default:
 		return DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_CHANNEL;
+	}
+}
+
+static const char *telemetry_widget_unit(enum sensor_channel chan)
+{
+	switch (chan) {
+	case SENSOR_CHAN_DIE_TEMP:
+	case SENSOR_CHAN_AMBIENT_TEMP:
+		return DESKTOP_TEXT_WIDGET_TELEMETRY_UNIT_C;
+	case SENSOR_CHAN_PRESS:
+		return DESKTOP_TEXT_WIDGET_TELEMETRY_UNIT_KPA;
+	case SENSOR_CHAN_HUMIDITY:
+	case SENSOR_CHAN_GAUGE_STATE_OF_CHARGE:
+		return DESKTOP_TEXT_WIDGET_TELEMETRY_UNIT_PERCENT;
+	case SENSOR_CHAN_AMBIENT_LIGHT:
+	case SENSOR_CHAN_LIGHT:
+		return DESKTOP_TEXT_WIDGET_TELEMETRY_UNIT_LUX;
+	case SENSOR_CHAN_VOLTAGE:
+		return DESKTOP_TEXT_WIDGET_TELEMETRY_UNIT_V;
+	case SENSOR_CHAN_CURRENT:
+		return DESKTOP_TEXT_WIDGET_TELEMETRY_UNIT_A;
+	case SENSOR_CHAN_ACCEL_XYZ:
+		return DESKTOP_TEXT_WIDGET_TELEMETRY_UNIT_ACCEL;
+	case SENSOR_CHAN_GYRO_XYZ:
+		return DESKTOP_TEXT_WIDGET_TELEMETRY_UNIT_GYRO;
+	case SENSOR_CHAN_MAGN_XYZ:
+		return DESKTOP_TEXT_WIDGET_TELEMETRY_UNIT_GAUSS;
+	default:
+		return DESKTOP_TEXT_COMMON_EMPTY;
 	}
 }
 
@@ -115,26 +145,55 @@ static void telemetry_widget_build_label(char *out, size_t out_size, const char 
 }
 
 static void telemetry_widget_format_sensor_value(char *out, size_t out_size,
+						 enum sensor_channel chan,
 						 const struct sensor_value *value)
 {
 	int64_t micro;
 	uint64_t abs_micro;
+	uint64_t rounded;
+	uint32_t scale;
+	uint32_t step;
+	unsigned int decimals = 2U;
 	bool neg;
 
 	if (out == NULL || out_size == 0U) {
 		return;
 	}
 	if (value == NULL) {
-		desktop_widget_strcpy(out, out_size, DESKTOP_TEXT_COMMON_NOT_AVAILABLE);
+		desktop_widget_strcpy(out, out_size, DESKTOP_TEXT_WIDGET_TELEMETRY_VALUE_MISSING);
 		return;
 	}
 
+	switch (chan) {
+	case SENSOR_CHAN_DIE_TEMP:
+	case SENSOR_CHAN_AMBIENT_TEMP:
+	case SENSOR_CHAN_PRESS:
+	case SENSOR_CHAN_HUMIDITY:
+		decimals = 1U;
+		break;
+	case SENSOR_CHAN_AMBIENT_LIGHT:
+	case SENSOR_CHAN_LIGHT:
+	case SENSOR_CHAN_GAUGE_STATE_OF_CHARGE:
+		decimals = 0U;
+		break;
+	default:
+		break;
+	}
+
 	micro = sensor_value_to_micro(value);
-	neg = micro < 0;
-	abs_micro = (uint64_t)(neg ? -micro : micro);
-	(void)snprintk(out, out_size, "%s%llu.%02llu", neg ? "-" : "",
-		       (unsigned long long)(abs_micro / 1000000ULL),
-		       (unsigned long long)((abs_micro % 1000000ULL) / 10000ULL));
+	abs_micro = (uint64_t)(micro < 0 ? -micro : micro);
+	scale = decimals == 0U ? 1U : (decimals == 1U ? 10U : 100U);
+	step = 1000000U / scale;
+	rounded = (abs_micro + step / 2U) / step;
+	neg = micro < 0 && rounded != 0U;
+	if (decimals == 0U) {
+		(void)snprintk(out, out_size, "%s%llu", neg ? "-" : "",
+			       (unsigned long long)rounded);
+	} else {
+		(void)snprintk(out, out_size, "%s%llu.%0*llu", neg ? "-" : "",
+			       (unsigned long long)(rounded / scale), (int)decimals,
+			       (unsigned long long)(rounded % scale));
+	}
 }
 
 static void telemetry_widget_format_age(char *out, size_t out_size, uint32_t timestamp)
@@ -167,12 +226,11 @@ static void telemetry_widget_model_defaults(struct telemetry_widget_model *model
 	memset(model, 0, sizeof(*model));
 	desktop_widget_strcpy(model->latest_age, sizeof(model->latest_age),
 			      DESKTOP_TEXT_COMMON_NOT_AVAILABLE);
-	(void)snprintk(model->total, sizeof(model->total),
-		       DESKTOP_TEXT_WIDGET_TELEMETRY_COUNT_FORMAT, 0U);
 }
 
-static void telemetry_widget_append_row(struct telemetry_widget_model *model, const char *label,
-					const char *value)
+static void telemetry_widget_append_row(struct telemetry_widget_model *model,
+					enum sensor_channel chan, uint8_t index, uint8_t count,
+					const struct sensor_value *value)
 {
 	struct telemetry_widget_row *row;
 
@@ -181,8 +239,11 @@ static void telemetry_widget_append_row(struct telemetry_widget_model *model, co
 	}
 
 	row = &model->rows[model->row_count++];
-	desktop_widget_strcpy(row->label, sizeof(row->label), label);
-	desktop_widget_strcpy(row->value, sizeof(row->value), value);
+	telemetry_widget_build_label(row->label, sizeof(row->label),
+				     telemetry_widget_channel_name(chan), index, count);
+	telemetry_widget_format_sensor_value(row->value, sizeof(row->value), chan, value);
+	row->unit = telemetry_widget_unit(chan);
+	row->degrees = chan == SENSOR_CHAN_DIE_TEMP || chan == SENSOR_CHAN_AMBIENT_TEMP;
 }
 
 static void telemetry_widget_snapshot_read(struct telemetry_widget_model *snapshot)
@@ -216,7 +277,6 @@ static void telemetry_widget_snapshot_read(struct telemetry_widget_model *snapsh
 	for (size_t i = 0U; i < binding_count; i++) {
 		struct meshbus_telemetry_binding binding;
 		struct desktop_telemetry_cache_entry entry;
-		const char *base;
 		bool has_entry;
 		uint8_t value_count;
 
@@ -224,7 +284,6 @@ static void telemetry_widget_snapshot_read(struct telemetry_widget_model *snapsh
 			continue;
 		}
 
-		base = telemetry_widget_channel_name(binding.chan);
 		has_entry = desktop_telemetry_cache_get(binding.chan, &entry);
 		value_count = (uint8_t)MIN(meshbus_telemetry_channel_value_count(binding.chan),
 					   (size_t)MESHBUS_TELEMETRY_MAX_VALUES);
@@ -232,28 +291,19 @@ static void telemetry_widget_snapshot_read(struct telemetry_widget_model *snapsh
 			value_count = MIN(entry.value_count, (uint8_t)MESHBUS_TELEMETRY_MAX_VALUES);
 		}
 		value_count = MAX(value_count, 1U);
-		snapshot->total_count += value_count;
 
 		for (uint8_t value_idx = 0U; value_idx < value_count; value_idx++) {
-			char label[TELEMETRY_WIDGET_LABEL_MAX];
-			char value[TELEMETRY_WIDGET_VALUE_MAX];
-
-			telemetry_widget_build_label(label, sizeof(label), base, value_idx,
-						     value_count);
-			if (has_entry && value_idx < entry.value_count) {
-				telemetry_widget_format_sensor_value(value, sizeof(value),
-								     &entry.values[value_idx]);
-			} else {
-				desktop_widget_strcpy(value, sizeof(value),
-						      DESKTOP_TEXT_WIDGET_TELEMETRY_NO_DATA);
-			}
-			telemetry_widget_append_row(snapshot, label, value);
+			telemetry_widget_append_row(snapshot, binding.chan, value_idx, value_count,
+						    has_entry && value_idx < entry.value_count ?
+							    &entry.values[value_idx] : NULL);
 		}
 	}
 
-	(void)snprintk(snapshot->total, sizeof(snapshot->total),
-		       DESKTOP_TEXT_WIDGET_TELEMETRY_COUNT_FORMAT,
-		       (unsigned int)snapshot->total_count);
+	if (!snapshot->enabled || !snapshot->has_data) {
+		desktop_widget_strcpy(snapshot->latest_age, sizeof(snapshot->latest_age),
+				      snapshot->enabled ? DESKTOP_TEXT_WIDGET_TELEMETRY_NO_DATA :
+							  DESKTOP_TEXT_WIDGET_TELEMETRY_STATUS_OFF);
+	}
 }
 
 static bool telemetry_widget_model_apply(struct telemetry_widget_model *model,
@@ -326,21 +376,43 @@ static void telemetry_widget_draw_text_clipped(struct zui_draw_ctx *draw, struct
 	zui_draw_clear_clip(draw);
 }
 
-static uint32_t telemetry_widget_first_visible(const struct telemetry_widget_state *state)
+static uint32_t telemetry_widget_page_count(const struct telemetry_widget_model *model)
 {
-	uint32_t row_count;
+	return MAX(DIV_ROUND_UP(model->row_count, TELEMETRY_WIDGET_VISIBLE_LINES), 1U);
+}
 
-	if (state == NULL) {
-		return 0U;
+static void telemetry_widget_update_page(struct telemetry_widget_state *state)
+{
+	uint32_t count = telemetry_widget_page_count(&state->model);
+
+	state->page_index = MIN(state->page_index, count - 1U);
+	(void)snprintk(state->page, sizeof(state->page),
+		       DESKTOP_TEXT_WIDGET_TELEMETRY_PAGE_FORMAT,
+		       (unsigned int)(state->page_index + 1U), (unsigned int)count);
+}
+
+static void telemetry_widget_draw_value(struct zui_draw_ctx *draw,
+					const struct telemetry_widget_row *row, int16_t y)
+{
+	int16_t unit_x;
+	int16_t value_right;
+	const char *value = row->value;
+
+	zui_draw_set_font(draw, ZUI_FONT_KEYBOARD);
+	unit_x = 114 - zui_draw_text_width(draw, row->unit);
+	zui_draw_text(draw, (struct zui_point){.x = unit_x, .y = y}, row->unit);
+	if (row->degrees) {
+		/* The ASCII numeric font lacks a degree glyph. */
+		unit_x -= 4;
+		zui_draw_rect(draw, &(struct zui_rect){.x = unit_x, .y = y - 7,
+						    .width = 3, .height = 3});
 	}
-
-	row_count = state->model.row_count;
-	if (row_count <= TELEMETRY_WIDGET_VISIBLE_LINES ||
-	    state->selected_position + 1U <= TELEMETRY_WIDGET_VISIBLE_LINES) {
-		return 0U;
+	value_right = unit_x - (row->unit[0] != '\0' ? 2 : 0);
+	if (zui_draw_text_width(draw, value) > value_right - 44) {
+		value = DESKTOP_TEXT_WIDGET_TELEMETRY_VALUE_OVERFLOW;
 	}
-
-	return state->selected_position + 1U - TELEMETRY_WIDGET_VISIBLE_LINES;
+	zui_draw_text_aligned(draw, (struct zui_point){.x = value_right, .y = y},
+			      ZUI_ALIGN_RIGHT, ZUI_ALIGN_BOTTOM, value);
 }
 
 static void telemetry_widget_draw(struct zui_draw_ctx *draw, void *user_data)
@@ -363,15 +435,14 @@ static void telemetry_widget_draw(struct zui_draw_ctx *draw, void *user_data)
 	telemetry_widget_draw_text_clipped(draw, (struct zui_point){.x = 4, .y = 23}, 88U,
 					   model->latest_age);
 	zui_draw_text_aligned(draw, (struct zui_point){.x = 124, .y = 23},
-			      ZUI_ALIGN_RIGHT, ZUI_ALIGN_BOTTOM, model->total);
+			      ZUI_ALIGN_RIGHT, ZUI_ALIGN_BOTTOM, state->page);
 
 	zui_draw_set_color(draw, ZUI_COLOR_BLACK);
-	if (state != NULL && state->selected_position > 0U) {
+	if (state->page_index > 0U) {
 		zui_draw_icon(draw, (struct zui_point){.x = 118, .y = 28},
-			      desktop_widget_common_icon(ZUI_ASSET_ICON_PIN_POINTER));
+			      desktop_widget_common_icon(ZUI_ASSET_ICON_ARROW_UP_SMALL));
 	}
-	if (state != NULL &&
-	    state->selected_position + 1U < model->row_count) {
+	if (state->page_index + 1U < telemetry_widget_page_count(model)) {
 		zui_draw_icon(draw, (struct zui_point){.x = 118, .y = 58},
 			      desktop_widget_common_icon(ZUI_ASSET_ICON_ARROW_DOWN_SMALL));
 	}
@@ -383,52 +454,43 @@ static void telemetry_widget_draw(struct zui_draw_ctx *draw, void *user_data)
 		return;
 	}
 
-	first_row = telemetry_widget_first_visible(state);
-	zui_draw_set_font(draw, ZUI_FONT_SECONDARY);
+	first_row = state->page_index * TELEMETRY_WIDGET_VISIBLE_LINES;
 	for (uint32_t i = 0U; i < TELEMETRY_WIDGET_VISIBLE_LINES; i++) {
 		uint32_t row_index = first_row + i;
 		const struct telemetry_widget_row *row;
 		int16_t y = (int16_t)(35 + (i * 9));
-		int16_t label_x = 9;
-		uint16_t label_w = TELEMETRY_WIDGET_LABEL_W;
 
 		if (row_index >= model->row_count) {
 			break;
 		}
 
 		row = &model->rows[row_index];
-		if (state != NULL && row_index == state->selected_position) {
-			zui_draw_text(draw, (struct zui_point){.x = 4, .y = y},
-				      DESKTOP_TEXT_COMMON_ROUTE);
-			label_x = 12;
-			label_w -= 4U;
-		}
-
-		telemetry_widget_draw_text_clipped(draw, (struct zui_point){.x = label_x, .y = y},
-						   label_w, row->label);
-		zui_draw_text_aligned(draw, (struct zui_point){.x = 114, .y = y},
-				      ZUI_ALIGN_RIGHT, ZUI_ALIGN_BOTTOM, row->value);
+		zui_draw_set_font(draw, ZUI_FONT_SECONDARY);
+		telemetry_widget_draw_text_clipped(draw, (struct zui_point){.x = 4, .y = y},
+						   TELEMETRY_WIDGET_LABEL_W, row->label);
+		telemetry_widget_draw_value(draw, row, y);
 	}
 }
 
-static bool telemetry_widget_select_position(struct telemetry_widget_state *state, bool newer)
+static bool telemetry_widget_select_page(struct telemetry_widget_state *state, bool previous)
 {
-	if (state == NULL || state->model.row_count <= 1U) {
+	if (state == NULL) {
 		return false;
 	}
 
-	if (newer) {
-		if (state->selected_position == 0U) {
+	if (previous) {
+		if (state->page_index == 0U) {
 			return false;
 		}
-		state->selected_position--;
+		state->page_index--;
 	} else {
-		if (state->selected_position + 1U >= state->model.row_count) {
+		if (state->page_index + 1U >= telemetry_widget_page_count(&state->model)) {
 			return false;
 		}
-		state->selected_position++;
+		state->page_index++;
 	}
 
+	telemetry_widget_update_page(state);
 	if (state->screen != NULL) {
 		(void)zui_screen_request_redraw(state->screen);
 	}
@@ -460,7 +522,9 @@ static bool telemetry_widget_input(const struct zui_input_event *event, void *us
 		return false;
 	}
 
-	return telemetry_widget_select_position(state, event->code == ZUI_INPUT_CODE_UP);
+	/* Page boundaries still consume the key; they must not trigger Dashboard actions. */
+	(void)telemetry_widget_select_page(state, event->code == ZUI_INPUT_CODE_UP);
+	return true;
 }
 
 static const struct zui_screen_ops telemetry_widget_ops = {
@@ -478,6 +542,7 @@ static struct zui_screen *telemetry_widget_screen_create(
 	if (telemetry_widget.screen == NULL) {
 		telemetry_widget_snapshot_read(&snapshot);
 		(void)telemetry_widget_model_apply(&telemetry_widget.model, &snapshot);
+		telemetry_widget_update_page(&telemetry_widget);
 		telemetry_widget.screen =
 			zui_screen_create(&telemetry_widget_ops, &telemetry_widget);
 	}
@@ -494,12 +559,7 @@ static uint32_t telemetry_widget_tick(struct meshbus_desktop_dashboard_widget *w
 	telemetry_widget_snapshot_read(&snapshot);
 	if (telemetry_widget_model_apply(&telemetry_widget.model, &snapshot) &&
 	    telemetry_widget.screen != NULL) {
-		if (telemetry_widget.selected_position >= telemetry_widget.model.row_count) {
-			telemetry_widget.selected_position =
-				telemetry_widget.model.row_count > 0U ?
-					telemetry_widget.model.row_count - 1U :
-					0U;
-		}
+		telemetry_widget_update_page(&telemetry_widget);
 		(void)zui_screen_request_redraw(telemetry_widget.screen);
 	}
 
