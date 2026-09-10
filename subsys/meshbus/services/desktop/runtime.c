@@ -4,6 +4,10 @@
 
 #include "registry/apps_registry_prvi.h"
 
+#if CONFIG_MESHBUS_DESKTOP_BOOT_LOGO_DURATION_MS > 0
+#include "assets/logo/meshbus_logo.h"
+#endif
+
 #include <errno.h>
 
 #include <zephyr/device.h>
@@ -561,6 +565,43 @@ static k_timeout_t zui_desktop_wait_timeout(struct zui_desktop *desktop)
 	return K_MSEC(dashboard_timeout_ms);
 }
 
+static void zui_desktop_show_boot_logo(struct zui_desktop *desktop)
+{
+#if CONFIG_MESHBUS_DESKTOP_BOOT_LOGO_DURATION_MS > 0
+	struct zui_draw_ctx *draw = desktop->draw;
+	uint16_t width = zui_draw_width(draw);
+	uint16_t height = zui_draw_height(draw);
+
+	if (draw == NULL || zui_host_is_suspended(desktop->host) ||
+	    width < MESHBUS_BOOT_LOGO_WIDTH || height < MESHBUS_BOOT_LOGO_HEIGHT) {
+		return;
+	}
+
+	zui_draw_reset(draw);
+	/* ZUI's BLACK is foreground bit 1: a lit pixel on the default OLED output. */
+	zui_draw_set_color(draw, ZUI_COLOR_BLACK);
+	zui_draw_bitmap(draw,
+			(struct zui_point){
+				.x = (width - MESHBUS_BOOT_LOGO_WIDTH) / 2,
+				.y = (height - MESHBUS_BOOT_LOGO_HEIGHT) / 2,
+			},
+			MESHBUS_BOOT_LOGO_WIDTH, MESHBUS_BOOT_LOGO_HEIGHT,
+			ZUI_BITMAP_FORMAT_XBM, meshbus_boot_logo);
+	if (zui_draw_present(draw) != 0) {
+		return;
+	}
+
+	/* Delay only the Desktop thread, after the logo has been presented. */
+	k_msleep(CONFIG_MESHBUS_DESKTOP_BOOT_LOGO_DURATION_MS);
+	/* Do not replay navigation entered while the desktop was not yet visible. */
+	k_mutex_lock(&desktop->input_mutex, K_FOREVER);
+	k_msgq_purge(&desktop->input_msgq);
+	k_mutex_unlock(&desktop->input_mutex);
+#else
+	ARG_UNUSED(desktop);
+#endif
+}
+
 static void meshbus_desktop_thread_entry(void *arg1, void *arg2, void *arg3)
 {
 	struct zui_desktop *desktop = arg1;
@@ -573,6 +614,7 @@ static void meshbus_desktop_thread_entry(void *arg1, void *arg2, void *arg3)
 		return;
 	}
 
+	zui_desktop_show_boot_logo(desktop);
 	(void)zui_host_run(desktop->host);
 	zui_desktop_draw(desktop);
 

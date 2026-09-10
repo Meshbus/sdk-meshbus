@@ -23,6 +23,20 @@ module-str = meshbus_desktop
 module-dep = MESHBUS
 source "subsys/logging/Kconfig.template.log_config"
 
+config MESHBUS_DESKTOP_BOOT_LOGO_DURATION_MS
+	int "Desktop boot logo duration (ms)"
+	default 1000
+	range 0 5000
+	help
+	  Show the centered monochrome Meshbus logo once when the Desktop thread
+	  starts, before entering the dashboard. Only the Desktop thread waits;
+	  other firmware services continue running. Navigation queued during the
+	  logo is discarded before entering the desktop.
+
+	  Set to 0 to disable the logo and its delay. Displays smaller than the
+	  84x56 logo, unavailable displays, and a suspended UI skip the delay.
+	  The logo follows the display's configured output inversion.
+
 config MESHBUS_DESKTOP_THREAD_STACK_SIZE
 	int "Desktop UI thread stack size"
 	default 6144
