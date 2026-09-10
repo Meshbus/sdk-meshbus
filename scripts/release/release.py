@@ -640,7 +640,7 @@ def client(args):
     art.require(target in CLIENTS and target == host, "CLI archives must be built on their supported native target")
     part = args.output / "cli" / target
     art.require(not part.exists() or not any(part.iterdir()), f"output directory is not empty: {part}")
-    target_dir = args.cargo_target_dir or Path(env.get("CARGO_TARGET_DIR", workspace / "build/meshbus-cli/cargo"))
+    target_dir = args.cargo_target_dir or Path(env.get("CARGO_TARGET_DIR", workspace / "build-meshbus-cli"))
     command = [cargo, "build", "--locked", "--release", "--manifest-path", crate / "Cargo.toml",
                "--target-dir", target_dir.resolve(), "--message-format=json-render-diagnostics"]
     if args.target:

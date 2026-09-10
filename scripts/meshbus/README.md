@@ -3,7 +3,11 @@
 `meshbus` is the standalone Rust user client for device operations and offline
 EDK/DFOTA/extension tools. Firmware developers build and archive products with
 Python `west release`; the Rust CLI has no `release` command. `west meshbus`
-only forwards to an existing CLI and never compiles Rust implicitly.
+checks the local Rust build with Cargo before executing it. Missing or changed
+inputs are rebuilt incrementally; fresh outputs are reused. Its default build
+directory is `<west-workspace>/build-meshbus-cli`, overridden by
+`CARGO_TARGET_DIR` (relative to the workspace). Setting `MESHBUS_CLI` explicitly
+uses that executable and skips the local build. Build failures stop execution.
 
 ## Commands
 
@@ -93,16 +97,17 @@ Build and archive from the firmware west workspace:
 
 ```sh
 export MESHBUS_PROTO_ROOT="$(west list meshbus-protobufs -f '{abspath}')"
-export CARGO_TARGET_DIR="$PWD/build/meshbus-cli/cargo"
+export CARGO_TARGET_DIR="$PWD/build-meshbus-cli"
 west release cli --workspace "$PWD" --output build/candidate
 ```
 
 One native archive is produced per OS/architecture. User operations, including
 EDK and delta packaging, are Rust; product orchestration is Python. Extension compilation requires
 external CMake, Ninja and Zephyr SDK. Firmware builds/EDK generation require a
-standard west environment; the firmware-owned `west meshbus` adapter only
-forwards arguments. No private keys, production signatures or notarization are
-created by candidate packaging. See the firmware `DISTRIBUTION.md` guide.
+standard west environment; the firmware-owned `west meshbus` adapter builds
+the local CLI as needed and forwards arguments. No private keys, production
+signatures or notarization are created by candidate packaging. See the firmware
+`DISTRIBUTION.md` guide.
 
 ### Standalone firmware programming
 

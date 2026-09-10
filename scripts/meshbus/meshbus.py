@@ -13,7 +13,7 @@ from meshbus_cli import cli_command
 
 class Meshbus(WestCommand):
     def __init__(self):
-        super().__init__("meshbus", "Meshbus Rust utilities", "Forward arguments to the Rust meshbus CLI.", accepts_unknown_args=True)
+        super().__init__("meshbus", "Meshbus Rust utilities", "Build the local Rust meshbus CLI as needed and run it.", accepts_unknown_args=True)
 
     def do_add_parser(self, parser_adder):
         parser = parser_adder.add_parser(self.name, add_help=False)
@@ -22,7 +22,7 @@ class Meshbus(WestCommand):
 
     def do_run(self, args, unknown_args):
         try:
-            result = subprocess.run([*cli_command(), *unknown_args, *args.arguments], check=False)
+            result = subprocess.run([*cli_command(auto_build=True), *unknown_args, *args.arguments], check=False)
         except (OSError, RuntimeError) as error:
             self.die(str(error))
         if result.returncode:

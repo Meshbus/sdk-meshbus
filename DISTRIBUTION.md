@@ -15,17 +15,25 @@ From the firmware west workspace, with Rust and the Zephyr environment active:
 
 ```sh
 export MESHBUS_PROTO_ROOT="$(west list meshbus-protobufs -f '{abspath}')"
-export CARGO_TARGET_DIR="$PWD/build/meshbus-cli/cargo"
+export CARGO_TARGET_DIR="$PWD/build-meshbus-cli"
 export CARGO_ENCODED_RUSTFLAGS="--remap-path-prefix=$HOME=/build-home"
 cargo build --locked --release --manifest-path meshbus/scripts/meshbus/Cargo.toml
 export MESHBUS_CLI="$CARGO_TARGET_DIR/release/meshbus"
 ```
 
-On Windows the executable ends in `.exe`. `west meshbus` only forwards to an
-existing CLI: `MESHBUS_CLI` first, then `meshbus` on PATH, then the local
-`CARGO_TARGET_DIR/release/meshbus` (default `build/meshbus-cli/cargo`). It never
-runs Cargo. A missing executable fails immediately with setup instructions;
-help never triggers a build.
+On Windows the executable ends in `.exe`. `west meshbus` uses `MESHBUS_CLI`
+when explicitly set. Otherwise it runs `cargo build --locked --release` before
+forwarding arguments, including help and version requests. Cargo builds missing
+or changed inputs and reuses fresh outputs. The default executable is
+`<west-workspace>/build-meshbus-cli/release/meshbus`; `CARGO_TARGET_DIR` overrides
+the build directory (relative paths are resolved from the workspace), and
+`CARGO` can select the Cargo executable. A CLI on PATH does not bypass this
+local source check. Cargo diagnostics go to stderr so CLI JSON on stdout stays
+usable. Build failure stops the command without running an older binary.
+
+Other callers of the shared resolver, such as release packaging, only locate
+existing tools: `MESHBUS_CLI`, then PATH, then the same local build directory.
+They do not opt into automatic builds.
 
 Production firmware packaging and final assembly are stricter: `MESHBUS_CLI`
 must name an absolute executable path. The firmware part records that tool's

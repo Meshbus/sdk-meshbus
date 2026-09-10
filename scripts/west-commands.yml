@@ -21,7 +21,7 @@ west-commands:
     commands:
       - name: meshbus
         class: Meshbus
-        help: Bridge to the installed Rust Meshbus CLI (never builds it)
+        help: Incrementally build and run the local Rust Meshbus CLI
 
   - file: scripts/release/release.py
     commands:

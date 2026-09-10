@@ -586,12 +586,13 @@ class EntryTests(unittest.TestCase):
         command.do_add_parser(parser.add_subparsers(dest="command"))
         arguments = ["llext", "--llext-sdk", "EDK with spaces", "extension", "--", "-DTEST=a b"]
         parsed, unknown = parser.parse_known_args(["meshbus", *arguments])
-        with patch.object(bridge, "cli_command", return_value=["CLI with spaces"]):
+        with patch.object(bridge, "cli_command", return_value=["CLI with spaces"]) as resolve:
             with patch.object(bridge.subprocess, "run", return_value=subprocess.CompletedProcess([], 7)) as invoked:
                 with self.assertRaises(SystemExit) as error:
                     command.do_run(parsed, unknown)
                 self.assertEqual(error.exception.code, 7)
                 self.assertEqual(invoked.call_args.args[0], ["CLI with spaces", *arguments])
+                resolve.assert_called_once_with(auto_build=True)
 
     def test_board_id_and_qualified_target_select_the_same_device_firmware(self):
         with tempfile.TemporaryDirectory() as temporary:
