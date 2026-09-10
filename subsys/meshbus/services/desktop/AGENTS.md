@@ -22,3 +22,9 @@ Select focused checks from local test metadata. Add a consuming product build
 when the change affects product composition. Pixel, input, display, and timing
 claims require observation on the applicable hardware; perform those checks
 when required by the task's acceptance criteria and already authorized.
+For framebuffer capture and its limits, use `docs/display-dump.md` at the
+repository root; the capture endpoint belongs to Display, independently of
+Desktop or Shell availability.
+For synthetic navigation over MCUmgr, use the existing Input service commands
+documented in repository-root `docs/input-injection.md`, including release
+cleanup and screenshot-based observation of the resulting UI state.

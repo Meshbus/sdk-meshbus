@@ -34,6 +34,12 @@ a checkout basename. If west discovery fails, report it and continue source-only
 inspection where useful; do not guess dependency paths, run `west update`, or
 repair shared environments automatically.
 
+Activate the environment in the same shell that starts the build or tool.
+Invoking `west` by absolute path alone does not put its Python environment on
+`PATH` for child processes such as nanopb generation. The CLI build also needs
+workspace/schema discovery; use the activated workspace or the documented
+`MESHBUS_PROTO_ROOT` override in [CLI development](scripts/meshbus/README.md).
+
 The SDK is a Zephyr module, not a root application. Select a consuming sample,
 test, or product. Before adding an extra module path, check whether the active
 manifest already exposes it. Use the consumer's current module-loading option
@@ -74,6 +80,13 @@ all affected targets, not an arbitrary full matrix. Inspect both app and MCUboot
 final configuration/DTS/layout and affected image/memory reports when relevant.
 App-only builds are diagnostic and successful builds are not runtime proof.
 
+When reconfiguring an existing sysbuild directory, retain `--sysbuild`, the
+board and application arguments. A plain application CMake reconfiguration
+cannot reuse the sysbuild cache. A public verification PEM cannot sign an
+image; setting only the application's unsigned-image option does not override
+sysbuild's signature policy. Use the authorized signing flow or report the
+app-only diagnostic result with packaging still incomplete.
+
 The default sysbuild application directory is now `<build-dir>/meshbus/`.
 `mcuboot/` is unchanged. Use a fresh task build directory after relocation;
 existing CMake caches contain old absolute source paths. Host packaging tools
@@ -81,6 +94,14 @@ also recognize legacy `<build-dir>/app/` outputs, but this does not make old
 builds valid evidence for the current source.
 
 ## SDK Builds and Tests
+
+For host CLI development, run `west meshbus <arguments>` from the west
+workspace or repository. Unless `MESHBUS_CLI` explicitly selects an executable,
+the adapter runs Cargo's locked release build before each invocation. Cargo
+reuses fresh outputs and rebuilds changed inputs. The default target directory
+is `<west-workspace>/build-meshbus-cli`; `CARGO_TARGET_DIR` overrides it, with
+relative paths resolved from the workspace. This also applies to `--help` and
+`--version`. Cargo output goes to stderr; a failed build prevents CLI execution.
 
 Use the requested target when one is named. Otherwise read the nearest
 `testcase.yaml` or `sample.yaml`, select its declared platform, and run the
@@ -125,6 +146,11 @@ expanding validation. Preserve both results when retrying a flaky or
 infrastructure failure.
 
 ## Serial and Remote Tools
+
+For tool selection and evidence boundaries, see
+[validation tools](docs/agents/testing.md). For a complete UART OLED screenshot,
+use [Display capture](docs/display-dump.md#uart-capture-tool); it assembles
+chunks and exports PNGs without extra Python packages.
 
 For authorized live serial work, use the shared helper at
 `$sdk_root/scripts/serial_use.py` and the existing Zephyr Python with pyserial:

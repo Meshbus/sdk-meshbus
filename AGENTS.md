@@ -20,6 +20,8 @@ read-only build context unless the user requests changes there.
 
 Read `DEVELOPMENT.md` for environment, workspace, build, or test work, and
 `DISTRIBUTION.md` for packaging, signing, update, or release work.
+For selecting validation tools or collecting device evidence, read
+`docs/agents/testing.md`.
 
 Read these local rules only when the task enters their scope:
 
