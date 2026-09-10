@@ -223,4 +223,10 @@ ZTEST(meshbus_display_contract, test_invert_rollback_failure_reports_degraded_st
 	zassert_false(got.invert, "stored config changed after rollback failure");
 }
 
+ZTEST(meshbus_display_contract, test_dump_without_snapshot_backend)
+{
+	struct meshbus_display_dump_chunk chunk;
+	zassert_equal(meshbus_display_dump_read(0, 0, 0, &chunk), -ENOTSUP);
+}
+
 ZTEST_SUITE(meshbus_display_contract, NULL, display_suite_setup, display_before, NULL, NULL);

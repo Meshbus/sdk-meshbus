@@ -6,6 +6,7 @@
 
 #include <errno.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
@@ -108,6 +109,49 @@ MB_MGMT_CONFIG_RESET_HANDLER_DEFINE(
 	meshbus_display_config_get, meshbus_DisplayConfigResetRequest_fields,
 	meshbus_DisplayConfigResetResponse_fields, MESHBUS_DISPLAY_MGMT_PROTO_RSP_MAX_SIZE);
 
+static int meshbus_display_mgmt_dump(struct smp_streamer *ctxt)
+{
+	meshbus_DisplayDumpRequest req = meshbus_DisplayDumpRequest_init_zero;
+	meshbus_DisplayDumpResponse rsp = meshbus_DisplayDumpResponse_init_zero;
+	struct meshbus_display_dump_chunk chunk;
+	int rc = mb_mgmt_decode_proto(ctxt, &req, sizeof(req),
+				      meshbus_DisplayDumpRequest_fields, true);
+
+	if (rc == 0) {
+		rc = meshbus_display_dump_read(req.snapshot_id, req.offset, req.length, &chunk);
+	}
+	switch (rc) {
+	case 0:
+		break;
+	case -EINVAL:
+		return MGMT_ERR_EINVAL;
+	case -ENOENT:
+		return MGMT_ERR_ENOENT;
+	case -ENODEV:
+		return MGMT_ERR_EBADSTATE;
+	case -ENOTSUP:
+		return MGMT_ERR_ENOTSUP;
+	case -ENOSPC:
+		return MGMT_ERR_EMSGSIZE;
+	default:
+		return MGMT_ERR_EUNKNOWN;
+	}
+	rsp.snapshot_id = chunk.snapshot_id;
+	rsp.offset = chunk.offset;
+	rsp.total_size = chunk.total_size;
+	rsp.width = chunk.width;
+	rsp.height = chunk.height;
+	rsp.format = chunk.format;
+	rsp.orientation = chunk.orientation;
+	rsp.inverted = chunk.inverted;
+	rsp.data.size = chunk.data_len;
+	BUILD_ASSERT(sizeof(rsp.data.bytes) == sizeof(chunk.data));
+	memcpy(rsp.data.bytes, chunk.data, chunk.data_len);
+	rc = mb_mgmt_encode_proto(ctxt, &rsp, meshbus_DisplayDumpResponse_fields,
+				 meshbus_DisplayDumpResponse_size);
+	return rc == 0 ? MGMT_ERR_EOK : (rc == -ENOMEM ? MGMT_ERR_ENOMEM : MGMT_ERR_EUNKNOWN);
+}
+
 static const struct mgmt_handler meshbus_display_mgmt_group_handlers[] = {
 	[meshbus_DisplayMgmtCommandId_DISPLAY_MGMT_COMMAND_ID_CONFIG] =
 		{meshbus_display_mgmt_config_get, meshbus_display_mgmt_config_set},
@@ -117,6 +161,8 @@ static const struct mgmt_handler meshbus_display_mgmt_group_handlers[] = {
 		{NULL, meshbus_display_mgmt_active_set},
 	[meshbus_DisplayMgmtCommandId_DISPLAY_MGMT_COMMAND_ID_CONFIG_RESET] =
 		{NULL, meshbus_display_mgmt_config_reset},
+	[meshbus_DisplayMgmtCommandId_DISPLAY_MGMT_COMMAND_ID_DUMP] =
+		{meshbus_display_mgmt_dump, NULL},
 };
 
 #define MESHBUS_DISPLAY_MGMT_GROUP_SZ ARRAY_SIZE(meshbus_display_mgmt_group_handlers)

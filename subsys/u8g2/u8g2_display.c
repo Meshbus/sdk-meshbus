@@ -10,7 +10,7 @@
 #include <zephyr/sys/atomic.h>
 #include <zephyr/sys/util.h>
 
-#include "u8g2_dump.h"
+#include <zephyr/display/u8g2_snapshot.h>
 
 struct u8g2_context {
 	const struct device *display;
@@ -23,6 +23,8 @@ struct u8g2_context {
 	bool mono_vtiled;
 	bool mono_msb_first;
 	bool mono_invert;
+	bool output_inverted;
+	bool frame_write_failed;
 	struct k_mutex output_mutex;
 
 	/* Scratch used for format conversion; size == caps.x_resolution bytes. */
@@ -42,6 +44,71 @@ struct u8g2_context {
 static struct u8g2_context *g_ctx;
 static atomic_t output_invert_override;
 static atomic_t output_invert_override_valid;
+
+#ifdef CONFIG_U8G2_SNAPSHOT
+/* Independent storage: readers never touch the renderer's mutable buffer or
+ * adapter lifetime. Lock ordering is output_mutex -> snapshot_mutex.
+ */
+static K_MUTEX_DEFINE(snapshot_mutex);
+static uint8_t *snapshot_buf;
+static struct u8g2_snapshot_info snapshot_info;
+static bool snapshot_ready;
+
+int u8g2_snapshot_copy(uint8_t *dst, size_t capacity, struct u8g2_snapshot_info *info)
+{
+	if (info == NULL || (dst == NULL && capacity != 0U)) {
+		return -EINVAL;
+	}
+
+	k_mutex_lock(&snapshot_mutex, K_FOREVER);
+	int rc = 0;
+
+	if (!snapshot_ready) {
+		rc = -ENODEV;
+	} else if (dst != NULL && capacity < snapshot_info.len) {
+		rc = -ENOSPC;
+	} else {
+		*info = snapshot_info;
+		if (dst != NULL) {
+			memcpy(dst, snapshot_buf, snapshot_info.len);
+		}
+	}
+	k_mutex_unlock(&snapshot_mutex);
+	return rc;
+}
+
+static void snapshot_reset(void)
+{
+	k_mutex_lock(&snapshot_mutex, K_FOREVER);
+	snapshot_ready = false;
+	k_free(snapshot_buf);
+	snapshot_buf = NULL;
+	k_mutex_unlock(&snapshot_mutex);
+}
+
+static uint32_t rotation_cb_to_orientation(const u8g2_cb_t *cb);
+
+static void snapshot_publish(struct u8g2_context *ctx)
+{
+	if (ctx->frame_write_failed || ctx->u8g2->tile_curr_row != 0U ||
+	    ctx->tile_buf_height != ctx->caps.y_resolution / 8U) {
+		return;
+	}
+	k_mutex_lock(&snapshot_mutex, K_FOREVER);
+	if (snapshot_buf != NULL) {
+		memcpy(snapshot_buf, ctx->u8g2_buf, ctx->u8g2_buf_len);
+		snapshot_info = (struct u8g2_snapshot_info){
+			.len = ctx->u8g2_buf_len,
+			.width = ctx->caps.x_resolution,
+			.height = ctx->caps.y_resolution,
+			.orientation = rotation_cb_to_orientation(ctx->u8g2->cb),
+			.inverted = ctx->output_inverted,
+		};
+		snapshot_ready = true;
+	}
+	k_mutex_unlock(&snapshot_mutex);
+}
+#endif
 
 static bool display_desired_invert(void)
 {
@@ -151,6 +218,7 @@ static int display_output_invert_apply(struct u8g2_context *ctx, bool desired_in
 	}
 
 	ctx->mono_invert = mono_invert_required(ctx->pixel_format, desired_invert);
+	ctx->output_inverted = desired_invert;
 	return 0;
 }
 
@@ -225,7 +293,11 @@ static uint8_t display_cb_locked(struct u8g2_context *ctx, u8x8_t *u8x8, uint8_t
 		return 1;
 
 	case U8X8_MSG_DISPLAY_REFRESH:
-		/* Most Zephyr display drivers refresh on write; keep as no-op. */
+		/* A full refresh is the publication boundary, after all tile writes. */
+#ifdef CONFIG_U8G2_SNAPSHOT
+		snapshot_publish(ctx);
+#endif
+		ctx->frame_write_failed = false;
 		return 1;
 
 	case U8X8_MSG_DISPLAY_DRAW_TILE: {
@@ -303,11 +375,15 @@ static uint8_t display_cb(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_
 
 	k_mutex_lock(&ctx->output_mutex, K_FOREVER);
 	uint8_t result = display_cb_locked(ctx, u8x8, msg, arg_int, arg_ptr);
+	if (msg == U8X8_MSG_DISPLAY_DRAW_TILE && result == 0U) {
+		ctx->frame_write_failed = true;
+	}
 	k_mutex_unlock(&ctx->output_mutex);
 
 	return result;
 }
 
+#ifdef CONFIG_U8G2_SNAPSHOT
 static uint32_t rotation_cb_to_orientation(const u8g2_cb_t *cb)
 {
 	/* Keep values aligned with the SSD1306 dump orientation encoding (0..3). */
@@ -326,31 +402,7 @@ static uint32_t rotation_cb_to_orientation(const u8g2_cb_t *cb)
 	return 0U;
 }
 
-int u8g2_display_get_dump_info(struct u8g2_dump_info *info)
-{
-	if (info == NULL) {
-		return -EINVAL;
-	}
-
-	struct u8g2_context *ctx = g_ctx;
-	if (ctx == NULL || ctx->u8g2_buf == NULL) {
-		return -ENODEV;
-	}
-
-	/* The dump tooling expects a full framebuffer in SSD1306 page format. */
-	const size_t full_len = (size_t)ctx->caps.x_resolution * (size_t)(ctx->caps.y_resolution / 8U);
-	if (ctx->tile_buf_height != (uint8_t)(ctx->caps.y_resolution / 8U) ||
-	    ctx->u8g2_buf_len != full_len) {
-		return -ENOTSUP;
-	}
-
-	info->buf = ctx->u8g2_buf;
-	info->len = ctx->u8g2_buf_len;
-	info->width = (uint16_t)ctx->caps.x_resolution;
-	info->height = (uint16_t)ctx->caps.y_resolution;
-	info->orientation = rotation_cb_to_orientation((ctx->u8g2 != NULL) ? ctx->u8g2->cb : NULL);
-	return 0;
-}
+#endif
 
 static void display_deinit(struct u8g2_context *ctx)
 {
@@ -501,6 +553,16 @@ int u8g2_init(u8g2_t *u8g2, const struct device *display, const u8g2_cb_t *rotat
 	ctx->tile_buf_height = tile_buf_height;
 	ctx->u8g2 = u8g2;
 
+#ifdef CONFIG_U8G2_SNAPSHOT
+	/* Allocate once during setup; the rendering path only copies bytes. */
+	snapshot_buf = k_malloc(buf_len);
+	if (snapshot_buf == NULL) {
+		display_deinit(ctx);
+		k_free(ctx);
+		return -ENOMEM;
+	}
+#endif
+
 	err = display_setup_u8g2(u8g2, ctx, ctx->u8g2_buf,
 					    tile_buf_height, rotation);
 	if (err != 0) {
@@ -517,6 +579,9 @@ int u8g2_init(u8g2_t *u8g2, const struct device *display, const u8g2_cb_t *rotat
 
 void u8g2_deinit(void)
 {
+#ifdef CONFIG_U8G2_SNAPSHOT
+	snapshot_reset();
+#endif
 	if (g_ctx == NULL) {
 		return;
 	}

@@ -2074,7 +2074,7 @@ mod tests {
     #[test]
     fn command_registry_matches_embedded_schema() {
         let runtime = Runtime::load().unwrap();
-        assert_eq!(runtime.registry.commands.len(), 126);
+        assert_eq!(runtime.registry.commands.len(), 127);
         for command in &runtime.registry.commands {
             assert!(
                 runtime
@@ -2104,6 +2104,28 @@ mod tests {
         assert!(runtime.request(command, arguments).unwrap().is_empty());
         assert_eq!(command.group_id, 71);
         assert_eq!(command.command_id, 1);
+    }
+
+    #[test]
+    fn display_dump_requests_use_display_group_and_chunk_fields() {
+        let runtime = Runtime::load().unwrap();
+        let words = vec!["display".into(), "dump".into()];
+        let (command, arguments) = runtime.resolve(&words).unwrap();
+        assert_eq!(command.group_id, 74);
+        assert_eq!(command.command_id, 4);
+        assert_eq!(command.op, "read");
+        assert!(runtime.request(command, arguments).unwrap().is_empty());
+        let bytes = runtime
+            .request(command, &["7".into(), "1000".into(), "24".into()])
+            .unwrap();
+        let descriptor = runtime
+            .pool
+            .get_message_by_name("meshbus.DisplayDumpRequest")
+            .unwrap();
+        let message = DynamicMessage::decode(descriptor, bytes.as_slice()).unwrap();
+        assert_eq!(integer_field(&message, "snapshot_id").unwrap(), 7);
+        assert_eq!(integer_field(&message, "offset").unwrap(), 1000);
+        assert_eq!(integer_field(&message, "length").unwrap(), 24);
     }
 
     #[test]

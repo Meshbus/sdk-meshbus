@@ -46,6 +46,16 @@ config MESHBUS_DISPLAY_INIT_PRIORITY
 	help
 	  Initialization priority for the Meshbus Display service.
 
+config MESHBUS_DISPLAY_DUMP_MAX_SIZE
+	int "Maximum frozen display snapshot size in bytes"
+	depends on U8G2_SNAPSHOT
+	range 1 65536
+	default 1024
+	help
+	  Storage for one shared snapshot used by chunked Display dump reads.
+	  1024 bytes holds a 128x64 monochrome frame. Larger frames return
+	  an error unless this limit is increased.
+
 config MESHBUS_DISPLAY_SHELL
 	bool "Meshbus Display shell commands"
 	depends on MESHBUS_SHELL

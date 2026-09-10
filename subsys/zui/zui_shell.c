@@ -11,13 +11,11 @@
 
 #include <string.h>
 
-#include "../u8g2/u8g2_dump.h"
+#include <zephyr/display/u8g2_snapshot.h>
 
 #define ZUI_DUMP_LINE_BYTES   64u
 #define ZUI_DUMP_HEX_LINE_MAX (5u + (ZUI_DUMP_LINE_BYTES * 2u) + 1u) /* "DUMP " + hex + NUL */
 
-static uint8_t *g_dump_snap;
-static size_t g_dump_snap_cap;
 static atomic_t g_key_seq;
 static bool g_key_emul_active;
 
@@ -279,25 +277,6 @@ static int cmd_zui_key_emul(const struct shell *sh, size_t argc, char **argv)
 	return 0;
 }
 
-static int ensure_snapshot_buf(size_t len)
-{
-	if (g_dump_snap != NULL && g_dump_snap_cap >= len) {
-		return 0;
-	}
-
-	uint8_t *next = k_malloc(len);
-	if (next == NULL) {
-		return -ENOMEM;
-	}
-
-	if (g_dump_snap != NULL) {
-		k_free(g_dump_snap);
-	}
-	g_dump_snap = next;
-	g_dump_snap_cap = len;
-	return 0;
-}
-
 static int cmd_zui_dump(const struct shell *sh, size_t argc, char **argv)
 {
 	ARG_UNUSED(argc);
@@ -305,21 +284,24 @@ static int cmd_zui_dump(const struct shell *sh, size_t argc, char **argv)
 
 	static const char hexdig[] = "0123456789abcdef";
 
-	struct u8g2_dump_info info;
-	int ret = u8g2_display_get_dump_info(&info);
+	struct u8g2_snapshot_info info;
+	int ret = u8g2_snapshot_copy(NULL, 0, &info);
 	if (ret != 0) {
 		shell_error(sh, "u8g2 dump unavailable: %d", ret);
 		return ret;
 	}
 
-	ret = ensure_snapshot_buf(info.len);
+	/* Per-call storage also isolates concurrent Shell backends. */
+	uint8_t *snapshot = k_malloc(info.len);
+	if (snapshot == NULL) {
+		return -ENOMEM;
+	}
+	ret = u8g2_snapshot_copy(snapshot, info.len, &info);
 	if (ret != 0) {
-		shell_error(sh, "OOM: %d", ret);
+		k_free(snapshot);
+		shell_error(sh, "u8g2 snapshot unavailable: %d", ret);
 		return ret;
 	}
-
-	/* Copy to a stable buffer: u8g2 may render concurrently. */
-	memcpy(g_dump_snap, info.buf, info.len);
 
 	shell_print(sh, "DUMP_DISP %u %u BUF %u FMT SSD1306_PAGE ORI %u",
 		    (unsigned)info.width,
@@ -333,7 +315,7 @@ static int cmd_zui_dump(const struct shell *sh, size_t argc, char **argv)
 
 		memcpy(line, "DUMP ", 5);
 		for (size_t i = 0; i < n; i++) {
-			const uint8_t b = g_dump_snap[off + i];
+			const uint8_t b = snapshot[off + i];
 			line[5 + (i * 2) + 0] = hexdig[b >> 4];
 			line[5 + (i * 2) + 1] = hexdig[b & 0x0F];
 		}
@@ -342,6 +324,7 @@ static int cmd_zui_dump(const struct shell *sh, size_t argc, char **argv)
 		shell_print(sh, "%s", line);
 	}
 
+	k_free(snapshot);
 	shell_print(sh, "DUMP_END");
 	return 0;
 }

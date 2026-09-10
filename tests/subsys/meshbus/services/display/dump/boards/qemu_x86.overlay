@@ -1,0 +1,12 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+
+/ {
+	chosen {
+		zephyr,display = &test_display;
+	};
+
+	test_display: test-display {
+		compatible = "fobe,test-display";
+		status = "okay";
+	};
+};

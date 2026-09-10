@@ -87,6 +87,39 @@ bool meshbus_display_is_active(void);
  */
 void meshbus_display_active(bool active);
 
+#define MESHBUS_DISPLAY_DUMP_CHUNK_SIZE 256U
+
+/** Caller-owned chunk of a frozen software frame, in physical coordinates. */
+struct meshbus_display_dump_chunk {
+	uint32_t snapshot_id;
+	uint32_t offset;
+	uint32_t total_size;
+	uint16_t width;
+	uint16_t height;
+	meshbus_DisplayDumpFormat format;
+	meshbus_DisplayDumpOrientation orientation;
+	bool inverted;
+	uint16_t data_len;
+	uint8_t data[MESHBUS_DISPLAY_DUMP_CHUNK_SIZE];
+};
+
+/**
+ * Capture or read a frozen display snapshot from thread context.
+ * snapshot_id=0 with offset=0 captures the last complete submitted frame.
+ * length=0 selects CHUNK_SIZE; otherwise length must be 1..CHUNK_SIZE.
+ * Read subsequent chunks with the returned ID and byte offset. The single
+ * shared snapshot is immutable until the next successful capture, including
+ * across renderer teardown. A new capture invalidates the previous ID for all
+ * clients. IDs are boot-local, and zero is never returned. Chunk retries are
+ * allowed; offset must be below total_size. The final chunk may be shorter.
+ * No panel I/O is performed. Blanking and brightness are not captured.
+ * Returns -EINVAL for invalid arguments, -ENOENT for a stale ID, -ENODEV
+ * without a submitted frame, -ENOSPC when the frame exceeds configured storage,
+ * or -ENOTSUP without snapshot support. Output is untouched on failure.
+ */
+int meshbus_display_dump_read(uint32_t snapshot_id, uint32_t offset, uint32_t length,
+			      struct meshbus_display_dump_chunk *chunk);
+
 #ifdef __cplusplus
 }
 #endif
