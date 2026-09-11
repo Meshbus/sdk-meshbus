@@ -11,9 +11,10 @@ LOG_MODULE_DECLARE(meshbus_desktop, CONFIG_MESHBUS_DESKTOP_LOG_LEVEL);
 #define MESSAGES_WIDGET_SOURCE_MAX  40U
 #define MESSAGES_WIDGET_TIME_MAX    8U
 #define MESSAGES_WIDGET_PAYLOAD_MAX (CONFIG_MESHBUS_MESSAGE_TX_MAX_LEN + 1U)
-#define MESSAGES_WIDGET_VISIBLE_LINES 4U
-#define MESSAGES_WIDGET_SCROLL_DIV    2U
-#define MESSAGES_WIDGET_SOURCE_W      98U
+#define MESSAGES_WIDGET_VISIBLE_LINES 3U
+#define MESSAGES_WIDGET_SCROLL_PAUSE_TICKS 5U
+#define MESSAGES_WIDGET_SCROLL_LINE_TICKS  2U
+#define MESSAGES_WIDGET_SCROLL_STEP_PX     3U
 #define MESSAGES_WIDGET_PAYLOAD_RIGHT 118U
 #define MESSAGES_WIDGET_FRAME_LEFT    1
 #define MESSAGES_WIDGET_FRAME_RIGHT   126
@@ -29,9 +30,18 @@ struct messages_widget_model {
 	bool has_message;
 	bool unread;
 	bool timestamp_realtime;
+	const char *kind;
 	char source[MESSAGES_WIDGET_SOURCE_MAX];
 	char time[MESSAGES_WIDGET_TIME_MAX];
 	char payload[MESSAGES_WIDGET_PAYLOAD_MAX];
+	char lines[MESSAGES_WIDGET_VISIBLE_LINES][MESSAGES_WIDGET_PAYLOAD_MAX];
+	uint16_t name_x;
+	uint16_t name_width;
+	uint16_t name_offset;
+	uint8_t visible_lines;
+	uint8_t line_step;
+	bool more_above;
+	bool more_below;
 };
 
 struct messages_widget_row {
@@ -39,6 +49,7 @@ struct messages_widget_row {
 	uint64_t timestamp_ms;
 	bool unread;
 	bool timestamp_realtime;
+	const char *kind;
 	char source[MESSAGES_WIDGET_SOURCE_MAX];
 	char time[MESSAGES_WIDGET_TIME_MAX];
 	char payload[MESSAGES_WIDGET_PAYLOAD_MAX];
@@ -52,9 +63,57 @@ struct messages_widget_state {
 	uint32_t selected_position;
 	uint32_t received_count;
 	uint32_t row_cache_seq;
+	bool newer_pending;
+	char position_text[24];
 };
 
 static struct messages_widget_state messages_widget;
+
+/* Reject incomplete sequences so copied names and line breaks remain UTF-8 aligned. */
+static size_t messages_widget_utf8_length(const char *text)
+{
+	uint8_t first = (uint8_t)text[0];
+	size_t length;
+
+	if (first < 0x80U) {
+		return first == 0U ? 0U : 1U;
+	}
+	if (first < 0xc2U || first > 0xf4U) {
+		return 0U;
+	}
+	length = first < 0xe0U ? 2U : (first < 0xf0U ? 3U : 4U);
+	for (size_t i = 1U; i < length; i++) {
+		if (((uint8_t)text[i] & 0xc0U) != 0x80U) {
+			return 0U;
+		}
+	}
+	if ((first == 0xe0U && (uint8_t)text[1] < 0xa0U) ||
+	    (first == 0xedU && (uint8_t)text[1] >= 0xa0U) ||
+	    (first == 0xf0U && (uint8_t)text[1] < 0x90U) ||
+	    (first == 0xf4U && (uint8_t)text[1] >= 0x90U)) {
+		return 0U;
+	}
+	return length;
+}
+
+static void messages_widget_copy_text(char *dst, const char *src, size_t size)
+{
+	size_t used = 0U;
+
+	if (size == 0U) {
+		return;
+	}
+	while (src[used] != '\0') {
+		size_t length = messages_widget_utf8_length(src + used);
+
+		if (length == 0U || used + length >= size) {
+			break;
+		}
+		memmove(dst + used, src + used, length);
+		used += length;
+	}
+	dst[used] = '\0';
+}
 
 static bool messages_widget_is_channel(meshbus_message_type type)
 {
@@ -140,37 +199,24 @@ static void messages_widget_resolve_channel_name(char *buf, size_t buf_size,
 }
 
 static void messages_widget_build_source(char *buf, size_t buf_size,
-					 const meshbus_message_content *message)
+					 const meshbus_message_content *message,
+					 const char **kind)
 {
-	char name[MESSAGES_WIDGET_SOURCE_MAX];
-	const char *kind;
-	size_t off;
-
-	if (buf == NULL || buf_size == 0U || message == NULL) {
+	if (buf == NULL || buf_size == 0U || message == NULL || kind == NULL) {
 		return;
 	}
 
 	if (messages_widget_is_channel(message->type)) {
-		kind = DESKTOP_TEXT_WIDGET_MESSAGES_CHANNEL;
-		messages_widget_resolve_channel_name(name, sizeof(name), message);
+		*kind = DESKTOP_TEXT_WIDGET_MESSAGES_CHANNEL;
+		messages_widget_resolve_channel_name(buf, buf_size, message);
 	} else if (messages_widget_is_flood_node(message)) {
-		kind = DESKTOP_TEXT_WIDGET_MESSAGES_FLOOD;
-		messages_widget_resolve_node_name(name, sizeof(name), message);
+		*kind = DESKTOP_TEXT_WIDGET_MESSAGES_FLOOD;
+		messages_widget_resolve_node_name(buf, buf_size, message);
 	} else {
-		kind = DESKTOP_TEXT_WIDGET_MESSAGES_DIRECT;
-		messages_widget_resolve_node_name(name, sizeof(name), message);
+		*kind = DESKTOP_TEXT_WIDGET_MESSAGES_DIRECT;
+		messages_widget_resolve_node_name(buf, buf_size, message);
 	}
-
-	desktop_widget_strcpy(buf, buf_size, kind);
-	off = strnlen(buf, buf_size);
-	if (off + 1U < buf_size) {
-		buf[off++] = '@';
-		buf[off] = '\0';
-	}
-	for (size_t i = 0U; name[i] != '\0' && off + 1U < buf_size; i++) {
-		buf[off++] = name[i];
-	}
-	buf[off] = '\0';
+	messages_widget_copy_text(buf, buf, buf_size);
 }
 
 static uint64_t messages_widget_now_ms(bool realtime)
@@ -280,6 +326,7 @@ static void messages_widget_payload_to_string(char *buf, size_t buf_size,
 	len = MIN(len, buf_size - 1U);
 	memcpy(buf, message->payload.bytes, len);
 	buf[len] = '\0';
+	messages_widget_copy_text(buf, buf, buf_size);
 }
 
 static void messages_widget_model_defaults(struct messages_widget_model *model)
@@ -289,11 +336,7 @@ static void messages_widget_model_defaults(struct messages_widget_model *model)
 	}
 
 	memset(model, 0, sizeof(*model));
-	desktop_widget_strcpy(model->source, sizeof(model->source),
-			      DESKTOP_TEXT_WIDGET_MESSAGES_EMPTY);
-	desktop_widget_strcpy(model->time, sizeof(model->time), DESKTOP_TEXT_COMMON_UNKNOWN);
-	desktop_widget_strcpy(model->payload, sizeof(model->payload),
-			      DESKTOP_TEXT_WIDGET_MESSAGES_NO_MORE_MESSAGES);
+	messages_widget_copy_text(model->source, DESKTOP_TEXT_MESSAGES_TITLE, sizeof(model->source));
 }
 
 static void messages_widget_row_from_entry(struct messages_widget_row *row,
@@ -312,7 +355,8 @@ static void messages_widget_row_from_entry(struct messages_widget_row *row,
 	row->timestamp_ms = entry->message.timestamp;
 	row->unread = entry->unread;
 	row->timestamp_realtime = entry->timestamp_realtime;
-	messages_widget_build_source(row->source, sizeof(row->source), &entry->message);
+	messages_widget_build_source(row->source, sizeof(row->source), &entry->message,
+				     &row->kind);
 	messages_widget_payload_to_string(row->payload, sizeof(row->payload), &entry->message);
 	messages_widget_format_time(row->time, sizeof(row->time), true, row->timestamp_ms,
 				    row->timestamp_realtime);
@@ -329,7 +373,7 @@ static bool messages_widget_model_equal_row(const struct messages_widget_model *
 	return model->cache_seq == cache_seq &&
 	       model->entry_id == row->entry_id &&
 	       model->timestamp_ms == row->timestamp_ms && model->unread == row->unread &&
-	       model->timestamp_realtime == row->timestamp_realtime &&
+	       model->timestamp_realtime == row->timestamp_realtime && model->kind == row->kind &&
 	       strcmp(model->source, row->source) == 0 &&
 	       strcmp(model->time, row->time) == 0 &&
 	       strcmp(model->payload, row->payload) == 0;
@@ -361,6 +405,7 @@ static bool messages_widget_apply_row(struct messages_widget_model *model,
 		return false;
 	}
 
+	reset_scroll = reset_scroll || model->entry_id != row->entry_id;
 	scroll_ticks = reset_scroll ? 0U : model->scroll_ticks;
 	memset(model, 0, sizeof(*model));
 	model->entry_id = row->entry_id;
@@ -370,10 +415,45 @@ static bool messages_widget_apply_row(struct messages_widget_model *model,
 	model->has_message = true;
 	model->unread = row->unread;
 	model->timestamp_realtime = row->timestamp_realtime;
+	model->kind = row->kind;
 	desktop_widget_strcpy(model->source, sizeof(model->source), row->source);
 	desktop_widget_strcpy(model->time, sizeof(model->time), row->time);
 	desktop_widget_strcpy(model->payload, sizeof(model->payload), row->payload);
 	return true;
+}
+
+/* Keep a browsed entry stable when insertion shifts its cache position. */
+static void messages_widget_reconcile_selection(struct messages_widget_state *state,
+						uint64_t entry_id, bool follow_latest)
+{
+	if (state->received_count == 0U) {
+		state->selected_position = 0U;
+		state->latest_entry_id = 0U;
+		state->newer_pending = false;
+		return;
+	}
+
+	if (state->latest_entry_id != 0U &&
+	    state->rows[0].entry_id > state->latest_entry_id && !follow_latest) {
+		state->newer_pending = true;
+	}
+	state->latest_entry_id = state->rows[0].entry_id;
+	if (follow_latest) {
+		state->selected_position = 0U;
+	} else {
+		for (uint32_t i = 0U; i < state->received_count; i++) {
+			if (state->rows[i].entry_id == entry_id) {
+				state->selected_position = i;
+				break;
+			}
+		}
+		/* A message evicted from the bounded cache falls back to its nearest row. */
+		state->selected_position = MIN(state->selected_position,
+					       state->received_count - 1U);
+	}
+	if (state->selected_position == 0U) {
+		state->newer_pending = false;
+	}
 }
 
 static bool messages_widget_refresh(struct messages_widget_state *state)
@@ -381,12 +461,15 @@ static bool messages_widget_refresh(struct messages_widget_state *state)
 	uint32_t count;
 	uint32_t cache_seq;
 	bool changed;
-	bool reset_scroll = false;
+	uint64_t selected_id;
+	bool follow_latest;
 
 	if (state == NULL) {
 		return false;
 	}
 
+	selected_id = state->model.entry_id;
+	follow_latest = !state->model.has_message || state->selected_position == 0U;
 	cache_seq = desktop_messages_cache_update_seq();
 	count = desktop_messages_cache_received_count();
 	if (count != state->received_count || cache_seq != state->row_cache_seq) {
@@ -406,17 +489,9 @@ static bool messages_widget_refresh(struct messages_widget_state *state)
 		state->row_cache_seq = cache_seq;
 	}
 
+	messages_widget_reconcile_selection(state, selected_id, follow_latest);
 	if (state->received_count == 0U) {
-		state->selected_position = 0U;
-		state->latest_entry_id = 0U;
 		return messages_widget_apply_row(&state->model, NULL, cache_seq, false);
-	}
-
-	if (state->latest_entry_id != state->rows[0].entry_id) {
-		LOG_DBG("messages widget: latest cache entry changed");
-		state->latest_entry_id = state->rows[0].entry_id;
-		state->selected_position = 0U;
-		reset_scroll = true;
 	}
 
 	for (uint32_t i = 0U; i < state->received_count; i++) {
@@ -437,169 +512,175 @@ static bool messages_widget_refresh(struct messages_widget_state *state)
 
 	changed = messages_widget_apply_row(&state->model,
 					    &state->rows[state->selected_position],
-					    cache_seq, reset_scroll);
+					    cache_seq, false);
 	return changed;
 }
 
-static void messages_widget_draw_source(struct zui_draw_ctx *draw,
-					const struct messages_widget_model *model)
+static uint16_t messages_widget_scroll_position(uint16_t distance, uint32_t ticks,
+					       uint16_t step, uint16_t step_ticks)
 {
-	if (draw == NULL || model == NULL) {
-		return;
-	}
+	uint32_t steps;
+	uint32_t phase;
 
-	if (zui_draw_text_width(draw, model->source) <= MESSAGES_WIDGET_SOURCE_W) {
-		zui_draw_text(draw, (struct zui_point){.x = 4, .y = 23}, model->source);
-		return;
+	if (distance == 0U) {
+		return 0U;
 	}
-
-	zui_draw_set_clip(draw, &(struct zui_rect){.x = 4, .y = 15,
-						   .width = MESSAGES_WIDGET_SOURCE_W,
-						   .height = 10});
-	zui_draw_text_line_scrolled(draw, (struct zui_point){.x = 4, .y = 23},
-				    MESSAGES_WIDGET_SOURCE_W, model->source,
-				    (size_t)((model->scroll_ticks / MESSAGES_WIDGET_SCROLL_DIV) %
-					     strlen(model->source)),
-				    false);
-	zui_draw_clear_clip(draw);
+	steps = DIV_ROUND_UP(distance, step);
+	phase = ticks % (2U * MESSAGES_WIDGET_SCROLL_PAUSE_TICKS +
+			(steps - 1U) * step_ticks);
+	if (phase < MESSAGES_WIDGET_SCROLL_PAUSE_TICKS) {
+		return 0U;
+	}
+	return MIN(((phase - MESSAGES_WIDGET_SCROLL_PAUSE_TICKS) / step_ticks + 1U) *
+		   step, distance);
 }
 
 static const char *messages_widget_next_payload_line(struct zui_draw_ctx *draw,
-						     const char *src,
-						     uint16_t max_width,
-						     char *line,
-						     size_t line_size)
+						     const char *src, uint16_t max_width,
+						     char *line, size_t line_size)
 {
-	size_t len = 0U;
 	size_t fit = 0U;
+	size_t last_break = 0U;
+	size_t consumed;
 
-	if (line != NULL && line_size > 0U) {
-		line[0] = '\0';
-	}
 	if (draw == NULL || src == NULL || line == NULL || line_size == 0U) {
 		return src;
 	}
+	line[0] = '\0';
+	while (src[fit] != '\0' && src[fit] != '\n' && src[fit] != '\r') {
+		size_t length = MAX(1U, messages_widget_utf8_length(src + fit));
 
-	while (src[len] != '\0' && src[len] != '\n' && len + 1U < line_size) {
-		line[len] = src[len];
-		line[len + 1U] = '\0';
-		if (zui_draw_text_width(draw, line) > max_width) {
+		if (fit + length >= line_size) {
 			break;
 		}
-		len++;
-		fit = len;
+		memcpy(line + fit, src + fit, length);
+		if (src[fit] == '\t') {
+			line[fit] = ' ';
+		}
+		line[fit + length] = '\0';
+		if (zui_draw_text_width(draw, line) > max_width && fit != 0U) {
+			break;
+		}
+		fit += length;
+		if (line[fit - 1U] == ' ') {
+			last_break = fit;
+		}
 	}
 
-	if (fit == 0U && src[0] != '\0' && src[0] != '\n') {
-		fit = 1U;
-		line[0] = src[0];
-		line[1] = '\0';
-	} else {
-		line[fit] = '\0';
+	if (src[fit] != '\0' && src[fit] != '\n' && src[fit] != '\r' &&
+	    src[fit] != ' ' && src[fit] != '\t' && last_break > 0U) {
+		fit = last_break;
 	}
-
-	src += fit;
+	consumed = fit;
+	while (fit > 0U && line[fit - 1U] == ' ') {
+		fit--;
+	}
+	line[fit] = '\0';
+	if (consumed == 0U && src[0] != '\0' && src[0] != '\n' && src[0] != '\r') {
+		/* Even a buffer too small for one glyph must not stall the caller. */
+		consumed = MAX(1U, messages_widget_utf8_length(src));
+	}
+	src += consumed;
+	while (*src == ' ' || *src == '\t') {
+		src++;
+	}
+	if (*src == '\r') {
+		src++;
+	}
 	if (*src == '\n') {
 		src++;
 	}
 	return src;
 }
 
-static bool messages_widget_payload_line_at(struct zui_draw_ctx *draw, const char *payload,
-					    uint16_t max_width, uint8_t target,
-					    char *line, size_t line_size)
+static void messages_widget_prepare_view(struct messages_widget_state *state)
 {
-	const char *cursor = payload;
+	struct zui_desktop *desktop = zui_desktop_get_instance();
+	struct messages_widget_model *model = &state->model;
+	struct zui_draw_ctx *draw = desktop != NULL ? desktop->draw : NULL;
+	char line[MESSAGES_WIDGET_PAYLOAD_MAX];
+	const char *cursor;
+	uint16_t line_count = 0U;
+	uint16_t first_line;
+	uint16_t name_width;
 
-	if (line != NULL && line_size > 0U) {
-		line[0] = '\0';
-	}
-	if (draw == NULL || payload == NULL || line == NULL || line_size == 0U) {
-		return false;
+	if (draw == NULL) {
+		return;
 	}
 
-	for (uint8_t idx = 0U; *cursor != '\0'; idx++) {
-		cursor = messages_widget_next_payload_line(draw, cursor, max_width, line,
-							   line_size);
-		if (idx == target) {
-			return true;
+	/* Dashboard poll and input run on the render thread, before drawing. */
+	zui_draw_set_font(draw, ZUI_FONT_SECONDARY);
+	model->name_x = model->has_message ? 10U + zui_draw_text_width(draw, model->kind) : 4U;
+	model->name_width = model->has_message ?
+		MAX(1, 121 - (int)zui_draw_text_width(draw, model->time) - model->name_x) : 120U;
+	name_width = zui_draw_text_width(draw, model->source);
+	model->name_offset = messages_widget_scroll_position(
+		name_width > model->name_width ? name_width - model->name_width : 0U,
+		model->scroll_ticks, MESSAGES_WIDGET_SCROLL_STEP_PX, 1U);
+	(void)snprintk(state->position_text, sizeof(state->position_text),
+		       DESKTOP_TEXT_WIDGET_MESSAGES_POSITION_FORMAT,
+		       (unsigned int)(state->selected_position + 1U),
+		       (unsigned int)state->received_count);
+
+	zui_draw_set_font(draw, ZUI_FONT_PRIMARY);
+	model->line_step = zui_draw_font_height(draw) > 9U ? 12U : 9U;
+	model->visible_lines = model->line_step > 9U ? 2U : MESSAGES_WIDGET_VISIBLE_LINES;
+	memset(model->lines, 0, sizeof(model->lines));
+	cursor = model->payload;
+	while (*cursor != '\0') {
+		cursor = messages_widget_next_payload_line(draw, cursor,
+			MESSAGES_WIDGET_PAYLOAD_RIGHT - 4U, line, sizeof(line));
+		line_count++;
+	}
+	first_line = messages_widget_scroll_position(
+		line_count > model->visible_lines ? line_count - model->visible_lines : 0U,
+		model->scroll_ticks, 1U, MESSAGES_WIDGET_SCROLL_LINE_TICKS);
+	model->more_above = first_line > 0U;
+	model->more_below = first_line + model->visible_lines < line_count;
+	cursor = model->payload;
+	for (uint16_t i = 0U; *cursor != '\0' && i < first_line + model->visible_lines; i++) {
+		cursor = messages_widget_next_payload_line(draw, cursor,
+			MESSAGES_WIDGET_PAYLOAD_RIGHT - 4U, line, sizeof(line));
+		if (i >= first_line) {
+			messages_widget_copy_text(model->lines[i - first_line], line, sizeof(model->lines[0]));
 		}
 	}
+	zui_draw_set_font(draw, ZUI_FONT_SECONDARY);
+}
 
-	return target == 0U;
+static void messages_widget_draw_source(struct zui_draw_ctx *draw,
+					const struct messages_widget_model *model)
+{
+	if (model->has_message) {
+		zui_draw_rect(draw, &(struct zui_rect){.x = 3, .y = 14,
+			.width = model->name_x - 6U, .height = 11});
+		zui_draw_text(draw, (struct zui_point){.x = 5, .y = 23}, model->kind);
+	}
+	zui_draw_set_clip(draw, &(struct zui_rect){.x = model->name_x, .y = 15,
+		.width = model->name_width, .height = 10});
+	zui_draw_text(draw, (struct zui_point){.x = model->name_x - model->name_offset,
+		.y = 23}, model->source);
+	zui_draw_clear_clip(draw);
 }
 
 static void messages_widget_draw_payload(struct zui_draw_ctx *draw,
 					 const struct messages_widget_model *model)
 {
-	char line[MESSAGES_WIDGET_PAYLOAD_MAX];
-	char row[MESSAGES_WIDGET_PAYLOAD_MAX + 3U];
-	const char *cursor;
-	uint16_t content_width;
-	uint8_t line_count = 0U;
-	uint8_t first_line = 0U;
-	bool scrolling;
-
-	if (draw == NULL || model == NULL || model->payload[0] == '\0') {
-		return;
-	}
-
-	content_width = MESSAGES_WIDGET_PAYLOAD_RIGHT - 4U -
-			zui_draw_text_width(draw, "> ");
-	cursor = model->payload;
-	while (*cursor != '\0') {
-		cursor = messages_widget_next_payload_line(draw, cursor, content_width, line,
-							   sizeof(line));
-		line_count++;
-	}
-	line_count = MAX(line_count, 1U);
-	scrolling = line_count > 3U;
-
-	if (scrolling) {
-		line_count++;
-		first_line = (uint8_t)((model->scroll_ticks / MESSAGES_WIDGET_SCROLL_DIV) %
-				       line_count);
-	}
-
-	zui_draw_set_clip(draw, &(struct zui_rect){.x = 2, .y = 27, .width = 116, .height = 34});
-	for (uint8_t idx = 0U; idx < MESSAGES_WIDGET_VISIBLE_LINES; idx++) {
-		uint8_t target_line;
-		int16_t y = (int16_t)(36 + (idx * 10));
-		bool found;
-
-		if (scrolling) {
-			target_line = (uint8_t)((first_line + idx) % line_count);
-		} else {
-			if (idx >= line_count) {
-				break;
-			}
-			target_line = idx;
-		}
-
-		if (scrolling && target_line == line_count - 1U) {
-			line[0] = '\0';
-			found = true;
-		} else {
-			found = messages_widget_payload_line_at(draw, model->payload, content_width,
-								target_line, line, sizeof(line));
-		}
-
-		if (!found) {
-			break;
-		}
-		if (line[0] == '\0') {
-			continue;
-		}
-
-		if (idx == 0U) {
-			(void)snprintk(row, sizeof(row),
-				       DESKTOP_TEXT_WIDGET_MESSAGES_SELECTED_LINE_FORMAT, line);
-			zui_draw_text(draw, (struct zui_point){.x = 4, .y = y}, row);
-		} else {
-			zui_draw_text(draw, (struct zui_point){.x = 10, .y = y}, line);
-		}
+	zui_draw_set_clip(draw, &(struct zui_rect){.x = 3, .y = 27, .width = 115, .height = 29});
+	for (uint8_t i = 0U; i < model->visible_lines; i++) {
+		zui_draw_text(draw, (struct zui_point){.x = 4, .y = 26 + (i + 1U) * model->line_step},
+			      model->lines[i]);
 	}
 	zui_draw_clear_clip(draw);
+	/* Slim continuation marks describe body scrolling, separately from message navigation. */
+	if (model->more_above) {
+		zui_draw_line(draw, (struct zui_point){.x = 122, .y = 28},
+			      (struct zui_point){.x = 122, .y = 31});
+	}
+	if (model->more_below) {
+		zui_draw_line(draw, (struct zui_point){.x = 122, .y = 49},
+			      (struct zui_point){.x = 122, .y = 52});
+	}
 }
 
 static void messages_widget_draw_header_background(struct zui_draw_ctx *draw)
@@ -652,33 +733,44 @@ static void messages_widget_draw(struct zui_draw_ctx *draw, void *user_data)
 	if (model == NULL) {
 		return;
 	}
-
 	zui_draw_set_color(draw, ZUI_COLOR_BLACK);
 	messages_widget_draw_header_background(draw);
 	messages_widget_draw_frame(draw);
-
 	zui_draw_set_color(draw, ZUI_COLOR_XOR);
 	zui_draw_set_font(draw, ZUI_FONT_SECONDARY);
 	messages_widget_draw_source(draw, model);
-	zui_draw_text_aligned(draw, (struct zui_point){.x = 124, .y = 23},
-			      ZUI_ALIGN_RIGHT, ZUI_ALIGN_BOTTOM, model->time);
+	if (model->has_message) {
+		zui_draw_text_aligned(draw, (struct zui_point){.x = 124, .y = 23},
+			ZUI_ALIGN_RIGHT, ZUI_ALIGN_BOTTOM, model->time);
+	}
 
 	zui_draw_set_color(draw, ZUI_COLOR_BLACK);
-	if (model->has_message && state != NULL && state->selected_position > 0U) {
-		zui_draw_icon(draw, (struct zui_point){.x = 118, .y = 28},
-			      desktop_widget_common_icon(ZUI_ASSET_ICON_PIN_POINTER));
-	}
-	if (model->has_message && state != NULL &&
-	    state->selected_position + 1U < state->received_count) {
-		zui_draw_icon(draw, (struct zui_point){.x = 118, .y = 58},
-			      desktop_widget_common_icon(ZUI_ASSET_ICON_ARROW_DOWN_SMALL));
-	}
-
 	zui_draw_set_font(draw, ZUI_FONT_PRIMARY);
-	messages_widget_draw_payload(draw, model);
-	if (model->unread) {
-		zui_draw_icon(draw, (struct zui_point){.x = 117, .y = 41},
-			      desktop_widget_common_icon(ZUI_ASSET_ICON_BUTTON_SELECT));
+	if (!model->has_message) {
+		zui_draw_icon(draw, (struct zui_point){.x = 60, .y = 31}, &I_message_8x8);
+		zui_draw_text_aligned(draw, (struct zui_point){.x = 64, .y = 51},
+			ZUI_ALIGN_CENTER, ZUI_ALIGN_BOTTOM, DESKTOP_TEXT_WIDGET_MESSAGES_EMPTY);
+	} else {
+		messages_widget_draw_payload(draw, model);
+		zui_draw_set_font(draw, ZUI_FONT_SECONDARY);
+		if (model->unread) {
+			zui_draw_text(draw, (struct zui_point){.x = 4, .y = 62},
+				DESKTOP_TEXT_WIDGET_MESSAGES_UNREAD);
+		}
+		if (state->newer_pending) {
+			zui_draw_text(draw, (struct zui_point){.x = 28, .y = 62},
+				DESKTOP_TEXT_WIDGET_MESSAGES_NEWER);
+		}
+		zui_draw_text_aligned(draw, (struct zui_point){.x = 109, .y = 62},
+			ZUI_ALIGN_RIGHT, ZUI_ALIGN_BOTTOM, state->position_text);
+		if (state->selected_position > 0U) {
+			zui_draw_icon(draw, (struct zui_point){.x = 112, .y = 57},
+				desktop_widget_common_icon(ZUI_ASSET_ICON_ARROW_UP_SMALL));
+		}
+		if (state->selected_position + 1U < state->received_count) {
+			zui_draw_icon(draw, (struct zui_point){.x = 119, .y = 57},
+				desktop_widget_common_icon(ZUI_ASSET_ICON_ARROW_DOWN_SMALL));
+		}
 	}
 }
 
@@ -705,8 +797,12 @@ static bool messages_widget_select_position(struct messages_widget_state *state,
 		state->selected_position++;
 	}
 
+	if (state->selected_position == 0U) {
+		state->newer_pending = false;
+	}
 	(void)messages_widget_apply_row(&state->model, &state->rows[state->selected_position],
 					state->row_cache_seq, true);
+	messages_widget_prepare_view(state);
 	if (state->screen != NULL) {
 		(void)zui_screen_request_redraw(state->screen);
 	}
@@ -744,6 +840,7 @@ static bool messages_widget_input(const struct zui_input_event *event, void *use
 		return false;
 	}
 
+
 	if (event->action == ZUI_INPUT_ACTION_CLICK &&
 	    (event->code == ZUI_INPUT_CODE_UP || event->code == ZUI_INPUT_CODE_DOWN)) {
 		return messages_widget_select_position(state, event->code == ZUI_INPUT_CODE_UP);
@@ -755,6 +852,7 @@ static bool messages_widget_input(const struct zui_input_event *event, void *use
 	}
 
 	messages_widget_toggle_read_state(state);
+	messages_widget_prepare_view(state);
 	if (state->screen != NULL) {
 		(void)zui_screen_request_redraw(state->screen);
 	}
@@ -773,6 +871,7 @@ static struct zui_screen *messages_widget_screen_create(
 
 	if (messages_widget.screen == NULL) {
 		messages_widget_model_defaults(&messages_widget.model);
+		messages_widget_prepare_view(&messages_widget);
 		messages_widget.screen =
 			zui_screen_create(&messages_widget_ops, &messages_widget);
 	}
@@ -788,6 +887,7 @@ static uint32_t messages_widget_tick(struct meshbus_desktop_dashboard_widget *wc
 
 	messages_widget.model.scroll_ticks++;
 	changed = messages_widget_refresh(&messages_widget);
+	messages_widget_prepare_view(&messages_widget);
 	if (messages_widget.model.has_message || strlen(messages_widget.model.source) > 16U) {
 		changed = true;
 	}
