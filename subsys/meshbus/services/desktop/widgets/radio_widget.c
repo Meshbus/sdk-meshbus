@@ -245,7 +245,7 @@ static void radio_widget_draw(struct zui_draw_ctx *draw, void *user_data)
 	struct radio_widget_state *state = user_data;
 	const struct radio_widget_model *model =
 		state != NULL ? &state->model : NULL;
-	const uint8_t *icon = B_offline_32x32;
+	const uint8_t *icon = B_radio_off_32x32;
 
 	zui_draw_set_color(draw, ZUI_COLOR_BLACK);
 	zui_draw_set_font(draw, ZUI_FONT_PRIMARY);
@@ -294,11 +294,13 @@ static void radio_widget_draw(struct zui_draw_ctx *draw, void *user_data)
 
 	if (model != NULL) {
 		if (!model->radio_available || !model->enabled) {
-			icon = B_offline_32x32;
+			icon = B_radio_off_32x32;
 		} else if (model->state == (uint8_t)MESHBUS_RADIO_STATE_TRANSMIT) {
-			icon = B_boardcast_32x32;
+			icon = B_radio_tx_32x32;
+		} else if (model->state == (uint8_t)MESHBUS_RADIO_STATE_RECEIVE) {
+			icon = B_radio_rx_32x32;
 		} else {
-			icon = B_listening_32x32;
+			icon = B_radio_idle_32x32;
 		}
 	}
 
