@@ -10,7 +10,7 @@ This sample enables the Meshbus Bluetooth service to provide:
 Meshbus Notify BLE V1
 *********************
 
-When ``CONFIG_MESHBUS_BLUETOOTH_GATT_NOTIFY=y`` this sample also exposes a
+When ``CONFIG_MBS_BLUETOOTH_GATT_NOTIFY=y`` this sample also exposes a
 vendor-specific Meshbus notify service for real-time best-effort protobuf
 notifications:
 
@@ -36,7 +36,7 @@ Building
 
 From workspace root::
 
-  west build -b idea_mesh_tracker_c2/nrf54l15/cpuapp -s sdk-meshbus/samples/subsys/meshbus/services/bluetooth
+  west build -b idea_mesh_tracker_c2/nrf54l15/cpuapp -s meshbus/samples/subsys/meshbus/services/bluetooth
 
 Running
 *******

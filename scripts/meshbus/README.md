@@ -60,7 +60,7 @@ then requires a confirmed post-reboot status before reporting success.
 
 ## UART Management console
 
-This is the locally attached `meshbus_client` operator/configuration console.
+This is the operator/configuration console for a locally attached Meshbus device.
 Firmware is a transport-independent MCUmgr service: if a product profile
 enables UART SMP and exposes a Firmware or standard image-group command, MCUmgr
 dispatches it to the same handler used for every other transport. Current
@@ -265,3 +265,9 @@ but uses a vendored `protoc`; running does not require either one. Neither path
 carries a second handwritten protobuf definition. Opening the port does not
 perform a Meshbus compatibility handshake. An unsupported firmware reports an
 error when a command is executed.
+
+The firmware service namespace is `mbs_` / `MBS_`; the executable and interactive
+service commands remain `meshbus`, `clock`, `radio`, and so on. Host environment
+variables retain their `MESHBUS_*` names. Protobuf descriptors also keep their
+schema namespace. EDK consumers must update service imports and rebuild old MBA
+packages for the new firmware; see [EDK migration](../../DISTRIBUTION.md#edk-and-extension-packages).

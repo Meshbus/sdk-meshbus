@@ -6,9 +6,9 @@ enabled. It logs public message request, response, ACK, and received channels.
 
 Build from the west workspace root::
 
-   source .venv/bin/activate
+   source ~/.zephyr/env/bin/activate
    west build -p always -b idea_mesh_tracker_c2/nrf54l15/cpuapp \
-     sdk-meshbus/samples/subsys/meshbus/services/message
+     meshbus/samples/subsys/meshbus/services/message
 
 After flashing, use the serial shell to inspect local message state and publish
 requests through the service shell::

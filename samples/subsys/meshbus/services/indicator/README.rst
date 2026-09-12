@@ -10,9 +10,9 @@ indicator configuration and control the visual/buzzer outputs in real time.
 Features
 ********
 
-- Enables :kconfig:`CONFIG_MESHBUS_INDICATOR`, :kconfig:`CONFIG_MESHBUS_INDICATOR_LIGHT`, and
-  :kconfig:`CONFIG_MESHBUS_INDICATOR_BUZZER` via ``prj.conf``
-- Keeps the Meshbus and ZBus shell interfaces built in (``CONFIG_MESHBUS_SHELL``,
+- Enables :kconfig:`CONFIG_MBS_INDICATOR`, :kconfig:`CONFIG_MBS_INDICATOR_LIGHT`, and
+  :kconfig:`CONFIG_MBS_INDICATOR_BUZZER` via ``prj.conf``
+- Keeps the Meshbus and ZBus shell interfaces built in (``CONFIG_MBS_SHELL``,
   ``CONFIG_ZBUS``) for diagnostics and runtime control
 - Provides platform overlays in ``boards/`` that map ``meshbus,indicator-*``
   chosen nodes to LEDs or PWM buzzers on supported devkits
@@ -37,12 +37,12 @@ Requirements
 Building
 ********
 
-The sample uses Zephyr's standard build flow. From the repository root run::
+The sample uses Zephyr's standard build flow. From the west workspace root run::
 
 .. code-block:: shell
 
    west build -b idea_mesh_tracker_c2/nrf54l15/cpuapp \
-     sdk-meshbus/samples/subsys/meshbus/services/indicator
+     meshbus/samples/subsys/meshbus/services/indicator
 
 Flash a compatible board using the resulting image in ``build/zephyr/zephyr.bin``
 and monitor the shell over UART/serial. ``sample.yaml`` declares
@@ -66,9 +66,9 @@ Console logs when the app boots::
 
 .. code-block:: console
 
-   [00:00:00.000] <inf> meshbus_test: Meshbus test application started
-   [00:00:00.000] <inf> meshbus_test: Build timestamp: Feb  7 2026 00:00:00
-   [00:00:00.050] <inf> meshbus_indicator: Settings apply: light_enabled=1 light_heartbeat=1 buzzer_enabled=1 buzzer_dm=1 buzzer_channel=1 buzzer_system=1
+   [00:00:00.000] <inf> mbs_test: Meshbus test application started
+   [00:00:00.000] <inf> mbs_test: Build timestamp: Feb  7 2026 00:00:00
+   [00:00:00.050] <inf> mbs_indicator: Settings apply: light_enabled=1 light_heartbeat=1 buzzer_enabled=1 buzzer_dm=1 buzzer_channel=1 buzzer_system=1
 
 Run ``shell`` commands such as ``meshbus indicator status`` to see additional
 output like ``light_ready: yes`` and ``buzzer_ready: yes`` once the hardware is

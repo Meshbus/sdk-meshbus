@@ -12,6 +12,12 @@ Public headers, schemas,
 Kconfig, CMake, devicetree, test metadata, source, and tests remain the technical
 sources of truth.
 
+Services and public headers are flat under `subsys/<module>/` and
+`include/<module>/`. Service identifiers use `mbs_` / `MBS_`; the product and
+west module remain Meshbus. For namespace boundaries and migration guidance,
+read [the SDK integration guide](README.md#zephyr-integration) and the scoped
+include/subsys rules before renaming identifiers or configuration.
+
 Use `git rev-parse --show-toplevel` from this repository for the source root
 and `west topdir` for the workspace. The active manifest is `west.yml` here;
 `apps/meshbus/` is a consumer of this same module. Firmware and SDK changes share
@@ -27,15 +33,18 @@ Read these local rules only when the task enters their scope:
 
 - `apps/meshbus/AGENTS.md` for product composition and sysbuild policy.
 - `apps/meshbus/boards/AGENTS.md` for product device profiles and partitions.
-- `include/zephyr/meshbus/AGENTS.md` for public Meshbus API and ABI.
-- `subsys/meshbus/services/AGENTS.md` for service runtime and persistence.
-- `subsys/meshbus/services/desktop/AGENTS.md` for Desktop and ZUI integration.
-- `tests/subsys/meshbus/AGENTS.md` for tests and evidence boundaries.
+- `include/AGENTS.md` for public Meshbus API and ABI.
+- `subsys/AGENTS.md` for service runtime and persistence.
+- `subsys/desktop/AGENTS.md` for Desktop and ZUI integration.
+- `tests/subsys/AGENTS.md` for tests and evidence boundaries.
 
-Preserve unrelated changes and keep patches narrow. Obtain explicit
-authorization for dependency or manifest changes, remote or hardware actions,
-flash, reset, debug, signing, and publication. Stage, commit, or push only when
-requested. Keep secrets out of source, logs, and responses.
+Preserve unrelated changes and keep patches narrow. Local source/log inspection,
+offline debugging, and device-free tests are within the requested development
+scope; continue through in-scope fixes and affected checks without asking again.
+Obtain explicit authorization for dependency or manifest changes, remote access,
+device access or control (including flash, reset, and probe/debug connections),
+signing, and publication. Stage, commit, or push only when requested. Keep
+secrets out of source, logs, and responses.
 
 Continue work already authorized by the user without requesting the same
 approval again. Skill workflows must respect the user's requested scope and

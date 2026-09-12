@@ -6,9 +6,9 @@ the Shell. Requests and responses use `DisplayDumpRequest` and
 `DisplayDumpResponse` from `meshbus/display.proto`, carried in the existing
 MCUmgr CBOR `data` byte string containing Protobuf.
 
-Enable `CONFIG_MESHBUS_DISPLAY`, `CONFIG_MCUMGR`, `CONFIG_U8G2` and full-buffer
+Enable `CONFIG_MBS_DISPLAY`, `CONFIG_MCUMGR`, `CONFIG_U8G2` and full-buffer
 mode. `CONFIG_U8G2_SNAPSHOT` defaults on for this combination. The adapter
-allocates one extra frame; `CONFIG_MESHBUS_DISPLAY_DUMP_MAX_SIZE` reserves the
+allocates one extra frame; `CONFIG_MBS_DISPLAY_DUMP_MAX_SIZE` reserves the
 shared frozen snapshot (1024 bytes by default, enough for 128x64 monochrome).
 Increase this setting for a larger display. Each response carries at most
 256 pixel bytes; transport buffers must also accommodate metadata, CBOR and

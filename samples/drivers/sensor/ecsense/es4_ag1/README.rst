@@ -18,7 +18,7 @@ From the west workspace root:
 
 .. code-block:: sh
 
-   west build -p always -b qikira_f9802 sdk-meshbus/samples/drivers/sensor/ecsense/es4_ag1
+   west build -p always -b qikira_f9802 meshbus/samples/drivers/sensor/ecsense/es4_ag1
 
 The sample overlay configures:
 

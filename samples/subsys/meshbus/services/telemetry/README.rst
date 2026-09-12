@@ -2,19 +2,19 @@ Meshbus Telemetry Sample
 ########################
 
 This sample starts the Meshbus telemetry service and subscribes to
-``meshbus_telemetry_data_chan``. On real hardware it prints live sensor channel
+``mbs_telemetry_data_chan``. On real hardware it prints live sensor channel
 events to the log.
 
 Purpose
 *******
 
-- Start ``CONFIG_MESHBUS_TELEMETRY`` with real board sensor devices.
+- Start ``CONFIG_MBS_TELEMETRY`` with real board sensor devices.
 - Bind the board telemetry channel table through ``chosen { meshbus,telemetry = ...; }``.
 - Log telemetry ZBus events from application code.
 - Keep ``meshbus telemetry`` shell commands available for manual validation.
 
 This sample is not an automated ztest. Use
-``sdk-meshbus/tests/subsys/meshbus/services/telemetry`` for public API and public ZBus
+``meshbus/tests/subsys/telemetry`` for public API and public ZBus
 contract coverage.
 
 Requirements
@@ -38,7 +38,7 @@ From the west workspace root::
 
   source ~/.zephyr/env/bin/activate
   west build -p always -b idea_mesh_tracker_c2/nrf54l15/cpuapp \
-    sdk-meshbus/samples/subsys/meshbus/services/telemetry
+    meshbus/samples/subsys/meshbus/services/telemetry
 
 Running
 *******

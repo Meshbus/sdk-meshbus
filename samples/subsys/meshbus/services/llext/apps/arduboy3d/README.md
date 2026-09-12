@@ -25,17 +25,20 @@ Port boundaries:
 - Upstream Arduboy3D does not use EEPROM, so this port does not create a save
   file.
 - The full 3D renderer and C++ relocation metadata are large. The C2
-  `meshbus_client` host must reserve at least the heap size reported by
+  Desktop host must reserve at least the heap size reported by
   `meshbus llext`; this port keeps its app stack at 4096 bytes and does not adjust
   host heap policy locally.
 
 Build with the installed Rust `meshbus` CLI and a released EDK
 for the intended Desktop host. Set `ZEPHYR_SDK_INSTALL_DIR` and install CMake
-and Ninja; no Firmware source checkout is required:
+and Ninja, and provide the external Meshbus Arduboy SDK described in the
+[shared build requirements](../../README.rst). A firmware source checkout is
+not required when these compiler inputs are supplied. Run from the west workspace
+root when using the repository paths below:
 
 ```sh
 meshbus llext --llext-sdk /path/to/app-edk.tar.xz -o build/llext \
-  sdk-meshbus/samples/subsys/meshbus/services/llext/apps/arduboy3d
+  meshbus/samples/subsys/meshbus/services/llext/apps/arduboy3d
 ```
 
 Manual validation checklist:

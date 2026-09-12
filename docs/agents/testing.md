@@ -10,12 +10,12 @@ Reuse the task's existing device, authorization and acceptance decisions.
 | Claim or task | First tool or source | Evidence limit |
 | --- | --- | --- |
 | Public service behavior or focused integration | Nearest `testcase.yaml` / `sample.yaml`, then the declared Twister scenario | Fake backends and simulation do not prove a physical device. |
-| Product composition and image layout | Native `west build --sysbuild`, final configuration and image reports | Linking does not prove startup; packaging/signing must finish before deployment. |
+| Product composition and image layout | Native `west build --sysbuild`, final configuration and image reports | Linking does not prove startup. Deploy the complete image set for the authorized build mode; engineering validation does not establish signed-product qualification. |
 | UART service commands | Repository `west meshbus connect … --json`; inspect its command help and schema | An unsupported command may mean the installed firmware predates the feature. Establish firmware and CLI versions first. |
 | Startup or asynchronous device behavior | `scripts/serial_use.py` monitor/session and transcript checks | Wait for the business result; inspect relevant raw errors even when a checker reports success. |
 | OLED framebuffer export | `scripts/display_capture.py`; [capture usage](../display-dump.md#uart-capture-tool) | PNG proves the software frame and UART transfer. Physical OLED appearance needs explicit observation. |
 | Desktop navigation and synthetic keys | Existing MCUmgr `input inject act` / `input inject raw`; [input usage](../input-injection.md) | `accepted` confirms ZBus publication, not UI consumption. Raw edges do not run hardware gesture detection. |
-| Flash, reset, or debug | Existing board runner / `pyocd`, within the approved device and operation | Serial and probe identities are separate. Debug access is an operation, not passive discovery. |
+| Flash, reset, or device debug | Existing board runner / `pyocd`, within the approved device and operation | Serial and probe identities are separate. Debug access is an operation, not passive discovery. |
 | Remote access | Existing `west remote` tools and `scripts/remote/README.md` | Remote access needs authorization; forwarding does not move build ownership. |
 | BLE service transport | First inspect available client capabilities, firmware advertising and GATT/security configuration | Advertising, connection, authenticated service access and payload transfer are separate results. The UART CLI is not a BLE client. |
 
@@ -38,7 +38,11 @@ command. Multiple connected boards are not interchangeable. When a deployment
 is needed, reuse explicit authorization already given; ask only about a
 missing target or additional action. Prepare the concrete artifact and its
 layout before requesting deployment approval. Never substitute a public PEM
-for signing or weaken device security to complete a test.
+for signing. Do not change device security settings without explicit authorization.
+For explicitly authorized unsigned hardware validation, follow the separate
+[engineering build flow](../../DEVELOPMENT.md#product-builds), deploy its matching
+MCUboot/application pair, and record unsigned engineering evidence. This exception
+does not change the signed-product policy or establish release qualification.
 
 For startup evidence, start serial capture before the authorized reset/flash.
 Keep a single owner of a UART endpoint at a time; close a monitor before running
@@ -63,7 +67,7 @@ the last observed device state rather than claiming an unobserved restoration.
 Keep raw commands, logs, device mappings and images in ignored task storage.
 Record source/build identity, selected endpoint/probe, actual commands and
 results, relevant failures, cleanup and remaining acceptance gaps. Use the
-evidence layers in [test rules](../../tests/subsys/meshbus/AGENTS.md). A tool's
+evidence layers in [test rules](../../tests/subsys/AGENTS.md). A tool's
 exit status or log-pattern check is supporting evidence; inspect the required
 business output before marking a claim passed.
 

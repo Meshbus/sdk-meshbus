@@ -2,7 +2,7 @@
 
 ## 定位
 
-`sdk-meshbus/tests/lib/meshcore/runtime/oracle` 是 `lib-mc`
+`meshbus/tests/lib/meshcore/runtime/oracle` 是 `lib-mc`
 oracle parity test suite 的用例索引。
 
 - 编译进 harness 的 oracle source：`.reference/meshcore/src`
@@ -12,7 +12,7 @@ oracle parity test suite 的用例索引。
 - 对比标准：
   - send-side：语义等价请求下，outbound raw packet 与可观察发送行为一致
   - receive-side：语义等价注入下，publish/observe 行为与 oracle 一致
-- 不替代 `sdk-meshbus/tests/lib/meshcore/runtime/requests`
+- 不替代 `meshbus/tests/lib/meshcore/runtime/requests`
   - `meshcore_runtime_test` 继续负责 ABI 契约、参数校验、容量与错误码
 
 ## Suite Summary
@@ -33,7 +33,7 @@ oracle parity test suite 的用例索引。
 在修改 `src/*.cpp` 或本文件后，建议执行：
 
 ```sh
-west build -b qemu_x86 sdk-meshbus/tests/lib/meshcore/runtime/oracle -d build/oracle_parity
+west build -b qemu_x86 meshbus/tests/lib/meshcore/runtime/oracle -d build/oracle_parity
 west build -d build/oracle_parity -t oracle_parity_check_test_cases
 ```
 

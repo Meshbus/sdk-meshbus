@@ -2,7 +2,7 @@
 
 The existing Input service owns synthetic input commands in `meshbus/input.proto`.
 They do not require a Shell, and are independent of Display snapshot capture.
-Firmware must enable `CONFIG_MESHBUS_INPUT` and `CONFIG_MCUMGR`; Desktop
+Firmware must enable `CONFIG_MBS_INPUT` and `CONFIG_MCUMGR`; Desktop
 navigation additionally requires its runtime and input bridge to be active.
 
 | Operation | Group / command | CLI command inside `connect -c` |
@@ -75,7 +75,7 @@ power actions. Select a known screen/action within the task's authorization.
 The host `connect` implementation used here is UART; this workflow makes no
 claim about BLE transfer.
 
-Technical ownership: `subsys/meshbus/services/input/mgmt.c` handles the schema;
-`input.c` publishes the public events; `desktop/desktop_input.c` under the same
-services directory maps them into Desktop input. The CLI command catalog and
+Technical ownership: `subsys/input/mgmt.c` handles the schema;
+`subsys/input/input.c` publishes the public events;
+`subsys/desktop/desktop_input.c` maps them into Desktop input. The CLI command catalog and
 `execute_input_inject` in `scripts/meshbus/src/commands/connect.rs` own parsing.

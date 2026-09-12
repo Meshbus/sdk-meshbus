@@ -1,7 +1,7 @@
 # Third-party notices
 
 This file records source and license ownership for third-party content embedded
-in `sdk-meshbus`. It does not replace license texts or notices retained in the
+in `meshbus`. It does not replace license texts or notices retained in the
 referenced files and directories. External west projects are not copied into
 this repository and remain governed by their own licenses.
 

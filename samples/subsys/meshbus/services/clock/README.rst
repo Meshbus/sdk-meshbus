@@ -6,9 +6,9 @@ logs the current public configuration at boot and enables the clock shell.
 
 Build from the west workspace root::
 
-   source .venv/bin/activate
+   source ~/.zephyr/env/bin/activate
    west build -p always -b idea_mesh_tracker_c2/nrf54l15/cpuapp \
-     sdk-meshbus/samples/subsys/meshbus/services/clock
+     meshbus/samples/subsys/meshbus/services/clock
 
 After flashing, use the serial shell to inspect and change clock config::
 

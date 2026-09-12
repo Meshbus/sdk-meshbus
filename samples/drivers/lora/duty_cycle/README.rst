@@ -18,7 +18,7 @@ Default radio parameters match the existing SDK LoRa samples:
 * Coding rate: ``CR_4_8``
 
 The duty-cycle defaults are tuned for easy interop with
-``sdk-meshbus/samples/drivers/lora/send``:
+``meshbus/samples/drivers/lora/send``:
 
 * RX period: ``100 ms``
 * Sleep period: ``100 ms``

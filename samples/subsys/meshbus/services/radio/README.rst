@@ -1,7 +1,7 @@
 Meshbus Radio Sample
 ====================
 
-This sample builds the Meshbus radio management layer (``CONFIG_MESHBUS_RADIO``)
+This sample builds the Meshbus radio management layer (``CONFIG_MBS_RADIO``)
 against the SDK radio drivers (including SX1262 and LoRa basics modem backend).
 It keeps the Meshbus shell enabled, so ``meshbus radio`` commands can configure
 links, trigger noise-floor calibration, and send packets interactively.
@@ -9,8 +9,8 @@ links, trigger noise-floor calibration, and send packets interactively.
 Features
 ********
 
-- Enables :kconfig:`CONFIG_MESHBUS_RADIO`, :kconfig:`CONFIG_MESHBUS_RADIO_SHELL`, and
-  :kconfig:`CONFIG_MESHBUS_RADIO_STATS` via ``prj.conf``
+- Enables :kconfig:`CONFIG_MBS_RADIO`, :kconfig:`CONFIG_MBS_RADIO_SHELL`, and
+  :kconfig:`CONFIG_MBS_RADIO_STATS` via ``prj.conf``
 - Includes platform overlays (``boards/devkit_nrf54l15_nrf54l15_cpuapp.overlay`` and
   ``idea_mesh_tracker_c2_nrf54l15_cpuapp.overlay``) that bind ``meshbus,radio`` to
   SX1262 hardware and fake LoRa devices for tests
@@ -32,7 +32,7 @@ From the workspace root run::
 .. code-block:: shell
 
    west build -b idea_mesh_tracker_c2/nrf54l15/cpuapp \
-     sdk-meshbus/samples/subsys/meshbus/services/radio
+     meshbus/samples/subsys/meshbus/services/radio
 
 The resulting ``build/zephyr/zephyr.bin`` image can be flashed over USB and the
 Meshbus shell inspected via UART. ``sample.yaml`` declares
@@ -54,13 +54,13 @@ Command        Description
 ``meshbus radio agc`` Resets the automatic gain control state
 =============== =============================================================
 
-Observed shell output includes LOGs from ``meshbus_radio`` and ``meshbus_radio_mgmt``:
+Observed shell output includes LOGs from ``mbs_radio`` and ``mbs_radio_mgmt``:
 
 .. code-block:: console
 
-   [00:00:00.500] <inf> meshbus_test: Meshbus test application started
-   [00:00:00.500] <inf> meshbus_test: Build timestamp: Feb  7 2026 00:00:00
-   [00:00:00.600] <inf> meshbus_radio: Settings apply: enabled=1 receive_only=0 rx_boosted=1 crc=1 duty_cycle=0
-   [00:00:00.650] <inf> meshbus_radio_mgmt: Noise floor calibrated: -113 dBm (threshold: 14 dB)
+   [00:00:00.500] <inf> mbs_test: Meshbus test application started
+   [00:00:00.500] <inf> mbs_test: Build timestamp: Feb  7 2026 00:00:00
+   [00:00:00.600] <inf> mbs_radio: Settings apply: enabled=1 receive_only=0 rx_boosted=1 crc=1 duty_cycle=0
+   [00:00:00.650] <inf> mbs_radio_mgmt: Noise floor calibrated: -113 dBm (threshold: 14 dB)
 
 Use ``meshbus radio status`` after runtime to see RSSI, SNR, and noise floor states.

@@ -28,11 +28,14 @@ Port boundaries:
 
 Build with the installed Rust `meshbus` CLI and a released EDK
 for the intended Desktop host. Set `ZEPHYR_SDK_INSTALL_DIR` and install CMake
-and Ninja; no Firmware source checkout is required:
+and Ninja, and provide the external Meshbus Arduboy SDK described in the
+[shared build requirements](../../README.rst). A firmware source checkout is
+not required when these compiler inputs are supplied. Run from the west workspace
+root when using the repository paths below:
 
 ```sh
 meshbus llext --llext-sdk /path/to/app-edk.tar.xz -o build/llext \
-  sdk-meshbus/samples/subsys/meshbus/services/llext/apps/hollow
+  meshbus/samples/subsys/meshbus/services/llext/apps/hollow
 ```
 
 Manual validation checklist:

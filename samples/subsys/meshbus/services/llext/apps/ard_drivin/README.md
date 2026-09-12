@@ -24,3 +24,6 @@ sources.
 - Upstream EEPROM calls are backed by a 1024-byte LittleFS mirror at
   `/extra/saves/ard_drivin.dat`, so the audio enable flag persists across app
   launches.
+
+For EDK, service namespace migration and external Meshbus Arduboy SDK setup,
+see the [shared MBA build requirements](../../README.rst).

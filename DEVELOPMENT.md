@@ -59,7 +59,7 @@ west build -p always --sysbuild -b "$board_target" \
   "$repo_root/apps/meshbus" -d "$build_dir"
 ```
 
-C2 requires an explicit Ed25519 key and never falls back to the
+C2's default build requires an explicit Ed25519 key and never falls back to the
 MCUboot repository development key. For a local engineering build, append:
 
 ```sh
@@ -74,6 +74,12 @@ environment variable. Keep the file available for builds and EDK export.
 See `DISTRIBUTION.md`. Production keys are used only with reviewed code on a
 trusted release host or protected CI; native builds and signing share the same
 trust boundary.
+
+When the user explicitly requests unsigned hardware validation, a separate
+sysbuild with `-DSB_CONFIG_BOOT_SIGNATURE_TYPE_NONE=y` creates a matching
+unauthenticated MCUboot/application pair. See the [application guide](apps/meshbus/README.md).
+It uses no key and retains the partition layout; both images must be programmed.
+Record this as unsigned engineering evidence, not signed-product qualification.
 
 Replace placeholders for the current task. Shared composition changes require
 all affected targets, not an arbitrary full matrix. Inspect both app and MCUboot
@@ -94,6 +100,18 @@ also recognize legacy `<build-dir>/app/` outputs, but this does not make old
 builds valid evidence for the current source.
 
 ## SDK Builds and Tests
+
+Service code uses `mbs_<module>_*` APIs from `<module/module.h>` and
+`CONFIG_MBS` / `CONFIG_MBS_*` configuration. Use a fresh build directory when
+migrating from the former service names; update application configs, overlays,
+test selections and linker wrappers together. The [SDK guide](README.md#zephyr-integration)
+defines the naming boundary and retained protobuf, storage and product names.
+
+The west module is still `meshbus`: its generated CMake discovery variable is
+`ZEPHYR_MESHBUS_MODULE_DIR`. Host-tool variables such as `MESHBUS_CLI` and
+`MESHBUS_PROTO_ROOT` also retain their names. For extensions, follow the
+[EDK migration guidance](DISTRIBUTION.md#edk-and-extension-packages) and rebuild
+MBA imports against the intended firmware's EDK.
 
 For host CLI development, run `west meshbus <arguments>` from the west
 workspace or repository. Unless `MESHBUS_CLI` explicitly selects an executable,
@@ -127,10 +145,13 @@ For a runnable test app, use `west build -d <its-build-dir> -t run`. Keep each
 task's outputs distinct. Use the shared Zephyr Python for Twister and report
 the first relevant error; a setup failure is not automatically a firmware bug.
 
-The nearest SDK test `AGENTS.md` owns public-contract and evidence boundaries.
-Keep `contract`, `integration`, `service_dut`, `physical`, `role`, and `system`
-claims distinct. A lower layer does not prove a higher one: QEMU does not prove
-hardware, and a fixture match does not assert physical behavior.
+For Meshbus service tests, use the [test rules](tests/subsys/AGENTS.md)
+for public-contract boundaries and evidence classification. Tests live directly
+in `tests/subsys/<service>/`, with specialized scenarios under their owner.
+Use `-T meshbus/tests/subsys -t meshbus` to select Meshbus tests without adding
+the neighboring DFU and ZUI suites. Existing `subsys.meshbus.*` testcase IDs
+remain stable after the directory migration. Use fresh build directories;
+existing caches still point to the old test source paths.
 
 If a parallel Twister run fails with generated configuration or setup noise,
 rerun the same narrow path serially before classifying it as a product defect:

@@ -177,6 +177,24 @@ meshbus llext --llext-sdk /path/to/llext-edk \
 `edk verify` checks archive integrity and compiler inputs offline without a
 toolchain. `edk qualify` additionally runs compiler/header/extension checks.
 
+Current EDKs expose Meshbus headers as `<module/module.h>`, with narrow Clock,
+GNSS and LLEXT capability headers documented in [the SDK guide](README.md).
+Zephyr display/ZUI paths and generated `meshbus/*.pb.h` paths stay unchanged.
+The exporter retains an explicit list of public module directories; internal
+Settings, MCUmgr and Shell helpers are excluded. Existing EDK archives with the
+former `zephyr/meshbus/` or `meshbus/<module>/` layouts remain verifiable
+and qualifiable. Mixed layouts or missing public module roots are rejected.
+
+Current service APIs and exported symbols use `mbs_`, constants use `MBS_`,
+and service configuration uses `CONFIG_MBS` / `CONFIG_MBS_*`. Source packages
+must update both their includes and service identifiers when adopting this EDK.
+Previously compiled MBA packages importing `meshbus_*` service symbols must be
+rebuilt; the host does not export legacy service aliases. Old-archive verification
+or qualification does not prove those packages load in the current firmware.
+The earlier header-only relocation preserved symbols; this subsequent namespace
+migration changes them while retaining metadata layout and numeric IDs.
+See [LLEXT compatibility](subsys/llext/API_COMPATIBILITY.md) for the loader contract.
+
 Released-EDK consumers need only the CLI, EDK, extension source, CMake, Ninja
 and compiler tools. They do not need a firmware/SDK checkout, west, Python or
 protoc. The CLI supplies its compiler forwarding and `xxd -ip` helper itself.

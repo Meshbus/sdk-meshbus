@@ -12,6 +12,17 @@ Use the Rust ``meshbus`` CLI with an EDK exported from the consuming firmware.
 This directory is not a standalone firmware application. This repository's root
 ``DISTRIBUTION.md`` describes EDK creation, verification and qualification.
 
+Current service headers use paths such as ``<indicator/indicator.h>`` and
+``<llext/zbus.h>``. Service functions, types and ZBus objects use ``mbs_``;
+constants use ``MBS_``. Update former ``meshbus_`` imports and rebuild against
+the intended firmware's EDK. Old MBA service symbols have no host compatibility
+aliases, even though metadata layout and channel IDs retain their values.
+
+Snake, C++ Hello and RTTTL use the EDK directly. Arduboy ports additionally
+require the external Meshbus Arduboy SDK selected by ``MESHBUS_ARDUBOY_SDK_DIR``
+or their CMake default workspace location. Its ``meshbus_arduboy`` namespace
+belongs to that separate dependency and is not renamed by the service migration.
+
 From the Zephyr workspace, build representative C and C++ applications::
 
   meshbus llext --llext-sdk /path/to/edk.tar.xz -o build/llext \

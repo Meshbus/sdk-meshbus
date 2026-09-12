@@ -2,7 +2,7 @@
 
    Meshbus GNSS Sample
 
-This sample demonstrates the Meshbus GNSS service (``CONFIG_MESHBUS_GNSS``):
+This sample demonstrates the Meshbus GNSS service (``CONFIG_MBS_GNSS``):
 periodic position acquisition through a Zephyr GNSS driver (e.g., Quectel L76K),
 shell commands for status/configuration/force-update, and optional system time
 synchronization using GNSS UTC.
@@ -35,12 +35,12 @@ Requirements
 Building
 ********
 
-From the repository root run::
+From the west workspace root run::
 
 .. code-block:: shell
 
    west build -b idea_mesh_tracker_c2/nrf54l15/cpuapp \
-     sdk-meshbus/samples/subsys/meshbus/services/gnss
+     meshbus/samples/subsys/meshbus/services/gnss
 
 Flash a compatible board using the resulting image in ``build/zephyr/zephyr.bin``
 and monitor the shell over UART/serial.
@@ -80,10 +80,10 @@ Time Sync
 When ``time_sync`` is enabled, the service updates the system time using GNSS UTC:
 
 - The service calls ``sys_clock_settime(SYS_CLOCK_REALTIME, ...)`` only when
-  ``|gnss_time - system_time|`` exceeds ``CONFIG_MESHBUS_GNSS_TIME_SYNC_THRESHOLD_S`` (seconds).
+  ``|gnss_time - system_time|`` exceeds ``CONFIG_MBS_GNSS_TIME_SYNC_THRESHOLD_S`` (seconds).
 - In the initial phase, it checks for the first valid fix every
-  ``CONFIG_MESHBUS_GNSS_TIME_SYNC_INIT_INTERVAL`` (ms). In the calibration phase, it checks every
-  ``CONFIG_MESHBUS_GNSS_TIME_SYNC_CAL_INTERVAL`` (ms) and only syncs when a new valid-fix sample is
+  ``CONFIG_MBS_GNSS_TIME_SYNC_INIT_INTERVAL`` (ms). In the calibration phase, it checks every
+  ``CONFIG_MBS_GNSS_TIME_SYNC_CAL_INTERVAL`` (ms) and only syncs when a new valid-fix sample is
   observed.
 
 Example enabling time sync from the shell:
@@ -99,13 +99,13 @@ Example console logs on boot::
 
 .. code-block:: console
 
-   [00:00:00.000] <inf> meshbus_test: Meshbus test application started
-   [00:00:00.000] <inf> meshbus_test: Build timestamp: Feb  8 2026 00:00:00
-   [00:00:00.050] <inf> meshbus_gnss: Settings apply: enabled=1 nav_mode=0 fix_rate=1 system_mask=0xff update_interval=30000 min_active_time=15000 time_sync=0
-   [00:00:00.060] <inf> meshbus_gnss: Starting GNSS fix acquisition
+   [00:00:00.000] <inf> mbs_test: Meshbus test application started
+   [00:00:00.000] <inf> mbs_test: Build timestamp: Feb  8 2026 00:00:00
+   [00:00:00.050] <inf> mbs_gnss: Settings apply: enabled=1 nav_mode=0 fix_rate=1 system_mask=0xff update_interval=30000 min_active_time=15000 time_sync=0
+   [00:00:00.060] <inf> mbs_gnss: Starting GNSS fix acquisition
 
 When a fix is acquired:
 
 .. code-block:: console
 
-   <inf> meshbus_gnss: GNSS position update: (lat=22.758344, lon=114.147359, alt=90.800m, sats=18, hdop=1.400)
+   <inf> mbs_gnss: GNSS position update: (lat=22.758344, lon=114.147359, alt=90.800m, sats=18, hdop=1.400)

@@ -2,4 +2,5 @@
    :name: Meshbus
    :show-listing:
 
-   These samples demonstrate how to use :ref:`Meshbus <meshbus_api>` for mesh networking communication.
+   These samples demonstrate Meshbus services through the mbs_ public APIs
+   and CONFIG_MBS_* service configuration.

@@ -69,7 +69,7 @@ Build the sample as a regular Zephyr application:
    west build -p auto \
      -d build/compass-composite-c2 \
      -b idea_mesh_tracker_c2/nrf54l15/cpuapp \
-     sdk-meshbus/samples/drivers/sensor/composite/compass_composite
+     meshbus/samples/drivers/sensor/composite/compass_composite
 
 This SDK sample intentionally does not import product-firmware MCUboot settings
 or partition overlays. Provisioning, recovery images, and product sysbuild

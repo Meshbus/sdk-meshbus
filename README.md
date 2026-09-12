@@ -24,14 +24,16 @@ signing identity. No outer workspace source repository is required.
 
 See [product targets and builds](apps/meshbus/README.md),
 [development and validation](DEVELOPMENT.md), and
-[distribution and release gates](DISTRIBUTION.md). C2 builds require an explicit
-Ed25519 key; a build alone does not establish hardware or release qualification.
+[distribution and release gates](DISTRIBUTION.md). C2's default Ed25519 build
+requires an explicit key; the application guide also covers explicitly authorized
+unsigned engineering builds. A build alone does not establish hardware or release
+qualification.
 
 ## Zephyr integration
 
 The module descriptor at `zephyr/module.yml` exports this repository as a
 Zephyr CMake/Kconfig module and contributes its board, devicetree, and module
-extension roots. A consuming west workspace must make `sdk-meshbus` visible as
+extension roots. A consuming west workspace must make `meshbus` visible as
 the west manifest repository, a west project, or through `ZEPHYR_EXTRA_MODULES` before calling
 `find_package(Zephyr)`.
 
@@ -50,8 +52,10 @@ depend on Meshbus service Kconfig symbols.
 
 ## Repository layout
 
-- `include/zephyr/meshbus/`: public Meshbus APIs
-- `subsys/meshbus/`: Meshbus core and service implementations
+- `include/<module>/`: public Meshbus APIs, such as `clock/clock.h`
+- `subsys/<service>/`: Meshbus service implementations, including `indicator` and `clock`
+- `subsys/settings/`, `subsys/mgmt/`, `subsys/shell/`: shared persistence and adapters
+- `cmake/protobuf/`: shared schema generation into each image's `generated/meshbus/`
 - `subsys/dfu/`: delta-image installation support
 - `subsys/u8g2/` and `subsys/zui/`: embedded display/UI components
 - `boards/`, `drivers/`, and `dts/`: SDK hardware integration
@@ -61,17 +65,81 @@ depend on Meshbus service Kconfig symbols.
 - `CONTEXT.md` and `docs/adr/`: domain vocabulary and accepted decisions
 - `.scratch/`: ignored local specifications, tickets, and historical evidence
 
-Run Zephyr commands from the west workspace root. For example:
+Run Zephyr commands from the west workspace root. Replace `<task>` with a unique
+name for the current run to preserve other build and test outputs. For example:
 
 ```sh
-west build -p auto -b qemu_x86 \
-  meshbus/tests/subsys/meshbus/services/clock
-west twister -T meshbus/tests/subsys/meshbus/services/clock \
-  -p qemu_x86 --inline-logs -v
+west build -p auto -b qemu_x86 -d 'build/<task>-clock' \
+  meshbus/tests/subsys/clock
+west twister -T meshbus/tests/subsys/clock \
+  -p qemu_x86 -O 'twister-out/<task>-clock' --inline-logs -v
 ```
 
 The exact boards and test platforms supported by each sample or suite are
 declared by its local `sample.yaml` or `testcase.yaml`.
+
+Meshbus services use `CONFIG_MBS` and `CONFIG_MBS_*` options and expose public headers
+as `<module/module.h>`, for example `<clock/clock.h>` and
+`<firmware/firmware.h>`.
+Each service owns a named build library. Protobuf schemas remain
+in the `meshbus-protobufs` west project; generated headers and implementations
+belong to the consuming image's build directory and are never written into the SDK.
+The shared `mgmt` module supplies MCUmgr encoding and access hooks; `management`
+owns the remote management service. Service-specific adapters remain beside their
+owning implementation.
+
+Include only the capability needed by a caller:
+
+| Public header | Capability |
+| --- | --- |
+| `clock/clock.h` | Clock configuration, local civil time, realtime setting |
+| `clock/timestamp.h` | Basic business timestamps and realtime validity |
+| `gnss/gnss.h` | GNSS configuration, acquisition, fixes and events |
+| `gnss/heading.h` | Heading leases, snapshots and calibration |
+| `llext/llext.h` | Application loading and runtime configuration |
+| `llext/metadata.h` | MBA metadata layout and section registration |
+| `llext/zbus.h` | Extension channel IDs, subscriptions and messages |
+| `firmware/firmware.h` | Firmware update lifecycle |
+
+Other services use one `<module/module.h>` entry. Clock and GNSS main headers
+also include their narrow capability header; LLEXT runtime includes metadata,
+while bridge users include `llext/zbus.h` explicitly. Public service functions,
+types and ZBus objects use `mbs_`; constants and enum values use `MBS_`.
+Migrate former `zephyr/meshbus/<module>.h` or
+`meshbus/<module>/<module>.h` includes to `<module>/<module>.h`; there are no
+forwarding headers. Public headers use module paths such as `clock/clock.h`;
+generated protobuf headers retain paths such as `meshbus/clock.pb.h`.
+Zephyr drivers, bindings,
+display support and ZUI keep their existing `zephyr/` paths. Internal Settings,
+MCUmgr and Shell helpers remain private. Register the SDK's `include` root,
+not each module directory, on the compiler search path.
+
+Replace former hand-written `meshbus_` / `MESHBUS_` service identifiers with
+`mbs_` / `MBS_`, including service Kconfig selections and ZBus observers.
+Private shared helpers formerly using `mb_` / `MB_` follow the same convention.
+Protobuf-generated types and constants retain their schema namespace. Existing
+devicetree chosen names, settings paths, protocol values and product/CLI names
+remain unchanged. The application's `CONFIG_MESHBUS_UART_MCUMGR_LOGGING` option
+continues to own product UART policy.
+
+Rebuild MBA packages against the new firmware's EDK: old `meshbus_` service
+symbols are not exported as compatibility aliases. This does not change the
+MBA metadata wire format; see [LLEXT compatibility](subsys/llext/API_COMPATIBILITY.md).
+
+Business timestamp helpers are declared in `clock/timestamp.h`:
+`mbs_clock_realtime_is_valid()`, `mbs_clock_timestamp_s_get()`, and
+`mbs_clock_timestamp_ms_get()`. They remain available with `CONFIG_MBS=y`
+even when `CONFIG_MBS_CLOCK=n`. Timestamps use valid realtime or nonzero uptime
+as a fallback. Consumers of the former Time header and functions must migrate to
+these Clock interfaces; no compatibility aliases are provided.
+
+| Former Time interface | Clock replacement |
+| --- | --- |
+| `zephyr/meshbus/time.h` | `clock/timestamp.h` |
+| `meshbus_time_realtime_is_valid` | `mbs_clock_realtime_is_valid` |
+| `meshbus_time_timestamp_s_get` | `mbs_clock_timestamp_s_get` |
+| `meshbus_time_timestamp_ms_get` | `mbs_clock_timestamp_ms_get` |
+| `MESHBUS_TIME_VALID_UNIX_TIMESTAMP_S` | `MBS_CLOCK_VALID_UNIX_TIMESTAMP_S` |
 
 ## Development workflow
 

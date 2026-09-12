@@ -28,10 +28,20 @@ guarantee immediate flash durability. Failed application returns an error and
 attempts to restore the previously committed engine configuration. Static RAM
 remains reserved for compiled services.
 
-This 2026-09-07 revision supersedes the earlier save-then-reboot decision. See
-the [current application contract](../../.scratch/meshcore-settings-apply/README.md)
-for scope and dated evidence.
+This 2026-09-07 revision supersedes the earlier save-then-reboot decision. The
+behavior above and the [application guide](../../apps/meshbus/README.md#device-firmware-and-meshcore-role)
+describe the current contract. Dated validation evidence is retained locally in
+`.scratch/meshcore-settings-apply/README.md`; that optional historical record is
+not distributed with source checkouts and is not required to interpret this ADR.
 
 This changes the original role-qualified identity without expanding the GA device
-set or changing the signed single-app recovery policy. Schema and ABI migration
-compatibility is intentionally unnecessary before the first release.
+set or changing the signed single-app recovery policy.
+
+## Pre-release compatibility
+
+Before the first firmware release, an explicitly approved schema or ABI migration
+need not preserve compatibility with earlier engineering candidates. Update the
+affected implementations, tests, schemas, adapters, and consumers together as
+required by the [public-interface rules](../../include/AGENTS.md).
+This exception does not apply to released contracts or authorize arbitrary
+renumbering of protocol-defined identifiers or changes outside the approved scope.

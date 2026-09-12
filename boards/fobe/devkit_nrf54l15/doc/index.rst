@@ -52,7 +52,7 @@ means Pin number 0 on PORT2, as used in the board's datasheets and manuals.
 SX1262 Arduino Shield
 =====================
 
-The ``meshbus_client`` development profile connects an SX1262 shield as
+The Meshbus application development profile connects an SX1262 shield as
 follows. The shield is an application-level hardware combination and is not
 part of the generic board definition.
 

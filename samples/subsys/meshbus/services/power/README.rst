@@ -8,13 +8,13 @@ shutdown, and reboot behavior can be validated manually.
 Purpose
 *******
 
-- Start ``CONFIG_MESHBUS_POWER`` with real board devices.
+- Start ``CONFIG_MBS_POWER`` with real board devices.
 - Bind the board fuel gauge and power button through devicetree chosen nodes.
 - Expose ``meshbus power`` shell commands for manual validation.
 - Keep logs enabled for service state, settings, and PM diagnostics.
 
 This sample is not an automated ztest. Use
-``sdk-meshbus/tests/subsys/meshbus/services/power`` for public API and public ZBus
+``meshbus/tests/subsys/power`` for public API and public ZBus
 contract coverage.
 
 Requirements
@@ -40,9 +40,9 @@ Building
 
 From the west workspace root::
 
-  source .venv/bin/activate
+  source ~/.zephyr/env/bin/activate
   west build -p always -b idea_mesh_tracker_c2/nrf54l15/cpuapp \
-    sdk-meshbus/samples/subsys/meshbus/services/power
+    meshbus/samples/subsys/meshbus/services/power
 
 Running
 *******
