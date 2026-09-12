@@ -11,8 +11,8 @@
  * This module exposes Meshbus desktop registration and event APIs.
  */
 
-#ifndef ZEPHYR_INCLUDE_MBS_DESKTOP_H_
-#define ZEPHYR_INCLUDE_MBS_DESKTOP_H_
+#ifndef MESHBUS_INCLUDE_DESKTOP_H_
+#define MESHBUS_INCLUDE_DESKTOP_H_
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -283,4 +283,4 @@ struct mbs_desktop_dashboard_widget *mbs_desktop_dashboard_widgets_get(size_t in
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_MBS_DESKTOP_H_ */
+#endif /* MESHBUS_INCLUDE_DESKTOP_H_ */

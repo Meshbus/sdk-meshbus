@@ -12,8 +12,8 @@
  * extensions from `/extra/apps`.
  */
 
-#ifndef ZEPHYR_INCLUDE_MBS_LLEXT_H_
-#define ZEPHYR_INCLUDE_MBS_LLEXT_H_
+#ifndef MESHBUS_INCLUDE_LLEXT_H_
+#define MESHBUS_INCLUDE_LLEXT_H_
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -202,4 +202,4 @@ int mbs_llext_app_unload(struct mbs_llext_app_session *session);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_MBS_LLEXT_H_ */
+#endif /* MESHBUS_INCLUDE_LLEXT_H_ */

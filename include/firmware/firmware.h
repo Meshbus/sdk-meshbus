@@ -8,8 +8,8 @@
  * @brief Public Meshbus firmware update coordination API.
  */
 
-#ifndef ZEPHYR_INCLUDE_MBS_FIRMWARE_H_
-#define ZEPHYR_INCLUDE_MBS_FIRMWARE_H_
+#ifndef MESHBUS_INCLUDE_FIRMWARE_H_
+#define MESHBUS_INCLUDE_FIRMWARE_H_
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -315,4 +315,4 @@ int mbs_firmware_health_report(bool healthy);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_MBS_FIRMWARE_H_ */
+#endif /* MESHBUS_INCLUDE_FIRMWARE_H_ */

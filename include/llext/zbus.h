@@ -7,8 +7,8 @@
  * @brief Meshbus LLEXT ZBus subscriptions and message access
  */
 
-#ifndef MBS_LLEXT_ZBUS_H_
-#define MBS_LLEXT_ZBUS_H_
+#ifndef MESHBUS_INCLUDE_LLEXT_ZBUS_H_
+#define MESHBUS_INCLUDE_LLEXT_ZBUS_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -138,4 +138,4 @@ int mbs_llext_zbus_publish(enum mbs_llext_zbus_channel channel, const void *msg,
 }
 #endif
 
-#endif /* MBS_LLEXT_ZBUS_H_ */
+#endif /* MESHBUS_INCLUDE_LLEXT_ZBUS_H_ */

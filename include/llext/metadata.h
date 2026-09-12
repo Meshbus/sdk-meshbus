@@ -7,8 +7,8 @@
  * @brief Meshbus MBA metadata layout and section registration
  */
 
-#ifndef MBS_LLEXT_METADATA_H_
-#define MBS_LLEXT_METADATA_H_
+#ifndef MESHBUS_INCLUDE_LLEXT_METADATA_H_
+#define MESHBUS_INCLUDE_LLEXT_METADATA_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -107,4 +107,4 @@ BUILD_ASSERT(sizeof(struct mbs_llext_app_metadata) ==
 }
 #endif
 
-#endif /* MBS_LLEXT_METADATA_H_ */
+#endif /* MESHBUS_INCLUDE_LLEXT_METADATA_H_ */

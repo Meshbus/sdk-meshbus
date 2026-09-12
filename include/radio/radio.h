@@ -12,8 +12,8 @@
  * interface for the underlying radio driver.
  */
 
-#ifndef ZEPHYR_INCLUDE_MBS_RADIO_H_
-#define ZEPHYR_INCLUDE_MBS_RADIO_H_
+#ifndef MESHBUS_INCLUDE_RADIO_H_
+#define MESHBUS_INCLUDE_RADIO_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -345,4 +345,4 @@ float mbs_radio_packet_score(float snr, uint16_t len);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_MBS_RADIO_H_ */
+#endif /* MESHBUS_INCLUDE_RADIO_H_ */

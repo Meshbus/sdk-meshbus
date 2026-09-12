@@ -8,8 +8,8 @@
  * @brief Meshbus filesystem control API
  */
 
-#ifndef ZEPHYR_INCLUDE_MBS_FS_H_
-#define ZEPHYR_INCLUDE_MBS_FS_H_
+#ifndef MESHBUS_INCLUDE_FS_H_
+#define MESHBUS_INCLUDE_FS_H_
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -184,4 +184,4 @@ int mbs_fs_format(const char *volume_id, const char *confirm);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_MBS_FS_H_ */
+#endif /* MESHBUS_INCLUDE_FS_H_ */

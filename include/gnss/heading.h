@@ -7,8 +7,8 @@
  * @brief Meshbus GNSS heading acquisition and snapshots
  */
 
-#ifndef MBS_GNSS_HEADING_H_
-#define MBS_GNSS_HEADING_H_
+#ifndef MESHBUS_INCLUDE_GNSS_HEADING_H_
+#define MESHBUS_INCLUDE_GNSS_HEADING_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -142,4 +142,4 @@ int mbs_gnss_heading_calibration_reset(void);
 }
 #endif
 
-#endif /* MBS_GNSS_HEADING_H_ */
+#endif /* MESHBUS_INCLUDE_GNSS_HEADING_H_ */

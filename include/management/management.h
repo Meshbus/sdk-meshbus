@@ -9,8 +9,8 @@
  * @brief Meshbus protocol-agnostic remote management transport contract
  */
 
-#ifndef ZEPHYR_INCLUDE_MBS_MANAGEMENT_H_
-#define ZEPHYR_INCLUDE_MBS_MANAGEMENT_H_
+#ifndef MESHBUS_INCLUDE_MANAGEMENT_H_
+#define MESHBUS_INCLUDE_MANAGEMENT_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -228,4 +228,4 @@ int mbs_management_secret_set_request(
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_MBS_MANAGEMENT_H_ */
+#endif /* MESHBUS_INCLUDE_MANAGEMENT_H_ */

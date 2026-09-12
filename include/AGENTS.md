@@ -14,6 +14,12 @@ schema namespace. Do not add old-path forwarding headers or promote private
 Settings, MCUmgr, or Shell helpers. Zephyr extension headers in
 `zephyr/` retain their owning driver, binding, display, DFU, linker, or ZUI scope.
 
+Flat service header guards use `MESHBUS_INCLUDE_<MODULE>_H_` for module
+entries and `MESHBUS_INCLUDE_<MODULE>_<CAPABILITY>_H_` for narrow headers,
+such as `MESHBUS_INCLUDE_CLOCK_TIMESTAMP_H_`. Keep the opening directives
+and closing comment consistent. This project/path convention is separate
+from the `mbs_` / `MBS_` service API namespace.
+
 - Keep public headers minimal and implementation-neutral. Do not expose private
   state, locks, work items, settings handlers, shell helpers, or MCUmgr helpers.
 - Treat public struct layouts, enum values, constants, registration metadata,

@@ -12,8 +12,8 @@
  * the higher-level node, channel-store, or text-message services.
  */
 
-#ifndef ZEPHYR_INCLUDE_MBS_MESHCORE_H_
-#define ZEPHYR_INCLUDE_MBS_MESHCORE_H_
+#ifndef MESHBUS_INCLUDE_MESHCORE_H_
+#define MESHBUS_INCLUDE_MESHCORE_H_
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -524,4 +524,4 @@ int mbs_meshcore_control_data_send(const uint8_t *payload,
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_MBS_MESHCORE_H_ */
+#endif /* MESHBUS_INCLUDE_MESHCORE_H_ */

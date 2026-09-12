@@ -13,8 +13,8 @@
  * only CONFIG_MBS.
  */
 
-#ifndef ZEPHYR_INCLUDE_MBS_CLOCK_H_
-#define ZEPHYR_INCLUDE_MBS_CLOCK_H_
+#ifndef MESHBUS_INCLUDE_CLOCK_H_
+#define MESHBUS_INCLUDE_CLOCK_H_
 
 #include <clock/timestamp.h>
 #include <stddef.h>
@@ -90,4 +90,4 @@ int mbs_clock_time_set_unix_ms(uint64_t unix_time_ms, uint64_t *applied_unix_tim
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_MBS_CLOCK_H_ */
+#endif /* MESHBUS_INCLUDE_CLOCK_H_ */

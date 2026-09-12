@@ -11,8 +11,8 @@
  * This module manages Meshbus channels stored in settings.
  */
 
-#ifndef ZEPHYR_INCLUDE_MBS_CHANNEL_H_
-#define ZEPHYR_INCLUDE_MBS_CHANNEL_H_
+#ifndef MESHBUS_INCLUDE_CHANNEL_H_
+#define MESHBUS_INCLUDE_CHANNEL_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -111,4 +111,4 @@ uint8_t mbs_channel_next_free_slot(void);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_MBS_CHANNEL_H_ */
+#endif /* MESHBUS_INCLUDE_CHANNEL_H_ */

@@ -13,8 +13,8 @@
  * channel providers. Driver-private channels at and above @ref SENSOR_CHAN_ALL are not supported.
  */
 
-#ifndef ZEPHYR_INCLUDE_MBS_TELEMETRY_H_
-#define ZEPHYR_INCLUDE_MBS_TELEMETRY_H_
+#ifndef MESHBUS_INCLUDE_TELEMETRY_H_
+#define MESHBUS_INCLUDE_TELEMETRY_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -158,4 +158,4 @@ int mbs_telemetry_binding_get(size_t index, struct mbs_telemetry_binding *out);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_MBS_TELEMETRY_H_ */
+#endif /* MESHBUS_INCLUDE_TELEMETRY_H_ */

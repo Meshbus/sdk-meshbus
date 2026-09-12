@@ -7,8 +7,8 @@
  * @brief Meshbus business timestamps and realtime validity
  */
 
-#ifndef MBS_CLOCK_TIMESTAMP_H_
-#define MBS_CLOCK_TIMESTAMP_H_
+#ifndef MESHBUS_INCLUDE_CLOCK_TIMESTAMP_H_
+#define MESHBUS_INCLUDE_CLOCK_TIMESTAMP_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -61,4 +61,4 @@ int mbs_clock_timestamp_ms_get(uint64_t *out_timestamp_ms);
 }
 #endif
 
-#endif /* MBS_CLOCK_TIMESTAMP_H_ */
+#endif /* MESHBUS_INCLUDE_CLOCK_TIMESTAMP_H_ */

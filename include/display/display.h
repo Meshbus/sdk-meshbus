@@ -11,8 +11,8 @@
  *  This module provides display management helpers and display state.
  */
 
-#ifndef ZEPHYR_INCLUDE_MBS_DISPLAY_H_
-#define ZEPHYR_INCLUDE_MBS_DISPLAY_H_
+#ifndef MESHBUS_INCLUDE_DISPLAY_H_
+#define MESHBUS_INCLUDE_DISPLAY_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -124,4 +124,4 @@ int mbs_display_dump_read(uint32_t snapshot_id, uint32_t offset, uint32_t length
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_MBS_DISPLAY_H_ */
+#endif /* MESHBUS_INCLUDE_DISPLAY_H_ */

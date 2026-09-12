@@ -11,8 +11,8 @@
  * Meshbus input publishes input events via ZBus.
  */
 
-#ifndef ZEPHYR_INCLUDE_MBS_INPUT_H_
-#define ZEPHYR_INCLUDE_MBS_INPUT_H_
+#ifndef MESHBUS_INCLUDE_INPUT_H_
+#define MESHBUS_INCLUDE_INPUT_H_
 
 #include <stdint.h>
 
@@ -102,4 +102,4 @@ ZBUS_CHAN_DECLARE(mbs_input_action_chan);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_MBS_INPUT_H_ */
+#endif /* MESHBUS_INCLUDE_INPUT_H_ */

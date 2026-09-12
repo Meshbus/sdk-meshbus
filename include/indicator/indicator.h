@@ -11,8 +11,8 @@
  * This module provides simple LED and buzzer control with persisted configuration.
  */
 
-#ifndef ZEPHYR_INCLUDE_MBS_INDICATOR_H_
-#define ZEPHYR_INCLUDE_MBS_INDICATOR_H_
+#ifndef MESHBUS_INCLUDE_INDICATOR_H_
+#define MESHBUS_INCLUDE_INDICATOR_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -226,4 +226,4 @@ void mbs_indicator_buzzer_stop(void);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_MBS_INDICATOR_H_ */
+#endif /* MESHBUS_INCLUDE_INDICATOR_H_ */

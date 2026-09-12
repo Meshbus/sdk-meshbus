@@ -11,8 +11,8 @@
  * Meshbus GNSS provides a simple configuration interface and publishes GNSS updates via ZBus.
  */
 
-#ifndef ZEPHYR_INCLUDE_MBS_GNSS_H_
-#define ZEPHYR_INCLUDE_MBS_GNSS_H_
+#ifndef MESHBUS_INCLUDE_GNSS_H_
+#define MESHBUS_INCLUDE_GNSS_H_
 
 #include <gnss/heading.h>
 
@@ -222,4 +222,4 @@ void mbs_gnss_satellites_cache_clear(void);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_MBS_GNSS_H_ */
+#endif /* MESHBUS_INCLUDE_GNSS_H_ */

@@ -11,8 +11,8 @@
  * This module only exposes a unified publish API for external notifications.
  */
 
-#ifndef ZEPHYR_INCLUDE_MBS_NOTIFY_H_
-#define ZEPHYR_INCLUDE_MBS_NOTIFY_H_
+#ifndef MESHBUS_INCLUDE_NOTIFY_H_
+#define MESHBUS_INCLUDE_NOTIFY_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -100,4 +100,4 @@ int mbs_notify_publish(mbs_notify_type type, const mbs_notify *payload);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_MBS_NOTIFY_H_ */
+#endif /* MESHBUS_INCLUDE_NOTIFY_H_ */

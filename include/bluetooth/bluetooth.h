@@ -14,8 +14,8 @@
  * - Persisted runtime configuration using Zephyr Settings and nanopb.
  */
 
-#ifndef ZEPHYR_INCLUDE_MBS_BLUETOOTH_H_
-#define ZEPHYR_INCLUDE_MBS_BLUETOOTH_H_
+#ifndef MESHBUS_INCLUDE_BLUETOOTH_H_
+#define MESHBUS_INCLUDE_BLUETOOTH_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -158,4 +158,4 @@ int mbs_bluetooth_config_reset(void);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_MBS_BLUETOOTH_H_ */
+#endif /* MESHBUS_INCLUDE_BLUETOOTH_H_ */

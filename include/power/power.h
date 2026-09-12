@@ -16,8 +16,8 @@
  * - a reserved no-connection timeout field (persisted but not currently enforced).
  */
 
-#ifndef ZEPHYR_INCLUDE_MBS_POWER_H_
-#define ZEPHYR_INCLUDE_MBS_POWER_H_
+#ifndef MESHBUS_INCLUDE_POWER_H_
+#define MESHBUS_INCLUDE_POWER_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -190,4 +190,4 @@ int mbs_power_reboot_to_bootloader(void);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_MBS_POWER_H_ */
+#endif /* MESHBUS_INCLUDE_POWER_H_ */
