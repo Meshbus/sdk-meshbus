@@ -53,7 +53,7 @@ class ArtifactTests(unittest.TestCase):
         source = {"firmware": {"revision": None if dirty else "f" * 40, "dirty": dirty},
                   "off_manifest": ["meshbus"] if off_manifest else [],
                   "projects": {"meshbus": {"revision": "a" * 40, "dirty": False}}}
-        conf = {"CONFIG_MESHBUS_FIRMWARE": "y", "CONFIG_MESHBUS_LLEXT": "y" if llext else "n"}
+        conf = {"CONFIG_MBS_FIRMWARE": "y", "CONFIG_MBS_LLEXT": "y" if llext else "n"}
         ctx = (build, {"cmake": {"toolchain": {"name": "zephyr"}}}, conf,
                "fixture_board/soc/cpu", "1.2.3", self.root / "meshbus", source)
         self.enterContext(patch.object(release, "context", return_value=ctx))

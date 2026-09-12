@@ -1,6 +1,68 @@
 // SPDX-License-Identifier: Apache-2.0
 use meshbus_cli::{archive, edk, host};
 use std::fs;
+
+fn namespace_context(build: &std::path::Path) -> edk::ContextData {
+    edk::ContextData {
+        build: build.into(),
+        info: serde_json::Value::Null,
+        config: [("CONFIG_ZUI".into(), "y".into())].into(),
+        target: String::new(),
+        version: String::new(),
+        firmware: build.into(),
+        workspace: build.into(),
+        provenance: serde_json::Value::Null,
+    }
+}
+
+#[test]
+fn current_and_legacy_service_host_builds_are_readable() {
+    for prefix in ["MBS", "MESHBUS"] {
+        let temp = tempfile::tempdir().unwrap();
+        let mut context = namespace_context(temp.path());
+        context
+            .config
+            .insert(format!("CONFIG_{prefix}_LLEXT"), "y".into());
+        let generated = temp.path().join("zephyr/include/generated");
+        fs::create_dir_all(&generated).unwrap();
+        fs::write(
+            generated.join(format!(
+                "{}_llext_metadata_version.h",
+                prefix.to_lowercase()
+            )),
+            format!("#define {prefix}_LLEXT_METADATA_VERSION 1U\n"),
+        )
+        .unwrap();
+        context.require_llext().unwrap();
+        assert_eq!(context.metadata_version().unwrap(), 1);
+    }
+}
+
+#[test]
+fn legacy_outputs_do_not_override_disabled_or_invalid_current_host_inputs() {
+    let temp = tempfile::tempdir().unwrap();
+    let mut context = namespace_context(temp.path());
+    context.config.insert("CONFIG_MBS_LLEXT".into(), "n".into());
+    context
+        .config
+        .insert("CONFIG_MESHBUS_LLEXT".into(), "y".into());
+    assert!(context.require_llext().is_err());
+
+    let generated = temp.path().join("zephyr/include/generated");
+    fs::create_dir_all(&generated).unwrap();
+    fs::write(
+        generated.join("meshbus_llext_metadata_version.h"),
+        "#define MESHBUS_LLEXT_METADATA_VERSION 1U\n",
+    )
+    .unwrap();
+    fs::write(
+        generated.join("mbs_llext_metadata_version.h"),
+        "#define MBS_LLEXT_METADATA_VERSION 0U\n",
+    )
+    .unwrap();
+    assert!(context.metadata_version().is_err());
+}
+
 fn fixture(root: &std::path::Path) {
     let paths = [
         (
@@ -47,6 +109,347 @@ fn fixture(root: &std::path::Path) {
         "include/build/original/modules/meshbus/subsys/meshbus/CMakeFiles/nanopb.dir/Users/test",
     ))
     .unwrap();
+}
+fn public_generated_fixture(root: &std::path::Path) {
+    fixture(root);
+    let generated = root.join("include/build/original/generated");
+    fs::create_dir_all(&generated).unwrap();
+    fs::rename(
+        root.join("include/build/original/modules/meshbus/subsys/meshbus/meshbus"),
+        generated.join("meshbus"),
+    )
+    .unwrap();
+    fs::write(
+        generated.join("meshbus/test.pb.c"),
+        "private implementation",
+    )
+    .unwrap();
+    fs::create_dir_all(generated.join("CMakeFiles/nanopb.dir")).unwrap();
+    fs::write(
+        generated.join("CMakeFiles/nanopb.dir/temporary.h"),
+        "temporary",
+    )
+    .unwrap();
+    let flags = root.join("cmake.cflags");
+    fs::write(
+        &flags,
+        fs::read_to_string(&flags).unwrap().replace(
+            "include/build/original/modules/meshbus/subsys/meshbus",
+            "include/build/original/generated",
+        ),
+    )
+    .unwrap();
+}
+
+fn flat_public_fixture(root: &std::path::Path) {
+    public_generated_fixture(root);
+    fs::remove_dir_all(root.join("include/meshbus/include/zephyr/meshbus")).unwrap();
+    for module in [
+        "bluetooth",
+        "channel",
+        "clock",
+        "contact",
+        "desktop",
+        "display",
+        "firmware",
+        "fs",
+        "gnss",
+        "indicator",
+        "input",
+        "llext",
+        "management",
+        "meshcore",
+        "message",
+        "notify",
+        "power",
+        "radio",
+        "telemetry",
+    ] {
+        let directory = root.join("include/meshbus/include").join(module);
+        fs::create_dir_all(&directory).unwrap();
+        fs::write(directory.join(format!("{module}.h")), "/* public */\n").unwrap();
+    }
+    fs::write(
+        root.join("include/meshbus/include/clock/clock.h"),
+        "#include \"meshbus/test.pb.h\"\n",
+    )
+    .unwrap();
+    for (module, header) in [
+        ("clock", "timestamp"),
+        ("gnss", "heading"),
+        ("llext", "metadata"),
+        ("llext", "zbus"),
+    ] {
+        fs::write(
+            root.join(format!("include/meshbus/include/{module}/{header}.h")),
+            "/* public capability */\n",
+        )
+        .unwrap();
+    }
+    let private = root.join("include/meshbus/include/settings");
+    fs::create_dir_all(&private).unwrap();
+    fs::write(private.join("settings.h"), "private\n").unwrap();
+}
+
+#[test]
+fn filter_accepts_flat_public_modules_and_preserves_leaf_headers() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    flat_public_fixture(root);
+    edk::filter(
+        root,
+        std::path::Path::new("/workspace/build/original"),
+        std::path::Path::new("/workspace"),
+    )
+    .unwrap();
+    for header in [
+        "clock/clock.h",
+        "clock/timestamp.h",
+        "gnss/heading.h",
+        "llext/metadata.h",
+        "llext/zbus.h",
+        "firmware/firmware.h",
+    ] {
+        assert!(
+            root.join("include/meshbus/include").join(header).is_file(),
+            "{header}"
+        );
+    }
+    assert!(
+        root.join("include/build/host/generated/meshbus/test.pb.h")
+            .is_file()
+    );
+    assert!(
+        !root
+            .join("include/meshbus/include/settings/settings.h")
+            .exists()
+    );
+    assert!(!root.join("include/meshbus/private/secret.h").exists());
+}
+
+fn namespaced_public_fixture(root: &std::path::Path) {
+    flat_public_fixture(root);
+    let include = root.join("include/meshbus/include");
+    let namespace = include.join("meshbus");
+    fs::create_dir(&namespace).unwrap();
+    for entry in fs::read_dir(&include).unwrap() {
+        let entry = entry.unwrap();
+        if entry.file_name() != "zephyr" && entry.file_name() != "meshbus" {
+            fs::rename(entry.path(), namespace.join(entry.file_name())).unwrap();
+        }
+    }
+    fs::write(namespace.join("private.h"), "private\n").unwrap();
+}
+
+#[test]
+fn filter_accepts_namespaced_modules_without_exporting_private_helpers() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    namespaced_public_fixture(root);
+    edk::filter(
+        root,
+        std::path::Path::new("/workspace/build/original"),
+        std::path::Path::new("/workspace"),
+    )
+    .unwrap();
+    for header in [
+        "clock/clock.h",
+        "clock/timestamp.h",
+        "gnss/heading.h",
+        "llext/metadata.h",
+        "llext/zbus.h",
+        "firmware/firmware.h",
+    ] {
+        assert!(
+            root.join("include/meshbus/include/meshbus")
+                .join(header)
+                .is_file(),
+            "{header}"
+        );
+    }
+    assert!(
+        root.join("include/build/host/generated/meshbus/test.pb.h")
+            .is_file()
+    );
+    assert!(
+        !root
+            .join("include/meshbus/include/meshbus/settings/settings.h")
+            .exists()
+    );
+    assert!(
+        !root
+            .join("include/meshbus/include/meshbus/private.h")
+            .exists()
+    );
+}
+
+#[test]
+fn namespaced_layout_rejects_missing_modules_and_either_legacy_layout() {
+    for extra in [None, Some("clock"), Some("zephyr/meshbus")] {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
+        namespaced_public_fixture(root);
+        if let Some(extra) = extra {
+            let directory = root.join("include/meshbus/include").join(extra);
+            fs::create_dir_all(&directory).unwrap();
+            fs::write(directory.join("clock.h"), "/* old public */\n").unwrap();
+        } else {
+            fs::remove_dir_all(root.join("include/meshbus/include/meshbus/firmware")).unwrap();
+        }
+        let error = edk::filter(
+            root,
+            std::path::Path::new("/workspace/build/original"),
+            std::path::Path::new("/workspace"),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(
+            error.contains(if extra.is_some() {
+                "mixed public SDK layouts"
+            } else {
+                "firmware"
+            }),
+            "{error}"
+        );
+    }
+}
+
+#[test]
+fn public_layout_rejects_missing_modules_and_mixed_roots() {
+    for mixed in [false, true] {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
+        flat_public_fixture(root);
+        if mixed {
+            let legacy = root.join("include/meshbus/include/zephyr/meshbus");
+            fs::create_dir_all(&legacy).unwrap();
+            fs::write(legacy.join("clock.h"), "/* legacy */\n").unwrap();
+        } else {
+            fs::remove_dir_all(root.join("include/meshbus/include/firmware")).unwrap();
+        }
+        let error = edk::filter(
+            root,
+            std::path::Path::new("/workspace/build/original"),
+            std::path::Path::new("/workspace"),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(
+            error.contains(if mixed {
+                "mixed public SDK layouts"
+            } else {
+                "firmware"
+            }),
+            "{error}"
+        );
+    }
+}
+#[test]
+fn filter_accepts_public_generated_directory() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    public_generated_fixture(root);
+    edk::filter(
+        root,
+        std::path::Path::new("/workspace/build/original"),
+        std::path::Path::new("/workspace"),
+    )
+    .unwrap();
+    assert!(
+        root.join("include/build/host/generated/meshbus/test.pb.h")
+            .is_file()
+    );
+    assert!(
+        !root
+            .join("include/build/host/generated/meshbus/test.pb.c")
+            .exists()
+    );
+    assert!(
+        !root
+            .join("include/build/host/generated/CMakeFiles")
+            .exists()
+    );
+    assert!(
+        fs::read_to_string(root.join("cmake.cflags"))
+            .unwrap()
+            .contains("include/build/host/generated")
+    );
+}
+#[test]
+fn public_generated_headers_require_one_match_in_the_host_image() {
+    for case in ["missing", "duplicate", "wrong-image", "mixed-layout"] {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
+        public_generated_fixture(root);
+        let header = root.join("include/build/original/generated/meshbus/test.pb.h");
+        let alternative = if case == "mixed-layout" {
+            root.join("include/build/original/modules/meshbus/subsys/meshbus/meshbus/test.pb.h")
+        } else {
+            root.join("include/build/other/generated/meshbus/test.pb.h")
+        };
+        if case != "missing" {
+            fs::create_dir_all(alternative.parent().unwrap()).unwrap();
+            fs::copy(&header, alternative).unwrap();
+        }
+        if ["missing", "wrong-image"].contains(&case) {
+            fs::remove_file(header).unwrap();
+        }
+        let error = edk::filter(
+            root,
+            std::path::Path::new("/workspace/build/original"),
+            std::path::Path::new("/workspace"),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(
+            error.contains(if case == "wrong-image" {
+                "outside host build"
+            } else {
+                "must have one match"
+            }),
+            "{case}: {error}"
+        );
+    }
+}
+#[test]
+fn public_generated_headers_support_external_builds() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    public_generated_fixture(root);
+    let external = "include/tmp/external/image";
+    fs::create_dir_all(root.join(external).parent().unwrap()).unwrap();
+    fs::rename(root.join("include/build/original"), root.join(external)).unwrap();
+    for name in ["cmake.cflags", "Makefile.cflags"] {
+        let path = root.join(name);
+        fs::write(
+            &path,
+            fs::read_to_string(&path)
+                .unwrap()
+                .replace("include/build/original", external),
+        )
+        .unwrap();
+    }
+    let generated_dt = root.join("include/zephyr/include/generated/zephyr/devicetree_generated.h");
+    fs::write(
+        &generated_dt,
+        "/* /tmp/external/image/zephyr/zephyr.dts.pre */\n",
+    )
+    .unwrap();
+    edk::filter(
+        root,
+        std::path::Path::new("/tmp/external/image"),
+        std::path::Path::new("/workspace"),
+    )
+    .unwrap();
+    assert!(
+        root.join("include/build/host/generated/meshbus/test.pb.h")
+            .is_file()
+    );
+    assert!(!root.join("include/tmp").exists());
+    assert_eq!(
+        fs::read_to_string(generated_dt).unwrap(),
+        "/* <host-build>/zephyr/zephyr.dts.pre */\n"
+    );
 }
 #[test]
 fn filter_and_reproducible_archive() {

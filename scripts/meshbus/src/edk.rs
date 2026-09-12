@@ -11,17 +11,76 @@ use std::{
     process::{Command, Stdio},
 };
 const PREFIX: &str = "include/build/host";
-const GENERATED: &str = "/modules/meshbus/subsys/meshbus/meshbus/";
+// Accept already published EDKs as well as the per-image public output layout.
+const GENERATED: [&str; 2] = [
+    "/generated/meshbus/",
+    "/modules/meshbus/subsys/meshbus/meshbus/",
+];
 const AUTOCONF: &str = "include/zephyr/include/generated/zephyr/autoconf.h";
 const PRIVATE_KEY_PATH_CONFIGS: [&str; 2] = [
     "CONFIG_MCUBOOT_SIGNATURE_KEY_FILE",
     "CONFIG_MCUBOOT_ENCRYPTION_KEY_FILE",
 ];
-const PUBLIC: [&str; 3] = [
+const SHARED_PUBLIC: [&str; 2] = [
     "include/meshbus/include/zephyr/display/",
-    "include/meshbus/include/zephyr/meshbus/",
     "include/meshbus/include/zephyr/zui/",
 ];
+const SDK_INCLUDE: &str = "include/meshbus/include/";
+const LEGACY_PUBLIC: &str = "include/meshbus/include/zephyr/meshbus/";
+const PUBLIC_MODULES: [&str; 19] = [
+    "bluetooth",
+    "channel",
+    "clock",
+    "contact",
+    "desktop",
+    "display",
+    "firmware",
+    "fs",
+    "gnss",
+    "indicator",
+    "input",
+    "llext",
+    "management",
+    "meshcore",
+    "message",
+    "notify",
+    "power",
+    "radio",
+    "telemetry",
+];
+
+// A complete layout is required. Keep old archives usable without exporting
+// arbitrary include/ directories or accepting stale headers from a mixed build.
+fn public_roots(root: &Path) -> Result<Vec<String>> {
+    let namespace = format!("{SDK_INCLUDE}meshbus/");
+    let namespaced = root.join(&namespace).is_dir();
+    let legacy = root.join(LEGACY_PUBLIC).is_dir();
+    let flat = PUBLIC_MODULES
+        .iter()
+        .any(|module| root.join(SDK_INCLUDE).join(module).is_dir());
+    ensure!(
+        namespaced as u8 + legacy as u8 + flat as u8 <= 1,
+        "mixed public SDK layouts in EDK"
+    );
+    let mut prefixes: Vec<String> = SHARED_PUBLIC.into_iter().map(str::to_owned).collect();
+    if legacy {
+        prefixes.push(LEGACY_PUBLIC.to_owned());
+    } else {
+        let include = if flat { SDK_INCLUDE } else { &namespace };
+        prefixes.extend(
+            PUBLIC_MODULES
+                .iter()
+                .map(|module| format!("{include}{module}/")),
+        );
+    }
+    for prefix in &prefixes {
+        ensure!(
+            root.join(prefix).is_dir(),
+            "missing EDK public root {prefix}"
+        );
+    }
+    Ok(prefixes)
+}
 
 #[derive(Debug, Args)]
 #[command(args_conflicts_with_subcommands = true, subcommand_negates_reqs = true)]
@@ -232,7 +291,8 @@ impl ContextData {
     pub fn require_llext(&self) -> Result<()> {
         ensure!(
             self.config
-                .get("CONFIG_MESHBUS_LLEXT")
+                .get("CONFIG_MBS_LLEXT")
+                .or_else(|| self.config.get("CONFIG_MESHBUS_LLEXT"))
                 .is_some_and(|v| v == "y"),
             "host does not enable LLEXT"
         );
@@ -243,12 +303,17 @@ impl ContextData {
         Ok(())
     }
     pub fn metadata_version(&self) -> Result<u32> {
-        let s = macro_value(
-            &self
-                .build
-                .join("zephyr/include/generated/meshbus_llext_metadata_version.h"),
-            "MESHBUS_LLEXT_METADATA_VERSION",
-        )?;
+        let generated = self.build.join("zephyr/include/generated");
+        let current = generated.join("mbs_llext_metadata_version.h");
+        // Existing host builds remain readable without rewriting their outputs.
+        let s = if current.exists() {
+            macro_value(&current, "MBS_LLEXT_METADATA_VERSION")?
+        } else {
+            macro_value(
+                &generated.join("meshbus_llext_metadata_version.h"),
+                "MESHBUS_LLEXT_METADATA_VERSION",
+            )?
+        };
         let n = s.trim_end_matches(['u', 'U']).parse()?;
         ensure!(n > 0, "invalid metadata version");
         Ok(n)
@@ -339,8 +404,11 @@ fn scrub_private_key_paths(root: &Path) -> Result<()> {
     fs::write(path, text)?;
     Ok(())
 }
-fn sdk_owned(p: &str) -> bool {
-    p.starts_with("include/meshbus/") || p.contains("/modules/meshbus/")
+fn sdk_owned(p: &str, build: &str) -> bool {
+    p.starts_with("include/meshbus/")
+        || p.contains("/modules/meshbus/")
+        || p.starts_with(&format!("{build}/generated/"))
+        || GENERATED.iter().any(|layout| p.contains(layout))
 }
 fn build_prefix(build: &Path, workspace: &Path) -> Result<String> {
     ensure!(
@@ -432,19 +500,18 @@ fn prune_empty_ancestors(path: &Path, stop: &Path) -> Result<()> {
     Ok(())
 }
 pub fn filter(root: &Path, build: &Path, workspace: &Path) -> Result<()> {
+    let public_roots = public_roots(root)?;
     let files = host::files(root)?;
     let mut public = BTreeSet::new();
     let mut required = BTreeSet::new();
     let re = regex::Regex::new(r#"(?m)^\s*#\s*include\s*"(meshbus/[A-Za-z0-9_.-]+\.pb\.h)""#)?;
-    for prefix in PUBLIC {
-        ensure!(
-            root.join(prefix).is_dir(),
-            "missing EDK public root {prefix}"
-        );
-    }
     for p in &files {
         let relative = p.strip_prefix(root)?.to_string_lossy().replace('\\', "/");
-        if PUBLIC.iter().any(|prefix| relative.starts_with(prefix)) && relative.ends_with(".h") {
+        if public_roots
+            .iter()
+            .any(|prefix| relative.starts_with(prefix.as_str()))
+            && relative.ends_with(".h")
+        {
             public.insert(p.clone());
             for c in re.captures_iter(&fs::read_to_string(p)?) {
                 required.insert(c[1].to_owned());
@@ -458,7 +525,7 @@ pub fn filter(root: &Path, build: &Path, workspace: &Path) -> Result<()> {
         let mut matches = vec![];
         for p in &files {
             let r = p.strip_prefix(root)?.to_string_lossy().replace('\\', "/");
-            if let Some((prefix, suffix)) = r.split_once(GENERATED)
+            if let Some((prefix, suffix)) = GENERATED.iter().find_map(|layout| r.split_once(layout))
                 && format!("meshbus/{suffix}") == *needed
             {
                 matches.push((p.clone(), prefix.to_owned()));
@@ -484,7 +551,7 @@ pub fn filter(root: &Path, build: &Path, workspace: &Path) -> Result<()> {
     );
     for p in files {
         let r = p.strip_prefix(root)?.to_string_lossy().replace('\\', "/");
-        if sdk_owned(&r) && !keep.contains(&p) {
+        if sdk_owned(&r, &old) && !keep.contains(&p) {
             fs::remove_file(p)?;
         }
     }
@@ -582,9 +649,11 @@ pub fn filter(root: &Path, build: &Path, workspace: &Path) -> Result<()> {
         }
         fs::write(root.join(name), out.join("\n") + "\n")?;
     }
-    let generated_sdk = root.join(PREFIX).join("modules/meshbus");
-    if generated_sdk.is_dir() {
-        prune_empty_directories(&generated_sdk)?;
+    for directory in ["modules/meshbus", "generated"] {
+        let generated_sdk = root.join(PREFIX).join(directory);
+        if generated_sdk.is_dir() {
+            prune_empty_directories(&generated_sdk)?;
+        }
     }
     paths_valid(root)?;
     Ok(())
@@ -779,14 +848,22 @@ pub fn qualify(args: &QualifyArgs) -> Result<Value> {
         );
     }
     let windows_host_path = regex::Regex::new(r"[A-Za-z]:\\\\")?;
+    let public_roots = public_roots(&root)?;
     let mut headers = vec![];
     for p in host::files(&root)? {
         let r = p.strip_prefix(&root)?.to_string_lossy().replace('\\', "/");
-        if PUBLIC.iter().any(|prefix| r.starts_with(prefix)) && r.ends_with(".h") {
+        if public_roots
+            .iter()
+            .any(|prefix| r.starts_with(prefix.as_str()))
+            && r.ends_with(".h")
+        {
             headers.push(p.clone());
-        } else if sdk_owned(&r) {
+        } else if sdk_owned(&r, PREFIX) {
             ensure!(
-                r.starts_with(&format!("{PREFIX}{GENERATED}")) && r.ends_with(".pb.h"),
+                GENERATED
+                    .iter()
+                    .any(|layout| r.starts_with(&format!("{PREFIX}{layout}")))
+                    && r.ends_with(".pb.h"),
                 "private SDK file in EDK"
             );
         }

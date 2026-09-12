@@ -490,7 +490,7 @@ def firmware(build_dir, output, development, image_public_key=None):
                     "C2 MCUboot recovery must be UART-only")
     public_key = Path(image_public_key) if image_public_key else sysbuild / "image-public.pem"
     signing = verify_native_signature(build, public_key) if release_target or image_public_key else None
-    llext = conf.get("CONFIG_MESHBUS_LLEXT") == "y"
+    llext = conf.get("CONFIG_MBS_LLEXT") == "y"
     # Fail before writing a partial product if its required EDK tool is absent.
     edk_command = cli_command(require_explicit=not development) if llext else None
     edk_tool = cli_identity(edk_command) if edk_command else None
@@ -549,7 +549,7 @@ def firmware(build_dir, output, development, image_public_key=None):
             source_root, release_target and not development)
         record = {"schema": 1, "kind": "firmware", "id": product["id"], "version": version,
                   "target": target, "publishable": False, "engineering": development,
-                  "capabilities": {"firmware_endpoint": conf.get("CONFIG_MESHBUS_FIRMWARE") == "y", "llext": llext},
+                  "capabilities": {"firmware_endpoint": conf.get("CONFIG_MBS_FIRMWARE") == "y", "llext": llext},
                   "provenance": source,
                   "build": {"sysbuild": True, "command": ["west", "build", "--sysbuild", "-b", target, "meshbus/apps/meshbus"],
                             "toolchain": info["cmake"]["toolchain"]["name"],
