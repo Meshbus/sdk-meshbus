@@ -1,6 +1,6 @@
 #pragma once
 
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 extern const struct zui_icon I_reboot_24x24;
 extern const struct zui_icon I_shutdown_24x24;

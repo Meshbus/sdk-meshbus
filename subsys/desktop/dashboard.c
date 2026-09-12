@@ -14,7 +14,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/util.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 #if defined(CONFIG_MBS_CLOCK)
 #include <clock/clock.h>
 #endif

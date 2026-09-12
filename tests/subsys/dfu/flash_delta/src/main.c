@@ -8,7 +8,7 @@
 #include <sys/types.h>
 
 #include <zephyr/app_version.h>
-#include <zephyr/dfu/flash_delta.h>
+#include <dfu/flash_delta.h>
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/ztest.h>

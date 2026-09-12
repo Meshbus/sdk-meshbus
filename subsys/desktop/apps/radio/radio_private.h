@@ -10,7 +10,7 @@
 #include <radio/radio.h>
 #include <zephyr/spinlock.h>
 #include <zephyr/sys/atomic.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #ifdef __cplusplus
 extern "C" {

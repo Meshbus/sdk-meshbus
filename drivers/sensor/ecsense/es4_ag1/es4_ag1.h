@@ -6,7 +6,7 @@
 
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
-#include <zephyr/drivers/sensor/es4_ag1.h>
+#include <drivers/sensor/es4_ag1.h>
 
 struct adc_dt_spec;
 

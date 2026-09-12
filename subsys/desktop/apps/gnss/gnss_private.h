@@ -8,7 +8,7 @@
 
 #include <zephyr/kernel.h>
 #include <gnss/gnss.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -15,7 +15,7 @@
 
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
-#include <zephyr/drivers/sensor/compass_composite.h>
+#include <drivers/sensor/compass_composite.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/pm/device.h>

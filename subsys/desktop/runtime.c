@@ -25,7 +25,7 @@
 	(defined(CONFIG_MBS_DISPLAY) || defined(CONFIG_MBS_POWER))
 #include <zephyr/zbus/zbus.h>
 #endif
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #ifndef CONFIG_MBS_DESKTOP_THREAD_PRIORITY
 #define CONFIG_MBS_DESKTOP_THREAD_PRIORITY 0

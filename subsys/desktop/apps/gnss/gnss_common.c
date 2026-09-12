@@ -2,7 +2,7 @@
 
 #include "gnss_private.h"
 
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #include "desktop_private.h"
 #include "text/desktop_text.h"

@@ -14,7 +14,7 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/zbus/zbus.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #include "apps/app_ids.h"
 #include "assets/assets_icons.h"

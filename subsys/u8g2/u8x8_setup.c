@@ -33,7 +33,7 @@
 
 */
 
-#include <zephyr/display/u8x8.h>
+#include <display/u8x8.h>
 
 /* universal dummy callback, which will be default for all callbacks */
 uint8_t u8x8_dummy_cb(

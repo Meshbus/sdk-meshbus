@@ -2,7 +2,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 
 #include <string.h>
-#include <zephyr/display/u8g2_snapshot.h>
+#include <display/u8g2_snapshot.h>
 #include <zephyr/kernel.h>
 #include <display/display.h>
 

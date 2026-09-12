@@ -14,7 +14,7 @@
 #include <desktop/desktop.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #include <meshbus_arduboy/llext_game.hpp>
 #include <meshbus_arduboy/storage.hpp>

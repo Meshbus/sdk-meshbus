@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-#ifndef ZEPHYR_INCLUDE_DISPLAY_U8G2_SNAPSHOT_H_
-#define ZEPHYR_INCLUDE_DISPLAY_U8G2_SNAPSHOT_H_
+#ifndef MESHBUS_INCLUDE_DISPLAY_U8G2_SNAPSHOT_H_
+#define MESHBUS_INCLUDE_DISPLAY_U8G2_SNAPSHOT_H_
 
 #include <errno.h>
 #include <stdbool.h>
@@ -48,4 +48,4 @@ static inline int u8g2_snapshot_copy(uint8_t *dst, size_t capacity,
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif /* MESHBUS_INCLUDE_DISPLAY_U8G2_SNAPSHOT_H_ */

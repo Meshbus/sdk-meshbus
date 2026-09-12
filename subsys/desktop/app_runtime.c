@@ -10,7 +10,7 @@
 #if defined(CONFIG_MBS_DESKTOP_LAUNCHER)
 #include <llext/llext.h>
 #endif
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 LOG_MODULE_DECLARE(mbs_desktop);
 

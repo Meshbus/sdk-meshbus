@@ -227,6 +227,68 @@ fn filter_accepts_flat_public_modules_and_preserves_leaf_headers() {
     assert!(!root.join("include/meshbus/private/secret.h").exists());
 }
 
+fn flat_shared_fixture(root: &std::path::Path) {
+    flat_public_fixture(root);
+    let include = root.join("include/meshbus/include");
+    fs::rename(include.join("zephyr/zui"), include.join("zui")).unwrap();
+    fs::rename(
+        include.join("zephyr/display/api.h"),
+        include.join("display/api.h"),
+    )
+    .unwrap();
+    fs::remove_dir(include.join("zephyr/display")).unwrap();
+    fs::remove_dir(include.join("zephyr")).unwrap();
+}
+
+#[test]
+fn filter_preserves_flat_display_and_zui_without_exporting_driver_headers() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    flat_shared_fixture(root);
+    let include = root.join("include/meshbus/include");
+    fs::create_dir_all(include.join("drivers/sensor")).unwrap();
+    fs::write(include.join("drivers/sensor/compass.h"), "/* driver */\n").unwrap();
+    edk::filter(
+        root,
+        std::path::Path::new("/workspace/build/original"),
+        std::path::Path::new("/workspace"),
+    )
+    .unwrap();
+    for header in ["display/display.h", "display/api.h", "zui/api.h"] {
+        assert!(include.join(header).is_file(), "{header}");
+    }
+    assert!(!include.join("drivers/sensor/compass.h").exists());
+}
+
+#[test]
+fn flat_shared_layout_rejects_stale_or_missing_roots() {
+    for case in ["legacy-display", "legacy-zui", "missing-zui", "missing-display"] {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
+        flat_shared_fixture(root);
+        let include = root.join("include/meshbus/include");
+        match case {
+            "legacy-display" => fs::create_dir_all(include.join("zephyr/display")).unwrap(),
+            "legacy-zui" => fs::create_dir_all(include.join("zephyr/zui")).unwrap(),
+            "missing-zui" => fs::remove_dir_all(include.join("zui")).unwrap(),
+            "missing-display" => fs::remove_dir_all(include.join("display")).unwrap(),
+            _ => unreachable!(),
+        }
+        let error = edk::filter(
+            root,
+            std::path::Path::new("/workspace/build/original"),
+            std::path::Path::new("/workspace"),
+        )
+        .unwrap_err();
+        let expected = if case.starts_with("legacy") {
+            "mixed shared public SDK layouts"
+        } else {
+            "missing EDK public root"
+        };
+        assert!(error.to_string().contains(expected), "{case}: {error}");
+    }
+}
+
 fn namespaced_public_fixture(root: &std::path::Path) {
     flat_public_fixture(root);
     let include = root.join("include/meshbus/include");

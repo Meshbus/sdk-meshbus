@@ -11,7 +11,7 @@ if(CONFIG_MBS_POWER)
 		${CMAKE_CURRENT_SOURCE_DIR}/../indicator
 	)
 	zephyr_linker_sources(DATA_SECTIONS
-		${CMAKE_CURRENT_SOURCE_DIR}/../../include/zephyr/linker/meshbus.ld)
+		${CMAKE_CURRENT_SOURCE_DIR}/../../include/linker/meshbus.ld)
 	zephyr_library_sources(
 		power.c
 	)

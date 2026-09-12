@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <zephyr/drivers/sensor/mini_pid.h>
+#include <drivers/sensor/mini_pid.h>
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
 

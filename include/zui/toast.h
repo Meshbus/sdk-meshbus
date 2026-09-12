@@ -8,13 +8,13 @@
  * @brief ZUI transient toast feedback API
  */
 
-#ifndef ZEPHYR_INCLUDE_ZUI_TOAST_H_
-#define ZEPHYR_INCLUDE_ZUI_TOAST_H_
+#ifndef MESHBUS_INCLUDE_ZUI_TOAST_H_
+#define MESHBUS_INCLUDE_ZUI_TOAST_H_
 
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <zephyr/zui/assets.h>
+#include <zui/assets.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,4 +39,4 @@ int zui_toast_dismiss_all(struct zui_host *host);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_ZUI_TOAST_H_ */
+#endif /* MESHBUS_INCLUDE_ZUI_TOAST_H_ */

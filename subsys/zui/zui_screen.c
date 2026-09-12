@@ -8,9 +8,9 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
-#include <zephyr/zui/core.h>
-#include <zephyr/zui/host.h>
-#include <zephyr/zui/screen.h>
+#include <zui/core.h>
+#include <zui/host.h>
+#include <zui/screen.h>
 
 #include "zui_screen_internal.h"
 #include "zui_mem.h"

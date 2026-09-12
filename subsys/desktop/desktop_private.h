@@ -9,7 +9,7 @@
 #include <desktop/desktop.h>
 #include <zephyr/sys/atomic.h>
 #include <zephyr/sys/util.h>
-#include <zephyr/zui/input.h>
+#include <zui/input.h>
 
 #ifdef __cplusplus
 extern "C" {

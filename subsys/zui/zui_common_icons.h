@@ -1,6 +1,6 @@
 #pragma once
 
-#include <zephyr/zui/assets.h>
+#include <zui/assets.h>
 
 extern const struct zui_icon I_back_10px;
 extern const struct zui_icon I_dir_10px;

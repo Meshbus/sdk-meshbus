@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef ZEPHYR_INCLUDE_DRIVERS_MFD_TCA8418_H_
-#define ZEPHYR_INCLUDE_DRIVERS_MFD_TCA8418_H_
+#ifndef MESHBUS_INCLUDE_DRIVERS_MFD_MFD_TCA8418_H_
+#define MESHBUS_INCLUDE_DRIVERS_MFD_MFD_TCA8418_H_
 
 #include <stdbool.h>
 
@@ -189,4 +189,4 @@ bool mfd_tca8418_has_interrupt(const struct device *mfd);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_DRIVERS_MFD_TCA8418_H_ */
+#endif /* MESHBUS_INCLUDE_DRIVERS_MFD_MFD_TCA8418_H_ */

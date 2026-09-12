@@ -8,7 +8,7 @@
 #include <zephyr/dt-bindings/input/input-event-codes.h>
 #include <zephyr/input/input.h>
 #include <zephyr/ztest.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 static void assert_input(uint16_t key_code, int32_t value, enum zui_input_code expected_code,
 			 enum zui_input_action expected_action)

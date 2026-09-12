@@ -6,7 +6,7 @@
  * Meshbus telemetry channel configuration for idea_mesh_tracker_c2.
  */
 
-#include <zephyr/dt-bindings/sensor/sensor_channel.h>
+#include <dt-bindings/sensor/sensor_channel.h>
 
 / {
 

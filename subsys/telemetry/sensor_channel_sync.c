@@ -114,7 +114,7 @@ enum mbs_sensor_channel_snapshot {
 #undef MBS_SENSOR_CHANNEL_SNAPSHOT
 #undef MBS_PM_SENSOR_CHANNEL_SNAPSHOT
 
-#include <zephyr/dt-bindings/sensor/sensor_channel.h>
+#include <dt-bindings/sensor/sensor_channel.h>
 
 #define MBS_SENSOR_CHANNEL_ASSERT(name)                                                      \
 	BUILD_ASSERT(SENSOR_CHAN_##name == MBS_SENSOR_CHAN_C_##name,                               \

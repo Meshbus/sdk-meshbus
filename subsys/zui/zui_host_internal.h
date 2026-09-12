@@ -7,9 +7,9 @@
 #define ZEPHYR_SUBSYS_ZUI_HOST_INTERNAL_H_
 
 #include <zephyr/kernel.h>
-#include <zephyr/zui/host.h>
-#include <zephyr/zui/screen.h>
-#include <zephyr/zui/toast.h>
+#include <zui/host.h>
+#include <zui/screen.h>
+#include <zui/toast.h>
 
 #ifndef CONFIG_ZUI_ROUTER_MAX_SCREENS
 #define CONFIG_ZUI_ROUTER_MAX_SCREENS 16

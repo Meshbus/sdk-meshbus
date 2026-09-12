@@ -11,7 +11,7 @@
 #include <zephyr/drivers/emul.h>
 #include <zephyr/drivers/gpio/gpio_emul.h>
 #include <zephyr/drivers/i2c_emul.h>
-#include <zephyr/drivers/mfd/mfd_tca8418.h>
+#include <drivers/mfd/mfd_tca8418.h>
 #include <zephyr/dt-bindings/input/input-event-codes.h>
 #include <zephyr/input/input.h>
 #include <zephyr/kernel.h>

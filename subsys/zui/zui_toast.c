@@ -7,9 +7,9 @@
 #include <string.h>
 
 #include <zephyr/sys/util.h>
-#include <zephyr/zui/draw.h>
-#include <zephyr/zui/input.h>
-#include <zephyr/zui/toast.h>
+#include <zui/draw.h>
+#include <zui/input.h>
+#include <zui/toast.h>
 
 #include "zui_host_internal.h"
 

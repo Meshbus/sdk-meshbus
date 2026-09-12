@@ -8,14 +8,14 @@
  * @brief ZUI drawing API
  */
 
-#ifndef ZEPHYR_INCLUDE_ZUI_DRAW_H_
-#define ZEPHYR_INCLUDE_ZUI_DRAW_H_
+#ifndef MESHBUS_INCLUDE_ZUI_DRAW_H_
+#define MESHBUS_INCLUDE_ZUI_DRAW_H_
 
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#include <zephyr/zui/zui_types.h>
+#include <zui/zui_types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -181,4 +181,4 @@ void zui_draw_bubble(struct zui_draw_ctx *ctx, const struct zui_rect *rect, stru
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_ZUI_DRAW_H_ */
+#endif /* MESHBUS_INCLUDE_ZUI_DRAW_H_ */

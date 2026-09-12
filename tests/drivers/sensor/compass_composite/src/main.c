@@ -9,7 +9,7 @@
 
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
-#include <zephyr/drivers/sensor/compass_composite.h>
+#include <drivers/sensor/compass_composite.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/ztest.h>
 

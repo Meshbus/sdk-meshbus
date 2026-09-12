@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr/dt-bindings/sensor/sensor_channel.h>
+#include <dt-bindings/sensor/sensor_channel.h>
 
 / {
 	compass: compass {

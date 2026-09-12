@@ -33,7 +33,7 @@
 
 */
 
-#include <zephyr/display/u8g2.h>
+#include <display/u8g2.h>
 
 /*==============================================*/
 /* Circle */

@@ -13,7 +13,7 @@
 #include <fs/fs.h>
 #include <llext/llext.h>
 #include <zephyr/sys/util.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 LOG_MODULE_DECLARE(mbs_desktop, CONFIG_MBS_DESKTOP_LOG_LEVEL);
 

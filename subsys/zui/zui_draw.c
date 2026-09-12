@@ -7,12 +7,12 @@
 #include <string.h>
 
 #include <zephyr/device.h>
-#include <zephyr/display/u8g2.h>
+#include <display/u8g2.h>
 #include <zephyr/drivers/display.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
-#include <zephyr/zui/assets.h>
-#include <zephyr/zui/draw.h>
+#include <zui/assets.h>
+#include <zui/draw.h>
 
 #include "zui_compress.h"
 #include "zui_mem.h"

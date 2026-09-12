@@ -10,7 +10,7 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/ztest.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 struct callback_state {
 	uint32_t id;

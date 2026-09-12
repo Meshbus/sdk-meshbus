@@ -7,7 +7,7 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/ztest.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 static const uint8_t frame0[] = {
 	0x81, 0x42, 0x24, 0x18, 0x18, 0x24, 0x42, 0x81,

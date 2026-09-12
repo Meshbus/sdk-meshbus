@@ -8,8 +8,8 @@ this repository and remain governed by their own licenses.
 ## U8G2
 
 - Source: <https://github.com/olikraus/u8g2>
-- Location: `subsys/u8g2/`, `include/zephyr/display/u8g2.h`, and
-  `include/zephyr/display/u8x8.h`
+- Location: `subsys/u8g2/`, `include/display/u8g2.h`, and
+  `include/display/u8x8.h`
 - License: two-clause BSD-style license
 
 The upstream copyright and redistribution notice is retained at the beginning

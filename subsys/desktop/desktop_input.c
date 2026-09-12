@@ -15,7 +15,7 @@
 #endif
 #include <input/input.h>
 #include <zephyr/zbus/zbus.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 LOG_MODULE_REGISTER(mbs_desktop_input_bridge, CONFIG_MBS_DESKTOP_LOG_LEVEL);
 

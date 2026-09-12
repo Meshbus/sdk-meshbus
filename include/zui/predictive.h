@@ -8,8 +8,8 @@
  * @brief ZUI 12-key predictive dictionary API
  */
 
-#ifndef ZEPHYR_INCLUDE_ZUI_PREDICTIVE_H_
-#define ZEPHYR_INCLUDE_ZUI_PREDICTIVE_H_
+#ifndef MESHBUS_INCLUDE_ZUI_PREDICTIVE_H_
+#define MESHBUS_INCLUDE_ZUI_PREDICTIVE_H_
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -28,4 +28,4 @@ bool zui_predictive_has_sequence_prefix(const char *sequence);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_ZUI_PREDICTIVE_H_ */
+#endif /* MESHBUS_INCLUDE_ZUI_PREDICTIVE_H_ */

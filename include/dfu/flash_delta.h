@@ -11,8 +11,8 @@
  * This header file declares prototypes for the flash delta APIs used for DFU.
  */
 
-#ifndef ZEPHYR_INCLUDE_DFU_FLASH_DELTA_H_
-#define ZEPHYR_INCLUDE_DFU_FLASH_DELTA_H_
+#ifndef MESHBUS_INCLUDE_DFU_FLASH_DELTA_H_
+#define MESHBUS_INCLUDE_DFU_FLASH_DELTA_H_
 
 /**
  * @brief Abstraction layer to write firmware patch to flash
@@ -162,4 +162,4 @@ int flash_delta_patch_validate_candidate(
  * @}
  */
 
-#endif /* ZEPHYR_INCLUDE_DFU_FLASH_DELTA_H_ */
+#endif /* MESHBUS_INCLUDE_DFU_FLASH_DELTA_H_ */

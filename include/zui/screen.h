@@ -8,13 +8,13 @@
  * @brief ZUI screen API
  */
 
-#ifndef ZEPHYR_INCLUDE_ZUI_SCREEN_H_
-#define ZEPHYR_INCLUDE_ZUI_SCREEN_H_
+#ifndef MESHBUS_INCLUDE_ZUI_SCREEN_H_
+#define MESHBUS_INCLUDE_ZUI_SCREEN_H_
 
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <zephyr/zui/input.h>
+#include <zui/input.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -74,4 +74,4 @@ int zui_screen_exit(struct zui_screen *screen);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_ZUI_SCREEN_H_ */
+#endif /* MESHBUS_INCLUDE_ZUI_SCREEN_H_ */

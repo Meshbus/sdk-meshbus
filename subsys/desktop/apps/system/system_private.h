@@ -39,7 +39,7 @@
 #include <zephyr/sys/sys_heap.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/version.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #if defined(CONFIG_BT)
 #include <zephyr/bluetooth/addr.h>

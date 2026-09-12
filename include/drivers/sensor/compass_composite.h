@@ -9,13 +9,13 @@
  * @brief Extended sensor API for compass composite sensor driver
  */
 
-#ifndef ZEPHYR_INCLUDE_DRIVERS_SENSOR_COMPASS_COMPOSITE_H_
-#define ZEPHYR_INCLUDE_DRIVERS_SENSOR_COMPASS_COMPOSITE_H_
+#ifndef MESHBUS_INCLUDE_DRIVERS_SENSOR_COMPASS_COMPOSITE_H_
+#define MESHBUS_INCLUDE_DRIVERS_SENSOR_COMPASS_COMPOSITE_H_
 
 #include <stddef.h>
 #include <stdint.h>
 #include <zephyr/device.h>
-#include <zephyr/drivers/sensor/compass.h>
+#include <drivers/sensor/compass.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -64,4 +64,4 @@ int compass_composite_imu_rate_restore(const struct device *dev);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_DRIVERS_SENSOR_COMPASS_COMPOSITE_H_ */
+#endif /* MESHBUS_INCLUDE_DRIVERS_SENSOR_COMPASS_COMPOSITE_H_ */

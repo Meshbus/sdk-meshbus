@@ -219,8 +219,8 @@ config ZUI_COMMON_ICONS
 	  If enabled, the built-in icon/animation assets (zui_common_icons.c)
 	  will be compiled into the ZUI library.
 
-	  To use the built-in symbol names (I_* / A_*), include:
-	    #include <zephyr/zui/zui_common_icons.h>
+	  To look up built-in icons, include <zui/assets.h> and use
+	  zui_asset_pack_default() with the asset pack query functions.
 
 config ZUI_ASSET_NAMES
 	bool "Keep human-readable built-in asset names"

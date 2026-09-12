@@ -8,8 +8,8 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/sys/util.h>
-#include <zephyr/zui/core.h>
-#include <zephyr/zui/host.h>
+#include <zui/core.h>
+#include <zui/host.h>
 
 #include "zui_host_internal.h"
 #include "zui_mem.h"

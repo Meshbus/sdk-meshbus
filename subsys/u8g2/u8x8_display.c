@@ -37,7 +37,7 @@
   
 */
 
-#include <zephyr/display/u8x8.h>
+#include <display/u8x8.h>
 
 /*==========================================*/
 /* internal library function */

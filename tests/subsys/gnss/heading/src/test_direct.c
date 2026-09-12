@@ -11,7 +11,7 @@
 
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
-#include <zephyr/drivers/sensor/compass.h>
+#include <drivers/sensor/compass.h>
 #include <zephyr/kernel.h>
 #include <gnss/gnss.h>
 #include <power/power.h>

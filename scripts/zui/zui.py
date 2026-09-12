@@ -160,8 +160,8 @@ Naming conventions:
         )
         icons_parser.add_argument(
             '--include-path',
-            default='zephyr/zui/zui.h',
-            help='Public ZUI include path for generated headers (default: zephyr/zui/zui.h)',
+            default='zui/zui.h',
+            help='Public ZUI include path for generated headers (default: zui/zui.h)',
         )
         icons_parser.add_argument(
             '--include-path-internal',
@@ -200,8 +200,8 @@ Naming conventions:
         )
         xbms_parser.add_argument(
             '--include-path',
-            default='zephyr/zui/zui.h',
-            help='Include path for generated headers (default: zephyr/zui/zui.h)',
+            default='zui/zui.h',
+            help='Include path for generated headers (default: zui/zui.h)',
         )
 
         return parser

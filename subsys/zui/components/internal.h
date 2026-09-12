@@ -11,9 +11,9 @@
 #include <string.h>
 
 #include <zephyr/sys/util.h>
-#include <zephyr/zui/draw.h>
-#include <zephyr/zui/screen.h>
-#include <zephyr/zui/components.h>
+#include <zui/draw.h>
+#include <zui/screen.h>
+#include <zui/components.h>
 
 #include "../zui_mem.h"
 

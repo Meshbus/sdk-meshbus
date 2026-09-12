@@ -83,7 +83,7 @@ uint8_t u8x8_cad_template(u8x8_t *u8x8, uint8_t msg, uint16_t arg_int, void *arg
 
 */
 
-#include <zephyr/display/u8x8.h>
+#include <display/u8x8.h>
 
 uint8_t u8x8_cad_SendCmd(u8x8_t* u8x8, uint8_t cmd) {
     return u8x8->cad_cb(u8x8, U8X8_MSG_CAD_SEND_CMD, cmd, NULL);

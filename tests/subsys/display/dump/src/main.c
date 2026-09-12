@@ -6,8 +6,8 @@
 #include <pb_encode.h>
 #include <zcbor_decode.h>
 #include <zcbor_encode.h>
-#include <zephyr/display/u8g2.h>
-#include <zephyr/display/u8g2_snapshot.h>
+#include <display/u8g2.h>
+#include <display/u8g2_snapshot.h>
 #include <display/display.h>
 #include <zephyr/mgmt/mcumgr/mgmt/mgmt.h>
 #include <zephyr/mgmt/mcumgr/smp/smp.h>

@@ -21,10 +21,10 @@
 #if DT_HAS_CHOSEN(meshbus_compass)
 #define MBS_GNSS_HEADING_HAS_ELECTRONIC 1
 #include <zephyr/drivers/sensor.h>
-#include <zephyr/drivers/sensor/compass.h>
+#include <drivers/sensor/compass.h>
 #include <zephyr/pm/device_runtime.h>
 #if defined(CONFIG_COMPASS_COMPOSITE)
-#include <zephyr/drivers/sensor/compass_composite.h>
+#include <drivers/sensor/compass_composite.h>
 #endif
 #endif
 

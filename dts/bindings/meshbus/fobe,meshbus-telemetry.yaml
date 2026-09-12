@@ -49,4 +49,4 @@ child-binding:
         Common sensor channel id. Use values from Zephyr's enum sensor_channel
         below SENSOR_CHAN_ALL; driver-private channel ids are not supported.
         In devicetree, include a dt-bindings header that defines channel ids
-        (for example, <zephyr/dt-bindings/sensor/sensor_channel.h>).
+        (for example, <dt-bindings/sensor/sensor_channel.h>).

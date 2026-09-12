@@ -6,7 +6,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/logging/log.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #include <string.h>
 

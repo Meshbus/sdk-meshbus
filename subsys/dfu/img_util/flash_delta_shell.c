@@ -8,7 +8,7 @@
 #include <zephyr/shell/shell.h>
 #include <zephyr/fs/fs.h>
 
-#include <zephyr/dfu/flash_delta.h>
+#include <dfu/flash_delta.h>
 
 /*
  * File-based patch read context and callback

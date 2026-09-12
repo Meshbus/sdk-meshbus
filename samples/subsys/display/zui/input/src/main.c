@@ -13,7 +13,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/pm/device_runtime.h>
 #include <zephyr/sys/printk.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #define SAMPLE_PD_NODE      DT_NODELABEL(peripheral_power)
 #define SAMPLE_BUTTONS_NODE DT_NODELABEL(buttons)

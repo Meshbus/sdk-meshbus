@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 
-#include <zephyr/display/u8g2.h>
+#include <display/u8g2.h>
 
 #include <errno.h>
 #include <string.h>
@@ -10,7 +10,7 @@
 #include <zephyr/sys/atomic.h>
 #include <zephyr/sys/util.h>
 
-#include <zephyr/display/u8g2_snapshot.h>
+#include <display/u8g2_snapshot.h>
 
 struct u8g2_context {
 	const struct device *display;

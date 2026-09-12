@@ -11,7 +11,7 @@
 #include <zephyr/llext/symbol.h>
 #include <desktop/desktop.h>
 #include <zephyr/sys/printk.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #define SNAKE_APP_SCREEN 1U
 

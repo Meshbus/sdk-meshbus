@@ -11,7 +11,7 @@
 #include <zephyr/mgmt/mcumgr/mgmt/mgmt.h>
 #include <zephyr/mgmt/mcumgr/smp/smp.h>
 #include <zephyr/sys/util.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #include "mbs_mgmt_internal.h"
 #include "meshbus/desktop.pb.h"

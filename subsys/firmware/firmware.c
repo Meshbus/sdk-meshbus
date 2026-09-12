@@ -8,7 +8,7 @@
 
 #include <psa/crypto.h>
 #include <zephyr/app_version.h>
-#include <zephyr/dfu/flash_delta.h>
+#include <dfu/flash_delta.h>
 #include <zephyr/dfu/mcuboot.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/kernel.h>

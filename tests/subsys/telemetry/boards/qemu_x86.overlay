@@ -1,4 +1,4 @@
-#include <zephyr/dt-bindings/sensor/sensor_channel.h>
+#include <dt-bindings/sensor/sensor_channel.h>
 
 / {
 	test_power_domain: test-power-domain {

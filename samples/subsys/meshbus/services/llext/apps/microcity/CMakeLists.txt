@@ -30,7 +30,7 @@ meshbus_arduboy_llext_add_app(${PROJECT_NAME}
     DEFINES
         MICROCITY_ZEPHYR=1
     INCLUDES
-        ${LLEXT_EDK_INSTALL_DIR}/include/meshbus/include/zephyr
+        ${LLEXT_EDK_INSTALL_DIR}/include/meshbus/include
         ${PROJECT_SOURCE_DIR}/upstream
     DEPENDS
         ${MICROCITY_UPSTREAM}

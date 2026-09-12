@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr/dfu/flash_delta.h>
+#include <dfu/flash_delta.h>
 #include <detools.h>
 
 #include <bootutil/image.h>

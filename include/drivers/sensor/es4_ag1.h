@@ -1,5 +1,5 @@
-#ifndef ZEPHYR_DRIVERS_SENSOR_ES4_AG1_H_
-#define ZEPHYR_DRIVERS_SENSOR_ES4_AG1_H_
+#ifndef MESHBUS_INCLUDE_DRIVERS_SENSOR_ES4_AG1_H_
+#define MESHBUS_INCLUDE_DRIVERS_SENSOR_ES4_AG1_H_
 
 #include <zephyr/drivers/sensor.h>
 
@@ -20,4 +20,4 @@ extern "C" {
 }
 #endif
 
-#endif /* ZEPHYR_DRIVERS_SENSOR_ES4_AG1_H_ */
+#endif /* MESHBUS_INCLUDE_DRIVERS_SENSOR_ES4_AG1_H_ */

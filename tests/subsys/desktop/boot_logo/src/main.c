@@ -9,7 +9,7 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/display.h>
 #include <zephyr/ztest.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #define WIDTH 128
 #define HEIGHT 64

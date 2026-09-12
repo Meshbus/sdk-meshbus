@@ -6,11 +6,11 @@
 
 /*
  * Export list for the new public ZUI API exposed to LLEXT.
- * Keep this file in sync with <zephyr/zui/zui.h>.
+ * Keep this file in sync with <zui/zui.h>.
  */
 
 #include <zephyr/llext/symbol.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 EXPORT_GROUP_SYMBOL(ZUI, zui_init);
 EXPORT_GROUP_SYMBOL(ZUI, zui_deinit);

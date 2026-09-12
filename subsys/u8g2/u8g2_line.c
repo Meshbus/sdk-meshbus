@@ -33,7 +33,7 @@
 
 */
 
-#include <zephyr/display/u8g2.h>
+#include <display/u8g2.h>
 
 void u8g2_DrawLine(u8g2_t* u8g2, u8g2_uint_t x1, u8g2_uint_t y1, u8g2_uint_t x2, u8g2_uint_t y2) {
     u8g2_uint_t tmp;

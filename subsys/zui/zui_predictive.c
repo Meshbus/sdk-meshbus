@@ -10,7 +10,7 @@
 #include <string.h>
 
 #include <zephyr/logging/log.h>
-#include <zephyr/zui/predictive.h>
+#include <zui/predictive.h>
 
 #include "zui_predictive_internal.h"
 

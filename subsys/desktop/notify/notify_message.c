@@ -11,7 +11,7 @@
 #include <message/message.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/zbus/zbus.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #define DESKTOP_MESSAGE_TOAST_TIMEOUT_MS       2500U
 #define DESKTOP_MESSAGE_TOAST_RETRY_MS         100U

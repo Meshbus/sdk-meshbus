@@ -11,7 +11,7 @@
 #include <llext/llext.h>
 #include <zephyr/storage/flash_map.h>
 #include <zephyr/ztest.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 LOG_MODULE_REGISTER(mbs_desktop);
 

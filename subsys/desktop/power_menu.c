@@ -16,7 +16,7 @@
 #if defined(CONFIG_MBS_POWER)
 #include <power/power.h>
 #endif
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 LOG_MODULE_DECLARE(mbs_desktop, CONFIG_MBS_DESKTOP_LOG_LEVEL);
 

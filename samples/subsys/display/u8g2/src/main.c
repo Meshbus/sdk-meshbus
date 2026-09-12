@@ -9,7 +9,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/util.h>
 
-#include <zephyr/display/u8g2.h>
+#include <display/u8g2.h>
 
 LOG_MODULE_REGISTER(u8g2, LOG_LEVEL_INF);
 

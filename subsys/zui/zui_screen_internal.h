@@ -6,7 +6,7 @@
 #ifndef ZEPHYR_SUBSYS_ZUI_SCREEN_INTERNAL_H_
 #define ZEPHYR_SUBSYS_ZUI_SCREEN_INTERNAL_H_
 
-#include <zephyr/zui/screen.h>
+#include <zui/screen.h>
 
 typedef void (*zui_screen_invalidate_cb)(struct zui_screen *screen, void *user_data);
 

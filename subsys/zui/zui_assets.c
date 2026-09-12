@@ -8,7 +8,7 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/sys/util.h>
-#include <zephyr/zui/assets.h>
+#include <zui/assets.h>
 
 #include "zui_mem.h"
 

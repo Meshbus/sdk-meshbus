@@ -8,14 +8,14 @@
  * @brief ZUI host and router API
  */
 
-#ifndef ZEPHYR_INCLUDE_ZUI_HOST_H_
-#define ZEPHYR_INCLUDE_ZUI_HOST_H_
+#ifndef MESHBUS_INCLUDE_ZUI_HOST_H_
+#define MESHBUS_INCLUDE_ZUI_HOST_H_
 
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#include <zephyr/zui/input.h>
+#include <zui/input.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -81,4 +81,4 @@ int zui_host_send_layer_to_back(struct zui_host *host, enum zui_layer layer);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_ZUI_HOST_H_ */
+#endif /* MESHBUS_INCLUDE_ZUI_HOST_H_ */

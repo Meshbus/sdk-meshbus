@@ -7,7 +7,7 @@
 
 #include <zephyr/sys/util.h>
 #include <zephyr/ztest.h>
-#include <zephyr/zui/predictive.h>
+#include <zui/predictive.h>
 
 #define HAS_FIXTURE_DICT (CONFIG_ZUI_TEXT_EDITOR_PREDICTIVE_DICT_SOURCE[0] != '\0')
 

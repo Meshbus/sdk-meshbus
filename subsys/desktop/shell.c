@@ -4,7 +4,7 @@
 
 #include <llext/llext.h>
 #include <zephyr/shell/shell.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #include "mbs_shell_internal.h"
 

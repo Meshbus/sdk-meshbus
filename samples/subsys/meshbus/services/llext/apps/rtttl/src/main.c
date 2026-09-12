@@ -13,7 +13,7 @@
 #include <indicator/indicator.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #define RTTTL_APP_SCREEN_MENU 1U
 

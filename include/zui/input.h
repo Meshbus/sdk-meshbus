@@ -8,8 +8,8 @@
  * @brief ZUI input event API
  */
 
-#ifndef ZEPHYR_INCLUDE_ZUI_INPUT_H_
-#define ZEPHYR_INCLUDE_ZUI_INPUT_H_
+#ifndef MESHBUS_INCLUDE_ZUI_INPUT_H_
+#define MESHBUS_INCLUDE_ZUI_INPUT_H_
 
 #include <stdint.h>
 
@@ -92,4 +92,4 @@ int zui_action_state_update(struct zui_action_state *state, const struct zui_inp
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_ZUI_INPUT_H_ */
+#endif /* MESHBUS_INCLUDE_ZUI_INPUT_H_ */

@@ -21,7 +21,7 @@ const PRIVATE_KEY_PATH_CONFIGS: [&str; 2] = [
     "CONFIG_MCUBOOT_SIGNATURE_KEY_FILE",
     "CONFIG_MCUBOOT_ENCRYPTION_KEY_FILE",
 ];
-const SHARED_PUBLIC: [&str; 2] = [
+const LEGACY_SHARED_PUBLIC: [&str; 2] = [
     "include/meshbus/include/zephyr/display/",
     "include/meshbus/include/zephyr/zui/",
 ];
@@ -62,7 +62,22 @@ fn public_roots(root: &Path) -> Result<Vec<String>> {
         namespaced as u8 + legacy as u8 + flat as u8 <= 1,
         "mixed public SDK layouts in EDK"
     );
-    let mut prefixes: Vec<String> = SHARED_PUBLIC.into_iter().map(str::to_owned).collect();
+    let flat_shared = root.join(format!("{SDK_INCLUDE}zui")).is_dir();
+    let legacy_shared = LEGACY_SHARED_PUBLIC
+        .iter()
+        .any(|prefix| root.join(prefix).is_dir());
+    ensure!(
+        !(flat_shared && legacy_shared),
+        "mixed shared public SDK layouts in EDK"
+    );
+    let mut prefixes: Vec<String> = if flat_shared {
+        ["display", "zui"]
+            .into_iter()
+            .map(|module| format!("{SDK_INCLUDE}{module}/"))
+            .collect()
+    } else {
+        LEGACY_SHARED_PUBLIC.into_iter().map(str::to_owned).collect()
+    };
     if legacy {
         prefixes.push(LEGACY_PUBLIC.to_owned());
     } else {

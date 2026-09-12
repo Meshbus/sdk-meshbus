@@ -9,7 +9,7 @@
 #include <zephyr/input/input.h>
 #include <zephyr/sys/atomic.h>
 
-#include <zephyr/zui/input.h>
+#include <zui/input.h>
 
 static atomic_t zui_input_sequence;
 

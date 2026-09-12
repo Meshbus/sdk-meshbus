@@ -9,7 +9,7 @@
 #include <zephyr/kernel.h>
 #include <channel/channel.h>
 #include <meshcore/meshcore.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #include "meshcore_qr.h"
 #include "text/desktop_text.h"

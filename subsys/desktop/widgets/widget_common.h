@@ -28,7 +28,7 @@
 #include <zephyr/sys/mem_stats.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/sys_heap.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #include "apps/app_ids.h"
 #include "assets/assets_fonts.h"

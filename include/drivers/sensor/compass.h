@@ -9,8 +9,8 @@
  * @brief Common sensor API extensions for Compass heading providers
  */
 
-#ifndef ZEPHYR_INCLUDE_DRIVERS_SENSOR_COMPASS_H_
-#define ZEPHYR_INCLUDE_DRIVERS_SENSOR_COMPASS_H_
+#ifndef MESHBUS_INCLUDE_DRIVERS_SENSOR_COMPASS_H_
+#define MESHBUS_INCLUDE_DRIVERS_SENSOR_COMPASS_H_
 
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/sys/util.h>
@@ -89,4 +89,4 @@ enum compass_sensor_capability {
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_DRIVERS_SENSOR_COMPASS_H_ */
+#endif /* MESHBUS_INCLUDE_DRIVERS_SENSOR_COMPASS_H_ */

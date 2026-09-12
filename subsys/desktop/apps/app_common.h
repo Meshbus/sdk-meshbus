@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 #include <zephyr/kernel.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #ifdef __cplusplus
 extern "C" {

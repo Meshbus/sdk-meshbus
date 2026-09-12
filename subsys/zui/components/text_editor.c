@@ -9,9 +9,9 @@
 #include <stdlib.h>
 
 #include <zephyr/kernel.h>
-#include <zephyr/zui/core.h>
-#include <zephyr/zui/predictive.h>
-#include <zephyr/zui/toast.h>
+#include <zui/core.h>
+#include <zui/predictive.h>
+#include <zui/toast.h>
 
 enum zui_text_editor_input_mode {
 	ZUI_TEXT_EDITOR_INPUT_VIRTUAL_ALPHA,

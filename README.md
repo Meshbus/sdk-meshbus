@@ -109,8 +109,12 @@ Migrate former `zephyr/meshbus/<module>.h` or
 `meshbus/<module>/<module>.h` includes to `<module>/<module>.h`; there are no
 forwarding headers. Public headers use module paths such as `clock/clock.h`;
 generated protobuf headers retain paths such as `meshbus/clock.pb.h`.
-Zephyr drivers, bindings,
-display support and ZUI keep their existing `zephyr/` paths. Internal Settings,
+Repository-owned display, ZUI, driver, devicetree binding, DFU and linker
+interfaces also use flat category paths, such as `<display/u8g2.h>`,
+`<zui/zui.h>`, `<drivers/sensor/compass.h>` and
+`<dt-bindings/sensor/compass.h>`. Migrate their former `zephyr/` includes;
+upstream Zephyr headers such as `<zephyr/drivers/sensor.h>` keep that prefix.
+Internal Settings,
 MCUmgr and Shell helpers remain private. Register the SDK's `include` root,
 not each module directory, on the compiler search path.
 

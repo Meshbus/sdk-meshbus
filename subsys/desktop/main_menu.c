@@ -12,7 +12,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/util.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #ifndef MBS_DESKTOP_APP_REGISTRY_MAX
 #define MBS_DESKTOP_APP_REGISTRY_MAX 16

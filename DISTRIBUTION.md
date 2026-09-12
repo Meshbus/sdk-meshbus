@@ -177,9 +177,14 @@ meshbus llext --llext-sdk /path/to/llext-edk \
 `edk verify` checks archive integrity and compiler inputs offline without a
 toolchain. `edk qualify` additionally runs compiler/header/extension checks.
 
+Display and ZUI headers use `<display/*.h>` and `<zui/*.h>`. The exporter
+also accepts their legacy `zephyr/` layout, but rejects mixed shared roots.
+Driver, devicetree binding, DFU and linker files remain outside the MBA public
+header allowlist even though they now also use flat SDK paths.
+
 Current EDKs expose Meshbus headers as `<module/module.h>`, with narrow Clock,
 GNSS and LLEXT capability headers documented in [the SDK guide](README.md).
-Zephyr display/ZUI paths and generated `meshbus/*.pb.h` paths stay unchanged.
+Generated `meshbus/*.pb.h` paths stay unchanged.
 The exporter retains an explicit list of public module directories; internal
 Settings, MCUmgr and Shell helpers are excluded. Existing EDK archives with the
 former `zephyr/meshbus/` or `meshbus/<module>/` layouts remain verifiable

@@ -7,7 +7,7 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/adc/adc_emul.h>
 #include <zephyr/drivers/sensor.h>
-#include <zephyr/drivers/sensor/mini_pid.h>
+#include <drivers/sensor/mini_pid.h>
 #include <zephyr/ztest.h>
 
 #define ADC_NODE DT_NODELABEL(test_adc)

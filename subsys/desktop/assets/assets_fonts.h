@@ -1,6 +1,6 @@
 #pragma once
 
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 static const uint8_t F_segment_46[] =
 	"\12\0\5\4\5\5\6\3\6\24\37\3\0\37\0\37\0\0\0\0\0\2\61\60R\364\217\274\13;\356\260"

@@ -7,11 +7,11 @@
 #include <zephyr/shell/shell.h>
 #include <zephyr/sys/atomic.h>
 #include <zephyr/sys/util.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #include <string.h>
 
-#include <zephyr/display/u8g2_snapshot.h>
+#include <display/u8g2_snapshot.h>
 
 #define ZUI_DUMP_LINE_BYTES   64u
 #define ZUI_DUMP_HEX_LINE_MAX (5u + (ZUI_DUMP_LINE_BYTES * 2u) + 1u) /* "DUMP " + hex + NUL */

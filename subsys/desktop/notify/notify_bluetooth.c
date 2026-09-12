@@ -13,7 +13,7 @@
 #include <zephyr/sys/atomic.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/zbus/zbus.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 #define DESKTOP_BLUETOOTH_RESULT_DELAY_MS 250U
 #define DESKTOP_BLUETOOTH_RESULT_TIMEOUT_MS 1200U

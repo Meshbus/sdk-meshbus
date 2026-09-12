@@ -7,7 +7,7 @@
 
 #include <zephyr/sys/util.h>
 #include <zephyr/ztest.h>
-#include <zephyr/zui/zui.h>
+#include <zui/zui.h>
 
 struct callback_state {
 	int draw_count;

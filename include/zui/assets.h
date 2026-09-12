@@ -8,14 +8,14 @@
  * @brief ZUI asset API
  */
 
-#ifndef ZEPHYR_INCLUDE_ZUI_ASSETS_H_
-#define ZEPHYR_INCLUDE_ZUI_ASSETS_H_
+#ifndef MESHBUS_INCLUDE_ZUI_ASSETS_H_
+#define MESHBUS_INCLUDE_ZUI_ASSETS_H_
 
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#include <zephyr/zui/zui_types.h>
+#include <zui/zui_types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -98,4 +98,4 @@ bool zui_icon_anim_is_last_frame(const struct zui_icon_anim *anim);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_ZUI_ASSETS_H_ */
+#endif /* MESHBUS_INCLUDE_ZUI_ASSETS_H_ */

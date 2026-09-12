@@ -13,7 +13,7 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/display.h>
 #if defined(CONFIG_U8G2)
-#include <zephyr/display/u8g2.h>
+#include <display/u8g2.h>
 #endif
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>

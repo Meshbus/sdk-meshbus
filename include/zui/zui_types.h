@@ -8,8 +8,8 @@
  * @brief ZUI shared public value types
  */
 
-#ifndef ZEPHYR_INCLUDE_ZUI_TYPES_H_
-#define ZEPHYR_INCLUDE_ZUI_TYPES_H_
+#ifndef MESHBUS_INCLUDE_ZUI_ZUI_TYPES_H_
+#define MESHBUS_INCLUDE_ZUI_ZUI_TYPES_H_
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -80,4 +80,4 @@ struct zui_icon_placement {
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_ZUI_TYPES_H_ */
+#endif /* MESHBUS_INCLUDE_ZUI_ZUI_TYPES_H_ */
