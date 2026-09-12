@@ -9,7 +9,7 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/llext/symbol.h>
-#include <zephyr/meshbus/desktop.h>
+#include <desktop/desktop.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/zui/zui.h>
@@ -139,7 +139,7 @@ const zui_screen_ops screen_ops = {
 
 extern "C" void cxx_hello_app_main(void *args)
 {
-	meshbus_desktop_app_args *app_args = static_cast<meshbus_desktop_app_args *>(args);
+	mbs_desktop_app_args *app_args = static_cast<mbs_desktop_app_args *>(args);
 	App app{};
 	int rc;
 

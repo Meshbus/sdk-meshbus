@@ -1,0 +1,61 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig MBS_POWER
+	bool "Meshbus Power Management"
+	select POWEROFF
+	select REBOOT
+	default n
+	help
+	  Enable Meshbus power management subsystem for sleep control,
+	  battery monitoring, and power optimization.
+
+if MBS_POWER
+
+module = MBS_POWER
+module-str = mbs_power
+module-dep = MBS
+source "subsys/logging/Kconfig.template.log_config"
+
+config MBS_POWER_SAMPLE_INTERVAL
+	int "Meshbus Power sample interval (ms)"
+	default 20000
+	range 1000 30000
+	help
+	  Set the interval in milliseconds for refreshing cached fuel-gauge
+	  and charger status over Meshbus. Default is 20000 ms (20 seconds).
+
+config MBS_POWER_SHELL
+	bool "Meshbus Power shell commands"
+	depends on MBS_SHELL
+	default y
+	help
+	  Enable shell commands for Meshbus power module.
+
+config MBS_POWER_STATS
+	bool "Meshbus Power statistics"
+	depends on MBS_STATS
+	default y
+	help
+	  Enable statistics collection for Meshbus power module.
+
+config MBS_POWER_BOOTLOADER_GPREGRET
+	bool "Use nRF GPREGRET bootloader handoff"
+	depends on SOC_SERIES_NRF52 && HAS_HW_NRF_POWER
+	help
+	  Enable bootloader recovery handoff by writing the nRF GPREGRET
+	  register before reboot. This is used by Adafruit nRF52 UF2/CDC
+	  bootloaders, which enter bootloader mode when GPREGRET[0] is set
+	  to 0x57 before a soft reset.
+
+config MBS_POWER_BACK_HOLD_SHUTDOWN
+	bool "Enable BACK hold shutdown gesture"
+	depends on MBS_INPUT
+	default y
+	help
+	  Enable a no-screen shutdown gesture on BACK. Holding BACK can play
+	  shutdown cue ticks starting around 3 seconds, play a release cue
+	  around 6 seconds when Meshbus Indicator is enabled, and shuts down
+	  only when BACK is released during the following confirmation window.
+
+endif # MBS_POWER

@@ -12,7 +12,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(meshbus_test, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(mbs_test, LOG_LEVEL_INF);
 
 int main(void)
 {

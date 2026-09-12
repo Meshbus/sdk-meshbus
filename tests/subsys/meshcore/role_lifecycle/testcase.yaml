@@ -1,0 +1,55 @@
+common:
+  tags: [meshbus, meshcore, contract]
+  harness: ztest
+  platform_allow: mps2/an385
+  integration_platforms: [mps2/an385]
+  expect_reboot: true
+  timeout: 90
+tests:
+  subsys.meshbus.meshcore.contract.role_lifecycle.one_channel: {}
+  subsys.meshbus.meshcore.contract.role_lifecycle.two_channels:
+    extra_configs:
+      - CONFIG_MBS_CHANNEL_MAX_CHANNELS=2
+  subsys.meshbus.meshcore.contract.role_lifecycle.no_chat:
+    extra_configs:
+      - CONFIG_MBS_CONTACT=n
+      - CONFIG_MBS_CHANNEL=n
+      - CONFIG_MBS_MESSAGE=n
+  subsys.meshbus.meshcore.integration.role_lifecycle.runtime:
+    tags: [meshbus, meshcore, integration]
+    extra_args: [ROLE_RUNTIME_TEST=ON]
+    extra_dtc_overlay_files: [boards/mps2_an385.overlay, runtime.overlay]
+    extra_configs:
+      - CONFIG_LORA_SX126X=n
+      - CONFIG_MBS_MESHCORE_RUNTIME=y
+      - CONFIG_MBS_RADIO=y
+      - CONFIG_LORA=y
+      - CONFIG_LORA_MODULE_BACKEND_LORAMAC_NODE=n
+      - CONFIG_LORA_MODULE_BACKEND_LORA_BASICS_MODEM=y
+  subsys.meshbus.meshcore.integration.role_lifecycle.subscriber:
+    tags: [meshbus, meshcore, integration]
+    extra_args: [ROLE_RUNTIME_TEST=ON]
+    extra_dtc_overlay_files: [boards/mps2_an385.overlay, runtime.overlay]
+    extra_configs:
+      - CONFIG_LORA_SX126X=n
+      - CONFIG_MBS_MESHCORE_RUNTIME=y
+      - CONFIG_MBS_RADIO=y
+      - CONFIG_LORA=y
+      - CONFIG_LORA_MODULE_BACKEND_LORAMAC_NODE=n
+      - CONFIG_LORA_MODULE_BACKEND_LORA_BASICS_MODEM=y
+      - CONFIG_ZBUS_MSG_SUBSCRIBER=y
+      - CONFIG_MBS_MESHCORE_RADIO_RX_ZBUS_SUBSCRIBER=y
+  subsys.meshbus.meshcore.integration.role_lifecycle.runtime_no_chat:
+    tags: [meshbus, meshcore, integration]
+    extra_args: [ROLE_RUNTIME_TEST=ON]
+    extra_dtc_overlay_files: [boards/mps2_an385.overlay, runtime.overlay]
+    extra_configs:
+      - CONFIG_LORA_SX126X=n
+      - CONFIG_MBS_MESHCORE_RUNTIME=y
+      - CONFIG_MBS_RADIO=y
+      - CONFIG_LORA=y
+      - CONFIG_LORA_MODULE_BACKEND_LORAMAC_NODE=n
+      - CONFIG_LORA_MODULE_BACKEND_LORA_BASICS_MODEM=y
+      - CONFIG_MBS_CONTACT=n
+      - CONFIG_MBS_CHANNEL=n
+      - CONFIG_MBS_MESSAGE=n

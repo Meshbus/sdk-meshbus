@@ -46,7 +46,7 @@
 		magn-axis-sign = <1 1 (-1)>;
 	};
 
-	meshbus_telemetry: meshbus-telemetry {
+	mbs_telemetry: meshbus-telemetry {
 		compatible = "fobe,meshbus-telemetry";
 
 		ch0 { sensor = <&lps22>; channel = <SENSOR_CHAN_AMBIENT_TEMP>; };
@@ -59,7 +59,7 @@
 		meshbus,indicator-buzzer-power = &peripheral_power;
 		meshbus,indicator-light-power = &peripheral_power;
 		meshbus,compass = &compass;
-		meshbus,telemetry = &meshbus_telemetry;
+		meshbus,telemetry = &mbs_telemetry;
 		meshbus,fuel-gauge = &fuel_gauge;
 		meshbus,charger = &charger;
 		meshbus,power-button = &button0;

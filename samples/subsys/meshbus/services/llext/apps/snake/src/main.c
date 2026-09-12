@@ -9,7 +9,7 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/llext/symbol.h>
-#include <zephyr/meshbus/desktop.h>
+#include <desktop/desktop.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/zui/zui.h>
 
@@ -345,7 +345,7 @@ static const struct zui_screen_ops snake_app_ops = {
 
 void snake_app_main(void *args)
 {
-	struct meshbus_desktop_app_args *app_args = args;
+	struct mbs_desktop_app_args *app_args = args;
 	struct snake_app app = {0};
 	int rc;
 

@@ -15,9 +15,9 @@
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/sys/printk.h>
 
-#include <zephyr/meshbus/telemetry.h>
+#include <telemetry/telemetry.h>
 
-LOG_MODULE_REGISTER(meshbus_test, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(mbs_test, LOG_LEVEL_INF);
 
 static void sensor_value_snprint(char *buf, size_t len, const struct sensor_value *v)
 {
@@ -53,12 +53,12 @@ static void sensor_values_snprint(char *buf, size_t len, const struct sensor_val
 
 static void telemetry_data_listener_cb(const struct zbus_channel *chan, const void *message)
 {
-	if (chan != &meshbus_telemetry_data_chan || message == NULL) {
+	if (chan != &mbs_telemetry_data_chan || message == NULL) {
 		return;
 	}
 
-	const struct meshbus_telemetry_data_event *event = message;
-	size_t count = MIN((size_t)event->value_count, (size_t)MESHBUS_TELEMETRY_MAX_VALUES);
+	const struct mbs_telemetry_data_event *event = message;
+	size_t count = MIN((size_t)event->value_count, (size_t)MBS_TELEMETRY_MAX_VALUES);
 	char tuple[96];
 
 	sensor_values_snprint(tuple, sizeof(tuple), event->values, count);
@@ -77,12 +77,12 @@ int main(void)
 	LOG_INF("MCUboot bootloader support enabled");
 #endif
 
-	int rc = zbus_chan_add_obs(&meshbus_telemetry_data_chan, &telemetry_data_listener,
+	int rc = zbus_chan_add_obs(&mbs_telemetry_data_chan, &telemetry_data_listener,
 				   K_MSEC(100));
 	if (rc != 0) {
 		LOG_ERR("Failed to subscribe telemetry data channel: %d", rc);
 	} else {
-		LOG_INF("Subscribed to meshbus_telemetry_data_chan");
+		LOG_INF("Subscribed to mbs_telemetry_data_chan");
 	}
 
 	return 0;

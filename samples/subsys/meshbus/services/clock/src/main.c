@@ -6,19 +6,19 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
-#include <zephyr/meshbus/clock.h>
+#include <clock/clock.h>
 
-LOG_MODULE_REGISTER(meshbus_clock_sample, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(mbs_clock_sample, LOG_LEVEL_INF);
 
 int main(void)
 {
-	meshbus_clock_config cfg;
+	mbs_clock_config cfg;
 	int rc;
 
 	LOG_INF("Meshbus clock sample started");
 	LOG_INF("Build timestamp: " __DATE__ " " __TIME__);
 
-	rc = meshbus_clock_config_get(&cfg);
+	rc = mbs_clock_config_get(&cfg);
 	if (rc != 0) {
 		LOG_ERR("Failed to read clock config: %d", rc);
 		return 0;

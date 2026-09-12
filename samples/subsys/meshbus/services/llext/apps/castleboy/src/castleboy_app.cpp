@@ -10,8 +10,8 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/llext/symbol.h>
-#include <zephyr/meshbus/desktop.h>
-#include <zephyr/meshbus/indicator.h>
+#include <desktop/desktop.h>
+#include <indicator/indicator.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/zui/zui.h>
@@ -106,7 +106,7 @@ void tone_play_notes(const indicator_buzzer_note *notes, size_t note_count)
 {
 	ToneBuffer *buffer;
 
-	if (notes == nullptr || note_count == 0U || !meshbus_indicator_buzzer_is_ready() ||
+	if (notes == nullptr || note_count == 0U || !mbs_indicator_buzzer_is_ready() ||
 	    tone_duplicate_should_drop(notes, note_count)) {
 		return;
 	}
@@ -117,7 +117,7 @@ void tone_play_notes(const indicator_buzzer_note *notes, size_t note_count)
 	buffer->melody.notes = buffer->notes;
 	buffer->melody.length = static_cast<uint8_t>(note_count);
 
-	(void)meshbus_indicator_buzzer_play(INDICATOR_SOURCE_SYSTEM, &buffer->melody);
+	(void)mbs_indicator_buzzer_play(INDICATOR_SOURCE_SYSTEM, &buffer->melody);
 }
 
 void tick(CastleBoyApp *app)
@@ -238,7 +238,7 @@ void castleboy_tones_play_score(const uint16_t *score, bool (*enabled_cb)())
 
 void castleboy_tones_stop()
 {
-	meshbus_indicator_buzzer_stop();
+	mbs_indicator_buzzer_stop();
 }
 
 extern "C" void meshbus_arduboy_tone_play(uint16_t freq, uint16_t duration_ms,

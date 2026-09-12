@@ -33,7 +33,7 @@ endchoice
 config U8G2_SNAPSHOT
 	bool "Keep the last complete frame for diagnostic snapshots"
 	depends on U8G2_BUFFER_MODE_FULL
-	default y if ZUI_SHELL || (MESHBUS_DISPLAY && MCUMGR)
+	default y if ZUI_SHELL || (MBS_DISPLAY && MCUMGR)
 	help
 	  Keep one extra full framebuffer for synchronized snapshot copies.
 	  Shell and Display MCUmgr diagnostics share this source. Frames are

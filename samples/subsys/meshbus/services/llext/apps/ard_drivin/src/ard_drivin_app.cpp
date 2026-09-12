@@ -10,8 +10,8 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/llext/symbol.h>
-#include <zephyr/meshbus/desktop.h>
-#include <zephyr/meshbus/indicator.h>
+#include <desktop/desktop.h>
+#include <indicator/indicator.h>
 #include <zephyr/random/random.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
@@ -216,7 +216,7 @@ extern "C" void meshbus_arduboy_tone_play(uint16_t freq, uint16_t duration_ms,
 					bool (*enabled_cb)())
 {
 	if ((enabled_cb != nullptr && !enabled_cb()) || freq == 0U ||
-	    !meshbus_indicator_buzzer_is_ready()) {
+	    !mbs_indicator_buzzer_is_ready()) {
 		return;
 	}
 
@@ -228,12 +228,12 @@ extern "C" void meshbus_arduboy_tone_play(uint16_t freq, uint16_t duration_ms,
 	};
 	buffer->melody.notes = &buffer->note;
 	buffer->melody.length = 1U;
-	(void)meshbus_indicator_buzzer_play(INDICATOR_SOURCE_SYSTEM, &buffer->melody);
+	(void)mbs_indicator_buzzer_play(INDICATOR_SOURCE_SYSTEM, &buffer->melody);
 }
 
 extern "C" void meshbus_arduboy_tone_stop()
 {
-	meshbus_indicator_buzzer_stop();
+	mbs_indicator_buzzer_stop();
 }
 
 ArduboyCoreRem::ArduboyCoreRem() {}

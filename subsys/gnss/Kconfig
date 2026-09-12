@@ -1,0 +1,208 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig MBS_GNSS
+	bool "Meshbus GNSS Management Layer"
+	depends on GNSS
+	depends on ZBUS
+	depends on SETTINGS
+	default n
+	help
+	  Enable the Meshbus GNSS management layer which provides:
+	  - GNSS configuration persistence via Settings
+	  - Periodic position sampling with power management
+	  - ZBus event publishing for position data
+	  - GNSS statistics via Zephyr Stats (MCUmgr compatible)
+
+if MBS_GNSS
+
+module = MBS_GNSS
+module-str = mbs_gnss
+module-dep = MBS
+module-help = Sets log level for Meshbus GNSS module
+source "subsys/logging/Kconfig.template.log_config"
+
+config MBS_GNSS_MIN_ACTIVE_TIME
+	int "Minimum allowed GNSS active time (ms)"
+	default 1000
+	range 100 86400000
+	help
+	  Lower bound for mbs_config.gnss.min_active_time.
+
+config MBS_GNSS_MAX_ACTIVE_TIME
+	int "Maximum allowed GNSS active time (ms)"
+	default MBS_GNSS_MAX_UPDATE_INTERVAL
+	range 100 86400000
+	help
+	  Upper bound for mbs_config.gnss.min_active_time.
+	  Note: if min_active_time is larger than update_interval at runtime,
+	  the effective active time will be clamped to update_interval.
+
+config MBS_GNSS_DEFAULT_MIN_ACTIVE_TIME
+	int "Default minimum GNSS active time (ms)"
+	default 15000
+	range MBS_GNSS_MIN_ACTIVE_TIME MBS_GNSS_MAX_ACTIVE_TIME
+	help
+	  Default value for mbs_config.gnss.min_active_time.
+
+config MBS_GNSS_MIN_UPDATE_INTERVAL
+	int "Minimum GNSS update interval in milliseconds"
+	default 1000
+	range 1000 86400000
+	help
+	  Minimum allowed interval between GNSS position updates (ms).
+	  Used by runtime validation and as the lower bound for the
+	  default update interval.
+
+config MBS_GNSS_MAX_UPDATE_INTERVAL
+	int "Maximum GNSS update interval in milliseconds"
+	default 86400000
+	range 1000 86400000
+	help
+	  Maximum allowed interval between GNSS position updates (ms).
+	  Used by runtime validation and as the upper bound for the
+	  default update interval.
+
+config MBS_GNSS_DEFAULT_ENABLED
+	bool "Default GNSS enabled state"
+	default y
+	help
+	  Default value for mbs_gnss_config.enabled.
+
+config MBS_GNSS_DEFAULT_UPDATE_INTERVAL
+	int "Default update interval in milliseconds"
+	default 30000
+	range MBS_GNSS_MIN_UPDATE_INTERVAL MBS_GNSS_MAX_UPDATE_INTERVAL
+	help
+	  Default interval between GNSS position updates in milliseconds.
+	  Must be between MBS_GNSS_MIN_UPDATE_INTERVAL and
+	  MBS_GNSS_MAX_UPDATE_INTERVAL.
+	  Can be changed at runtime via configuration API.
+
+config MBS_GNSS_DEFAULT_NAV_MODE
+	int "Default GNSS navigation mode"
+	default 0
+	range 0 3
+	help
+	  Default value for mbs_gnss_config.nav_mode.
+	  0..3 maps directly to Zephyr gnss_navigation_mode.
+
+config MBS_GNSS_DEFAULT_FIX_RATE
+	int "Default fix rate in Hz"
+	default 1
+	range 1 10
+	help
+	  Default GNSS fix rate (position updates per second when active).
+	  Higher values consume more power.
+
+config MBS_GNSS_DEFAULT_SYSTEM_MASK
+	hex "Default GNSS system mask"
+	default 0xFF
+	range 0x01 0xFF
+	help
+	  Default value for mbs_gnss_config.system_mask.
+	  Each bit enables a GNSS system (GPS/GLONASS/Galileo/BeiDou/...).
+
+config MBS_GNSS_DEFAULT_TIME_SYNC
+	bool "Default GNSS time_sync"
+	default y
+	help
+	  Default value for mbs_gnss_config.time_sync.
+
+config MBS_GNSS_HEADING_SAMPLE_INTERVAL
+	int "Compass Widget heading update interval in milliseconds"
+	default 50
+	range 20 1000
+	help
+	  Page-local electronic Compass acquisition or GNSS course-cache polling
+	  interval while at least one Widget lease is active.
+
+config MBS_GNSS_HEADING_PROVIDER_FAST_FREQUENCY
+	int "Electronic Compass interactive frequency in Hz"
+	default 104
+	range 1 6660
+	help
+	  Volatile frequency requested from the DTS electronic Compass provider
+	  while the Compass Widget is open. Providers may return -ENOTSUP and keep
+	  their native output rate.
+
+config MBS_GNSS_HEADING_PROVIDER_SETTLE_MS
+	int "Electronic Compass settling delay in milliseconds"
+	default 60
+	range 0 $(UINT32_MAX)
+	help
+	  Delay before the first electronic heading sample after the provider is
+	  powered and its interactive rate is requested.
+
+config MBS_GNSS_HEADING_MIN_COURSE_SPEED
+	int "Minimum GNSS course speed in millimeters per second"
+	default 1000
+	range 1 $(UINT32_MAX)
+	help
+	  GNSS course-over-ground is invalid below this speed because it does not
+	  provide a stable direction while the device is nearly stationary.
+
+config MBS_GNSS_HEADING_MAX_COURSE_AGE
+	int "Maximum GNSS course age in milliseconds"
+	default 5000
+	range 100 $(UINT32_MAX)
+	help
+	  Cached GNSS course data older than this is reported stale.
+
+config MBS_GNSS_TIME_SYNC_THRESHOLD_S
+	int "GNSS time sync threshold (seconds)"
+	default 2
+	range 0 3600
+	help
+	  If GNSS time sync is enabled, update SYS_CLOCK_REALTIME only when the
+	  absolute difference between GNSS UTC and system time exceeds this
+	  threshold in seconds. Set to 0 to always sync on each time update.
+
+config MBS_GNSS_TIME_SYNC_INIT_INTERVAL
+	int "GNSS time sync initial poll interval (ms)"
+	default 2000
+	range 100 60000
+	help
+	  When GNSS time sync is enabled, the service will poll for the first
+	  valid GNSS fix at this interval. Once a valid fix is observed, polling
+	  switches to MBS_GNSS_TIME_SYNC_CAL_INTERVAL.
+
+config MBS_GNSS_TIME_SYNC_CAL_INTERVAL
+	int "GNSS time sync slow poll interval (ms)"
+	default MBS_GNSS_DEFAULT_UPDATE_INTERVAL
+	range 1000 86400000
+	help
+	  When GNSS time sync is enabled and at least one valid fix has been
+	  observed, the service will poll at this interval and sync only when a
+	  new valid-fix sample arrives.
+
+config MBS_GNSS_SATELLITE_CACHE_SIZE
+	int "Maximum number of satellites to cache"
+	default 32
+	range 12 64
+	depends on GNSS_SATELLITES
+	help
+	  Maximum number of satellites to cache for satellite info API.
+	  The cache stores satellites from all enabled GNSS systems
+	  (GPS, GLONASS, Galileo, BeiDou, etc.) and handles deduplication
+	  when multiple systems are enabled.
+	  Typical values: 24 for single system, 32-48 for multi-system.
+
+config MBS_GNSS_SHELL
+	bool "Meshbus GNSS shell commands"
+	depends on MBS_SHELL
+	default y
+	help
+	  Enable shell commands for Meshbus GNSS subsystem.
+	  Provides commands for GNSS configuration and diagnostics.
+
+config MBS_GNSS_STATS
+	bool "Meshbus GNSS statistics"
+	depends on MBS_STATS
+	select STATS
+	select STATS_NAMES
+	default y
+	help
+	  Enable statistics for Meshbus GNSS subsystem.
+
+endif # MBS_GNSS

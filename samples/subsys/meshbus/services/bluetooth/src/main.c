@@ -12,7 +12,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(meshbus_services_bluetooth_sample, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(mbs_services_bluetooth_sample, LOG_LEVEL_INF);
 
 int main(void)
 {

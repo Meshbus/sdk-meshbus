@@ -9,8 +9,8 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/llext/symbol.h>
-#include <zephyr/meshbus/desktop.h>
-#include <zephyr/meshbus/indicator.h>
+#include <desktop/desktop.h>
+#include <indicator/indicator.h>
 #include <zephyr/random/random.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/zui/zui.h>
@@ -78,7 +78,7 @@ ToneBuffer *tone_buffer_next()
 
 void tone_play_notes(const indicator_buzzer_note *notes, size_t note_count)
 {
-	if (notes == nullptr || note_count == 0U || !meshbus_indicator_buzzer_is_ready()) {
+	if (notes == nullptr || note_count == 0U || !mbs_indicator_buzzer_is_ready()) {
 		return;
 	}
 
@@ -88,7 +88,7 @@ void tone_play_notes(const indicator_buzzer_note *notes, size_t note_count)
 	memcpy(buffer->notes, notes, note_count * sizeof(buffer->notes[0]));
 	buffer->melody.notes = buffer->notes;
 	buffer->melody.length = static_cast<uint8_t>(note_count);
-	(void)meshbus_indicator_buzzer_play(INDICATOR_SOURCE_SYSTEM, &buffer->melody);
+	(void)mbs_indicator_buzzer_play(INDICATOR_SOURCE_SYSTEM, &buffer->melody);
 }
 
 void tick(Arduboy3dApp *app)
@@ -270,7 +270,7 @@ extern "C" void meshbus_arduboy_tones_play_score(const uint16_t *score, bool (*e
 
 extern "C" void meshbus_arduboy_tone_stop()
 {
-	meshbus_indicator_buzzer_stop();
+	mbs_indicator_buzzer_stop();
 }
 
 extern "C" void arduboy3d_app_main(void *args)

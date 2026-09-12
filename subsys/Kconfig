@@ -1,7 +1,65 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
 menu "Subsystems"
 
 rsource "dfu/Kconfig"
-rsource "meshbus/Kconfig"
+
+menuconfig MBS
+	bool "Meshbus support [EXPERIMENTAL]"
+	select REBOOT
+	select ENTROPY_GENERATOR
+	select NANOPB
+	select NANOPB_ENABLE_MALLOC
+	select EXPERIMENTAL
+	select ZBUS
+	select ZBUS_MSG_SUBSCRIBER
+	select SETTINGS
+	help
+	  This option enables Meshbus networking support.
+	  Meshbus provides peer-to-peer mesh networking with
+	  built-in encryption and multi-hop routing capabilities.
+
+if MBS
+
+module = MBS
+module-str = meshbus
+module-help = Sets log level for Meshbus support
+source "subsys/logging/Kconfig.template.log_config"
+
+config MBS_STATS
+	bool "Meshbus statistics"
+	select STATS
+	select STATS_NAME
+	default y
+	help
+	  Enable Meshbus statistics via Zephyr Stats subsystem.
+	  Provides runtime statistics for Meshbus modules.
+
+rsource "settings/Kconfig"
+rsource "shell/Kconfig"
+rsource "bluetooth/Kconfig"
+rsource "display/Kconfig"
+rsource "clock/Kconfig"
+rsource "radio/Kconfig"
+rsource "indicator/Kconfig"
+rsource "power/Kconfig"
+rsource "gnss/Kconfig"
+rsource "input/Kconfig"
+rsource "telemetry/Kconfig"
+rsource "contact/Kconfig"
+rsource "channel/Kconfig"
+rsource "fs/Kconfig"
+rsource "meshcore/Kconfig"
+rsource "management/Kconfig"
+rsource "firmware/Kconfig"
+rsource "notify/Kconfig"
+rsource "message/Kconfig"
+rsource "llext/Kconfig"
+rsource "desktop/Kconfig"
+
+endif # MBS
+
 rsource "u8g2/Kconfig"
 rsource "zui/Kconfig"
 

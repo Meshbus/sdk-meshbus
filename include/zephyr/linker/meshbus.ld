@@ -6,6 +6,6 @@
 
 #include <zephyr/linker/iterable_sections.h>
 
-#if defined(CONFIG_MESHBUS_POWER)
-ITERABLE_SECTION_RAM(meshbus_power_action_callback, Z_LINK_ITERABLE_SUBALIGN)
+#if defined(CONFIG_MBS_POWER)
+ITERABLE_SECTION_RAM(mbs_power_action_callback, Z_LINK_ITERABLE_SUBALIGN)
 #endif

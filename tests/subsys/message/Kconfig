@@ -1,0 +1,13 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+mainmenu "Meshbus Message service test"
+
+config TEST_MBS_MESSAGE_SERVICE_DUT
+	bool "Enable Message service-DUT checks"
+	depends on ZTEST
+	help
+	  Build the additional C2 runtime checks that exercise the Message
+	  service on the real CPU and kernel scheduler.
+
+source "Kconfig.zephyr"

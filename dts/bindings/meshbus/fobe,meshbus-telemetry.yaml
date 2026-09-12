@@ -20,7 +20,7 @@ description: |
 
   Example:
     / {
-      meshbus_telemetry: meshbus-telemetry {
+      mbs_telemetry: meshbus-telemetry {
         compatible = "fobe,meshbus-telemetry";
 
         ch0 { sensor = <&lps22>; channel = <SENSOR_CHAN_AMBIENT_TEMP>; };
@@ -28,7 +28,7 @@ description: |
       };
 
       chosen {
-        meshbus,telemetry = &meshbus_telemetry;
+        meshbus,telemetry = &mbs_telemetry;
       };
     };
 

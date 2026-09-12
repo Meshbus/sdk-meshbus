@@ -42,7 +42,7 @@
 	};
 };
 
-/* Match the C2 meshbus_client/MCUboot flash-map ABI. */
+/* Match the C2 mbs_client/MCUboot flash-map ABI. */
 &cpuapp_rram {
 	/delete-node/ partitions;
 

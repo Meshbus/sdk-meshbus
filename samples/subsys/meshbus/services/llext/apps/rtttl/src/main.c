@@ -9,8 +9,8 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/llext/symbol.h>
-#include <zephyr/meshbus/desktop.h>
-#include <zephyr/meshbus/indicator.h>
+#include <desktop/desktop.h>
+#include <indicator/indicator.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/zui/zui.h>
@@ -119,7 +119,7 @@ static void rtttl_menu_selected(struct zui_sublist *list, uint32_t id, size_t in
 	}
 
 	if (id == RTTTL_ITEM_STOP) {
-		meshbus_indicator_buzzer_stop();
+		mbs_indicator_buzzer_stop();
 		(void)zui_toast_show(app->host, &(struct zui_toast_config){
 			.title = "RTTTL",
 			.text = "Stopped",
@@ -131,7 +131,7 @@ static void rtttl_menu_selected(struct zui_sublist *list, uint32_t id, size_t in
 
 	sample = rtttl_sample_find(id);
 	if (sample != NULL) {
-		rc = meshbus_indicator_buzzer_rtttl(sample->rtttl);
+		rc = mbs_indicator_buzzer_rtttl(sample->rtttl);
 		printk("[rtttl-app] play %s rc=%d\n", sample->name, rc);
 		rtttl_show_result(app, sample->name, rc);
 	}
@@ -157,7 +157,7 @@ static bool rtttl_menu_input(const struct zui_input_event *event, void *user_dat
 	}
 	if (event->code == ZUI_INPUT_CODE_BACK &&
 	    event->action == ZUI_INPUT_ACTION_CLICK) {
-		meshbus_indicator_buzzer_stop();
+		mbs_indicator_buzzer_stop();
 		k_sem_give(&app->exit_sem);
 		return true;
 	}
@@ -178,7 +178,7 @@ static const struct zui_screen_ops rtttl_menu_ops = {
 
 void rtttl_app_main(void *args)
 {
-	struct meshbus_desktop_app_args *app_args = args;
+	struct mbs_desktop_app_args *app_args = args;
 	struct rtttl_app app = {0};
 
 	if (app_args == NULL || app_args->host == NULL) {
@@ -214,7 +214,7 @@ void rtttl_app_main(void *args)
 	(void)k_sem_take(&app.exit_sem, K_FOREVER);
 
 out:
-	meshbus_indicator_buzzer_stop();
+	mbs_indicator_buzzer_stop();
 	if (app.host != NULL) {
 		(void)zui_host_detach_router(app.host, ZUI_LAYER_FULLSCREEN);
 		(void)zui_host_request_redraw(app.host);

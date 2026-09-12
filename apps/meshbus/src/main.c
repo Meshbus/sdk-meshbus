@@ -10,7 +10,7 @@
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/pm/device_runtime.h>
-#include <zephyr/meshbus/meshcore.h>
+#include <meshcore/meshcore.h>
 
 LOG_MODULE_REGISTER(meshbus_app, LOG_LEVEL_INF);
 
@@ -30,6 +30,6 @@ int main(void)
 	}
 #endif
 	LOG_INF("MESHBUS_READY active_role=%u",
-		(unsigned int)meshbus_meshcore_active_role_get());
+		(unsigned int)mbs_meshcore_active_role_get());
 	return 0;
 }
