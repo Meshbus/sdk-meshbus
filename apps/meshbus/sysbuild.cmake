@@ -3,6 +3,7 @@
 set(c2_target "idea_mesh_tracker_c2/nrf54l15/cpuapp")
 
 if("${BOARD}/${BOARD_QUALIFIERS}" STREQUAL "${c2_target}" AND
+   NOT SB_CONFIG_BOOT_SIGNATURE_TYPE_NONE AND
    "${SB_CONFIG_BOOT_SIGNATURE_KEY_FILE}" STREQUAL "")
   message(FATAL_ERROR
     "C2 requires an explicit Ed25519 image key. Pass "
