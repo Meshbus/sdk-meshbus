@@ -2,17 +2,18 @@
 #include "meshcore/runtime.h"
 #include "meshcore/types.h"
 
-#if MESHCORE_ABI_VERSION != 28U
-#error "Meshbus SDK integration requires MeshCore ABI 28"
+#if MESHCORE_ABI_VERSION != 29U
+#error "Meshbus SDK integration requires MeshCore ABI 29"
 #endif
 
 unsigned int meshcore_public_abi_c_compile_probe(void)
 {
 	meshcore_common_peer_path_t peer_path = { 0 };
+	meshcore_common_cli_event_t cli = { .type = MESHCORE_COMMON_CLI_COMMAND };
 
 	peer_path.has_out_path = false;
 	peer_path.out_path_byte_len = 0U;
 
 	return MESHCORE_ABI_VERSION + MESHCORE_PUBLIC_KEY_SIZE +
-	       MESHCORE_CHANNEL_SECRET_MAX_LEN + peer_path.path_hash_size;
+	       MESHCORE_CHANNEL_SECRET_MAX_LEN + peer_path.path_hash_size + cli.type;
 }

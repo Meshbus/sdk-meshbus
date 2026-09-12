@@ -1311,6 +1311,19 @@ void ReferenceChatHarness::onCommandDataRecv(const ContactInfo &contact,
 	ARG_UNUSED(text);
 }
 
+void ReferenceChatHarness::onCLICommandRecv(const ContactInfo &contact,
+					  mesh::Packet *pkt,
+					  uint32_t sender_timestamp,
+					  const char *text, char *reply)
+{
+	ARG_UNUSED(contact);
+	ARG_UNUSED(pkt);
+	ARG_UNUSED(sender_timestamp);
+	ARG_UNUSED(text);
+	/* Match the target test host's unsupported native CLI policy. */
+	reply[0] = '\0';
+}
+
 void ReferenceChatHarness::onSignedMessageRecv(const ContactInfo &contact,
 					       mesh::Packet *pkt,
 					       uint32_t sender_timestamp,

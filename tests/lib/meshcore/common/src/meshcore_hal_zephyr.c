@@ -11,6 +11,7 @@
 #include "meshcore_group_channel.h"
 #include "meshcore_packet.h"
 
+#include <errno.h>
 #include <math.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -2141,6 +2142,17 @@ bool meshcore_platform_crypto_hmac_sha256(uint8_t *mac, size_t mac_len,
 {
 	return meshcore_hal_hmac_sha256(mac, mac_len, key, key_len, msg,
 					msg_len);
+}
+
+int meshcore_platform_cli_receive(const meshcore_common_cli_event_t *event,
+				 char *reply, size_t reply_capacity)
+{
+	/* This test host has no native CLI command executor. */
+	ARG_UNUSED(event);
+	ARG_UNUSED(reply);
+	ARG_UNUSED(reply_capacity);
+
+	return -ENOTSUP;
 }
 
 int meshcore_platform_node_identity_get(meshcore_common_node_identity_t *out)
