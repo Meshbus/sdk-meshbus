@@ -140,7 +140,9 @@ pub fn build(args: &LlextArgs) -> Result<PathBuf> {
     if let Some(build) = &args.build_dir {
         let context = edk::ContextData::read(build)?;
         ensure!(
-            manifest["target"] == context.target && manifest["host"]["version"] == context.version,
+            manifest["target"] == context.target
+                && manifest["host"]["version"] == context.version
+                && manifest["interface-abi"] == serde_json::to_value(context.interface_abi()?)?,
             "EDK differs from host build"
         );
     }
@@ -220,7 +222,36 @@ pub fn build(args: &LlextArgs) -> Result<PathBuf> {
     )?;
     let bytes = host::read(&normalized, 64 * 1024 * 1024)?;
     let config = sdk.join("include/zephyr/include/generated/zephyr/autoconf.h");
-    let heap = Elf::parse(&bytes)?.heap(&edk::config(&config)?)?;
+    let config = edk::config(&config)?;
+    let parsed = Elf::parse(&bytes)?;
+    let heap = parsed.heap(&config)?;
+    let imports = parsed.required_imports(&bytes)?;
+    let report = preflight(&data, &manifest, &config, heap, &imports)?;
+    let capability_path = build.join("arduboy-capabilities.json");
+    let capabilities: Value = if capability_path.is_file() {
+        serde_json::from_slice(&host::read(&capability_path, 1024 * 1024)?)?
+    } else {
+        Value::Null
+    };
+    fs::write(
+        output.join(format!("{id}.build.json")),
+        serde_json::to_vec_pretty(
+            &serde_json::json!({"schema":1,"preflight":report,"sdk":capabilities,
+            "edk":manifest["edk"],"host":manifest["host"],"target":manifest["target"],
+            "metadata_version":manifest["metadata-version"],"interface_abi":manifest["interface-abi"]}),
+        )?,
+    )?;
+    eprintln!("LLEXT preflight: {report}");
+    ensure!(
+        report["missing_imports"].as_array().unwrap().is_empty(),
+        "EDK missing imports: {}",
+        report["missing_imports"]
+    );
+    ensure!(
+        report["capacity_errors"].as_array().unwrap().is_empty(),
+        "LLEXT capacity check failed: {}",
+        report["capacity_errors"]
+    );
     let blob = metadata::build(
         &data,
         &source,
@@ -232,6 +263,10 @@ pub fn build(args: &LlextArgs) -> Result<PathBuf> {
         metadata::string(&manifest["host"], "version")?,
         metadata::string(&manifest, "target")?,
         heap,
+        manifest["interface-abi"]
+            .as_u64()
+            .map(u32::try_from)
+            .transpose()?,
     )?;
     let metadata = build.join("meshbus.meta");
     fs::write(&metadata, blob)?;
@@ -254,8 +289,119 @@ pub fn build(args: &LlextArgs) -> Result<PathBuf> {
     // Drop intermediates with .llext suffix so a repeat build has one compiler output.
     fs::remove_file(normalized)?;
     fs::remove_file(pending)?;
+    if build.join("arduboy-resources.json").is_file() {
+        resource_collection(&build, &packaged, id)?;
+    }
     Ok(packaged)
 }
+
+/// Collect the MBA and its immutable sidecar for verified, capacity-checked installation.
+pub fn resource_collection(build: &Path, package: &Path, id: &str) -> Result<PathBuf> {
+    let spec: Value =
+        serde_json::from_slice(&host::read(&build.join("arduboy-resources.json"), 65536)?)?;
+    ensure!(
+        spec["schema"] == 1 && spec["identity"] == id,
+        "resource identity differs from MBA"
+    );
+    let file = metadata::string(&spec, "file")?;
+    ensure!(file == format!("{id}.abr"), "invalid sidecar filename");
+    let directory = metadata::string(&spec, "directory")?;
+    ensure!(
+        directory.starts_with("/extra/apps/")
+            && !directory.ends_with('/')
+            && directory.split('/').skip(1).all(|p| !p.is_empty()
+                && p != "."
+                && p != ".."
+                && p.bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b"_-".contains(&b))),
+        "invalid resource installation directory"
+    );
+    ensure!(
+        spec["destination"] == format!("{directory}/{file}"),
+        "resource destination mismatch"
+    );
+    let sidecar = host::read(&build.join(file), 64 * 1024 * 1024)?;
+    ensure!(
+        spec["length"] == sidecar.len() && spec["sha256"] == host::hash(&sidecar),
+        "sidecar changed since compilation"
+    );
+    let mba = host::read(package, 64 * 1024 * 1024)?;
+    let collection = package.parent().unwrap().join(format!("{id}.install"));
+    fs::create_dir_all(&collection)?;
+    fs::write(collection.join(file), &sidecar)?;
+    fs::write(collection.join(format!("{id}.mba")), &mba)?;
+    let files = [(file.to_owned(), sidecar), (format!("{id}.mba"), mba)]
+        .into_iter()
+        .map(|(name, bytes)| {
+            serde_json::json!({"destination":format!("{directory}/{name}"),
+            "name":name,"length":bytes.len(),"sha256":host::hash(&bytes)})
+        })
+        .collect::<Vec<_>>();
+    let manifest = collection.join("install.json");
+    host::json(
+        &manifest,
+        &serde_json::json!({"schema":1,"id":id,"resource":spec,"files":files}),
+    )?;
+    eprintln!(
+        "LLEXT resource installation collection: {}",
+        manifest.display()
+    );
+    Ok(manifest)
+}
 pub fn run(args: LlextArgs) -> Result<()> {
-    host::print(&serde_json::json!({"package":build(&args)?}))
+    let package = build(&args)?;
+    host::print(
+        &serde_json::json!({"report":package.with_extension("build.json"),"package":package}),
+    )
+}
+
+/// Static limits are necessary checks; free runtime heap is still checked by the host.
+pub fn preflight(
+    data: &Value,
+    manifest: &Value,
+    config: &std::collections::BTreeMap<String, String>,
+    heap: u32,
+    imports: &std::collections::BTreeSet<String>,
+) -> Result<Value> {
+    let exports = manifest["exported-symbols"].as_array();
+    let missing = imports
+        .iter()
+        .filter(|name| {
+            exports.is_some_and(|values| !values.iter().any(|v| v.as_str() == Some(name.as_str())))
+        })
+        .collect::<Vec<_>>();
+    if exports.is_none() {
+        eprintln!("warning: legacy EDK has no exported-symbols inventory; imports unchecked");
+    }
+    let limit = |key: &str| -> Result<Option<u64>> {
+        config
+            .get(key)
+            .map(|v| v.parse::<u64>().with_context(|| format!("invalid {key}")))
+            .transpose()
+    };
+    let stack = data["stack-size"].as_u64().context("invalid stack-size")?;
+    let dynamic_heap = u64::from(heap)
+        * (100 + limit("CONFIG_MBS_LLEXT_DYNAMIC_HEAP_MARGIN_PERCENT")?.unwrap_or(0));
+    let dynamic_heap = dynamic_heap.div_ceil(100);
+    let mut checks = Vec::new();
+    let mut errors = Vec::new();
+    for (key, requested) in [
+        ("CONFIG_MBS_LLEXT_APP_MAX_HEAP_SIZE", u64::from(heap)),
+        ("CONFIG_MBS_LLEXT_APP_HEAP_RESERVE_SIZE", u64::from(heap)),
+        ("CONFIG_MBS_LLEXT_TOTAL_HEAP_MAX_SIZE", dynamic_heap),
+        ("CONFIG_MBS_DESKTOP_APP_SHARED_STACK_SIZE", stack),
+    ] {
+        if let Some(maximum) = limit(key)? {
+            checks.push(serde_json::json!({"limit":key,"requested":requested,"maximum":maximum}));
+            if requested > maximum {
+                errors.push(format!("{key}: requested {requested} exceeds {maximum}"));
+            }
+        }
+    }
+    Ok(
+        serde_json::json!({"imports_checked":exports.is_some(),"imports":imports,
+        "missing_imports":missing,"heap":heap,"dynamic_heap":dynamic_heap,
+        "stack":stack,"capacity_checks":checks,"capacity_errors":errors,
+        "runtime_allocation":"not proven by static checks"}),
+    )
 }

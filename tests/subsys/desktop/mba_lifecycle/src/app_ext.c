@@ -9,6 +9,7 @@ static const struct mbs_llext_app_metadata metadata
 	MBS_LLEXT_APP_METADATA_ATTR = {
 	.magic = MBS_LLEXT_APP_METADATA_MAGIC,
 	.metadata_version = MBS_LLEXT_APP_METADATA_VERSION,
+	.compatibility_reserved = MBS_LLEXT_INTERFACE_ABI_BYTES,
 	.size = sizeof(struct mbs_llext_app_metadata),
 	.stack_size = 1024U,
 	.heap_size = 32768U,

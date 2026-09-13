@@ -7,6 +7,13 @@ target_sources(app PRIVATE src/test_api.c)
 
 set(llext_targets)
 set(llext_outputs)
+set(bad_abi_bin ${PROJECT_BINARY_DIR}/llext/mbs_badabi.mba)
+add_llext_target(mbs_badabi_ext OUTPUT ${bad_abi_bin}
+	SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/app_bad_abi_ext.c)
+list(APPEND llext_targets mbs_badabi_ext)
+list(APPEND llext_outputs ${bad_abi_bin})
+generate_inc_file_for_target(app ${bad_abi_bin}
+	${ZEPHYR_BINARY_DIR}/include/generated/mbs_badabi.inc)
 
 
 set(ext_app_bin ${PROJECT_BINARY_DIR}/llext/mbs_app.mba)

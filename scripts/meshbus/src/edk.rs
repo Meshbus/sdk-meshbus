@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-use crate::{archive, host, metadata};
+use crate::{archive, elf::Elf, host, metadata};
 use anyhow::{Context, Result, ensure};
 use clap::{Args, Subcommand};
 use serde_json::{Value, json};
@@ -76,7 +76,10 @@ fn public_roots(root: &Path) -> Result<Vec<String>> {
             .map(|module| format!("{SDK_INCLUDE}{module}/"))
             .collect()
     } else {
-        LEGACY_SHARED_PUBLIC.into_iter().map(str::to_owned).collect()
+        LEGACY_SHARED_PUBLIC
+            .into_iter()
+            .map(str::to_owned)
+            .collect()
     };
     if legacy {
         prefixes.push(LEGACY_PUBLIC.to_owned());
@@ -332,6 +335,20 @@ impl ContextData {
         let n = s.trim_end_matches(['u', 'U']).parse()?;
         ensure!(n > 0, "invalid metadata version");
         Ok(n)
+    }
+    pub fn interface_abi(&self) -> Result<Option<u32>> {
+        if self.metadata_version()? == 1 {
+            return Ok(None);
+        }
+        let value = macro_value(
+            &self
+                .build
+                .join("zephyr/include/generated/mbs_llext_metadata_version.h"),
+            "MBS_LLEXT_INTERFACE_ABI",
+        )?;
+        let abi = value.trim_end_matches(['u', 'U']).parse::<u32>()?;
+        ensure!(abi > 0, "invalid interface ABI");
+        Ok(Some(abi))
     }
     pub fn toolchain(&self) -> Result<PathBuf> {
         Ok(PathBuf::from(metadata::string(
@@ -793,7 +810,17 @@ pub fn create(build: &Path, out: &Path, development: bool, force: bool) -> Resul
         "CMAKE_C_COMPILER",
     )?);
     let compiler_version = host::output(Command::new(&compiler).arg("-dumpfullversion"))?;
-    let manifest = json!({"schema":1,"metadata-version":ctx.metadata_version()?,"publishable":!development&&clean(&ctx.provenance),"host":{"application":"app","version":ctx.version,"build-revision":macro_value(&ctx.build.join("zephyr/include/generated/zephyr/app_version.h"),"APP_BUILD_VERSION")?,"source-revision":ctx.provenance["firmware"]["revision"]},"target":ctx.target,"edk":{"header-policy":"meshbus-public-v1","sdk-sha256":digest(&root)?},"zephyr":{"version":ctx.info["cmake"]["zephyr"]["version"],"revision":ctx.provenance["projects"]["zephyr"]["revision"]},"toolchain":{"name":ctx.info["cmake"]["toolchain"]["name"],"identity":format!("{}/{}-{compiler_version}",ctx.toolchain()?.file_name().unwrap().to_string_lossy(),compiler.file_name().unwrap().to_string_lossy()),"compiler":compiler.file_name().unwrap().to_string_lossy()},"provenance":ctx.provenance});
+    let host_bytes = host::read(&ctx.build.join("zephyr/zephyr.elf"), 64 * 1024 * 1024)?;
+    let host_config = config(&ctx.build.join("zephyr/include/generated/zephyr/autoconf.h"))?;
+    let exports = if host_config
+        .get("CONFIG_LLEXT_EXPORT_BUILTINS_BY_SLID")
+        .is_some_and(|v| v == "1")
+    {
+        None
+    } else {
+        Some(Elf::parse(&host_bytes)?.builtin_exports(&host_bytes)?)
+    };
+    let manifest = json!({"schema":1,"interface-abi":ctx.interface_abi()?,"exported-symbols":exports,"metadata-version":ctx.metadata_version()?,"publishable":!development&&clean(&ctx.provenance),"host":{"application":"app","version":ctx.version,"build-revision":macro_value(&ctx.build.join("zephyr/include/generated/zephyr/app_version.h"),"APP_BUILD_VERSION")?,"source-revision":ctx.provenance["firmware"]["revision"]},"target":ctx.target,"edk":{"header-policy":"meshbus-public-v1","sdk-sha256":digest(&root)?},"zephyr":{"version":ctx.info["cmake"]["zephyr"]["version"],"revision":ctx.provenance["projects"]["zephyr"]["revision"]},"toolchain":{"name":ctx.info["cmake"]["toolchain"]["name"],"identity":format!("{}/{}-{compiler_version}",ctx.toolchain()?.file_name().unwrap().to_string_lossy(),compiler.file_name().unwrap().to_string_lossy()),"compiler":compiler.file_name().unwrap().to_string_lossy()},"provenance":ctx.provenance});
     host::json(&root.join("edk-release.json"), &manifest)?;
     fs::copy(
         Path::new(metadata::string(
@@ -858,7 +885,8 @@ pub fn qualify(args: &QualifyArgs) -> Result<Value> {
         ensure!(
             m["target"] == ctx.target
                 && m["host"]["version"] == ctx.version
-                && m["metadata-version"] == ctx.metadata_version()?,
+                && m["metadata-version"] == ctx.metadata_version()?
+                && m["interface-abi"] == serde_json::to_value(ctx.interface_abi()?)?,
             "EDK identity differs from host build"
         );
     }

@@ -336,7 +336,7 @@ static int app_metadata_validate(const struct mbs_llext_app_metadata *metadata)
 	if (metadata->magic != MBS_LLEXT_APP_METADATA_MAGIC) {
 		return -ENOEXEC;
 	}
-	if (metadata->metadata_version != MBS_LLEXT_APP_METADATA_VERSION) {
+	if (metadata->metadata_version != 1U && metadata->metadata_version != 2U) {
 		return -EPROTONOSUPPORT;
 	}
 	if (metadata->size != sizeof(*metadata)) {
@@ -380,7 +380,19 @@ static int app_metadata_validate(const struct mbs_llext_app_metadata *metadata)
 	    (generated_string_validate(metadata->target, sizeof(metadata->target)) != 0)) {
 		return -ENOEXEC;
 	}
-	for (size_t i = 0U; i < sizeof(metadata->compatibility_reserved); i++) {
+	if (metadata->metadata_version == 2U) {
+		const uint8_t *abi = metadata->compatibility_reserved;
+		uint32_t required = (uint32_t)abi[0] | ((uint32_t)abi[1] << 8) |
+			((uint32_t)abi[2] << 16) | ((uint32_t)abi[3] << 24);
+
+		if (required != MBS_LLEXT_INTERFACE_ABI) {
+			LOG_WRN("MBA interface ABI mismatch: required=%u host=%u",
+				required, MBS_LLEXT_INTERFACE_ABI);
+			return -EPROTONOSUPPORT;
+		}
+	}
+	for (size_t i = metadata->metadata_version == 2U ? 4U : 0U;
+	     i < sizeof(metadata->compatibility_reserved); i++) {
 		if (metadata->compatibility_reserved[i] != 0U) {
 			return -ENOEXEC;
 		}

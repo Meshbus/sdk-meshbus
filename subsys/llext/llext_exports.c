@@ -112,6 +112,10 @@ EXPORT_SYMBOL(mbs_indicator_light_stop);
 EXPORT_SYMBOL(mbs_indicator_buzzer_play);
 EXPORT_SYMBOL(mbs_indicator_buzzer_rtttl);
 EXPORT_SYMBOL(mbs_indicator_buzzer_stop);
+EXPORT_SYMBOL(mbs_indicator_buzzer_play_owned);
+EXPORT_SYMBOL(mbs_indicator_buzzer_play_owned_repeat);
+EXPORT_SYMBOL(mbs_indicator_buzzer_playing);
+EXPORT_SYMBOL(mbs_indicator_buzzer_stop_owned);
 EXPORT_SYMBOL(mbs_indicator_light_is_ready);
 EXPORT_SYMBOL(mbs_indicator_buzzer_is_ready);
 #endif
@@ -158,8 +162,11 @@ EXPORT_SYMBOL(mbs_notify_publish);
 #if defined(CONFIG_FILE_SYSTEM)
 EXPORT_SYMBOL(fs_open);
 EXPORT_SYMBOL(fs_read);
+EXPORT_SYMBOL(fs_seek);
 EXPORT_SYMBOL(fs_write);
 EXPORT_SYMBOL(fs_close);
+EXPORT_SYMBOL(fs_sync);
+EXPORT_SYMBOL(fs_rename);
 EXPORT_SYMBOL(fs_mkdir);
 EXPORT_SYMBOL(fs_unlink);
 #endif

@@ -40,6 +40,14 @@ extern "C" {
 #define MBS_LLEXT_APP_METADATA_MAGIC 0x4D424C41U
 /** Supported app metadata structure version. */
 #define MBS_LLEXT_APP_METADATA_VERSION MBS_LLEXT_METADATA_VERSION
+/** v2 stores this exact host interface ABI as LE32 at offset 216.
+ * Remaining compatibility bytes stay zero. v1 has no ABI requirement.
+ */
+#define MBS_LLEXT_INTERFACE_ABI_BYTES { \
+	(MBS_LLEXT_INTERFACE_ABI & 0xffU), \
+	((MBS_LLEXT_INTERFACE_ABI >> 8) & 0xffU), \
+	((MBS_LLEXT_INTERFACE_ABI >> 16) & 0xffU), \
+	((MBS_LLEXT_INTERFACE_ABI >> 24) & 0xffU) }
 /** Size of @ref mbs_llext_app_metadata on the wire. */
 #define MBS_LLEXT_APP_METADATA_SIZE 368U
 /** Fixed app icon width in pixels. */
@@ -74,6 +82,7 @@ struct mbs_llext_app_metadata {
 	char app_version[MBS_LLEXT_VERSION_MAX_LEN + 1];
 	char entry_point_symbol[MBS_LLEXT_SYMBOL_MAX_LEN + 1];
 	char edk_version[MBS_LLEXT_VERSION_MAX_LEN + 1];
+	/** v1: all zero; v2: required interface ABI LE32 then 44 zero bytes. */
 	uint8_t compatibility_reserved[48];
 	char target[MBS_LLEXT_TARGET_MAX_LEN + 1];
 	uint8_t icon_data[MBS_LLEXT_APP_ICON_DATA_MAX_LEN];

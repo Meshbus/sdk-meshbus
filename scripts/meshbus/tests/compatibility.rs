@@ -22,8 +22,16 @@ fn legacy_metadata_bytes() {
     let rows: Value = serde_json::from_str(include_str!("fixtures/metadata-v1.json")).unwrap();
     let temp = tempfile::tempdir().unwrap();
     for row in rows.as_array().unwrap() {
-        let bytes =
-            metadata::build(&row["input"], temp.path(), 1, "0.1.0", "board/cpuapp", 4096).unwrap();
+        let bytes = metadata::build(
+            &row["input"],
+            temp.path(),
+            1,
+            "0.1.0",
+            "board/cpuapp",
+            4096,
+            None,
+        )
+        .unwrap();
         assert_eq!(host::hex(&bytes), row["hex"]);
     }
 }
@@ -152,4 +160,67 @@ fn legacy_elf_heap_estimates_and_malformed_tables() {
     let section_table = u32::from_le_bytes(damaged[32..36].try_into().unwrap()) as usize;
     damaged[section_table..section_table + 4].copy_from_slice(&u32::MAX.to_le_bytes());
     assert!(meshbus_cli::elf::Elf::parse(&damaged).is_err());
+}
+
+#[test]
+fn extension_required_imports_are_actual_undefined_symbols() {
+    let fixture: Value = serde_json::from_str(include_str!("fixtures/elf-heap-v1.json")).unwrap();
+    let bytes = host::unhex(fixture["elf"].as_str().unwrap()).unwrap();
+    let elf = meshbus_cli::elf::Elf::parse(&bytes).unwrap();
+    let imports = elf.required_imports(&bytes).unwrap();
+    assert!(imports.contains("printk"));
+    assert!(!imports.contains("main"));
+}
+
+#[test]
+fn extension_preflight_rejects_missing_imports_and_capacity() {
+    use meshbus_cli::llext::preflight;
+    let data = serde_json::json!({"stack-size":4096});
+    let edk = serde_json::json!({"exported-symbols":["printk"]});
+    let config = [
+        ("CONFIG_MBS_LLEXT_APP_MAX_HEAP_SIZE".into(), "90000".into()),
+        (
+            "CONFIG_MBS_DESKTOP_APP_SHARED_STACK_SIZE".into(),
+            "4096".into(),
+        ),
+    ]
+    .into();
+    let imports = ["printk".into()].into();
+    let ok = preflight(&data, &edk, &config, 50000, &imports).unwrap();
+    assert_eq!(ok["missing_imports"], serde_json::json!([]));
+    assert_eq!(ok["capacity_errors"], serde_json::json!([]));
+    let bad = preflight(&data, &edk, &config, 90001, &["absent_api".into()].into()).unwrap();
+    assert_eq!(bad["missing_imports"], serde_json::json!(["absent_api"]));
+    assert_eq!(bad["capacity_errors"].as_array().unwrap().len(), 1);
+    let bad = preflight(
+        &serde_json::json!({"stack-size":4097}),
+        &edk,
+        &config,
+        100,
+        &imports,
+    )
+    .unwrap();
+    assert_eq!(bad["capacity_errors"].as_array().unwrap().len(), 1);
+}
+
+#[test]
+fn resource_collection_binds_exact_files_and_rejects_substitution() {
+    let root = tempfile::tempdir().unwrap();
+    let package = root.path().join("fixture.mba");
+    fs::write(&package, b"mba").unwrap();
+    fs::write(root.path().join("fixture.abr"), b"resource").unwrap();
+    let spec = serde_json::json!({"schema":1,"identity":"fixture","file":"fixture.abr",
+        "directory":"/extra/apps/test","destination":"/extra/apps/test/fixture.abr",
+        "length":8,"sha256":host::hash(b"resource")});
+    fs::write(
+        root.path().join("arduboy-resources.json"),
+        serde_json::to_vec(&spec).unwrap(),
+    )
+    .unwrap();
+    let path = meshbus_cli::llext::resource_collection(root.path(), &package, "fixture").unwrap();
+    let manifest: Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
+    assert_eq!(manifest["files"][0]["sha256"], host::hash(b"resource"));
+    assert_eq!(manifest["files"][1]["sha256"], host::hash(b"mba"));
+    fs::write(root.path().join("fixture.abr"), b"changed!").unwrap();
+    assert!(meshbus_cli::llext::resource_collection(root.path(), &package, "fixture").is_err());
 }

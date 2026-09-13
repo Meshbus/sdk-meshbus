@@ -46,6 +46,9 @@
 #define TRUNCATED_APP_PATH "/extra/apps/truncated.mba"
 
 static atomic_t app_count;
+static const uint8_t bad_abi_ext[] __aligned(4) = {
+	#include "mbs_badabi.inc"
+};
 static bool extra_fs_ready;
 
 int mbs_llext_test_hook(int event)
@@ -236,6 +239,23 @@ ZTEST(mbs_llext_contract, test_app_probe_load_entry_unload)
 	zassert_ok(rc, "app unload failed: %d", rc);
 	rc = mbs_llext_app_unload(session);
 	zassert_equal(rc, -ENOENT, "second app unload should report no session");
+}
+
+ZTEST(mbs_llext_contract, test_abi_rejection_precedes_constructors_and_session)
+{
+	struct mbs_llext_app_session *session = (void *)UINTPTR_MAX;
+	atomic_val_t before = atomic_get(&app_count);
+
+	zassert_ok(write_file("/extra/apps/mbs_badabi.mba", bad_abi_ext, sizeof(bad_abi_ext)));
+	zassert_equal(mbs_llext_app_load("/extra/apps/mbs_badabi.mba", &session),
+		      -EPROTONOSUPPORT);
+	zassert_is_null(session);
+	zassert_equal(atomic_get(&app_count), before, "rejected constructor ran");
+	/* A failed ABI check must not consume the only session. */
+	zassert_ok(mbs_llext_app_load(OLDER_EDK_APP_PATH, &session), "v1 must still load");
+	zassert_ok(mbs_llext_app_unload(session));
+	zassert_ok(mbs_llext_app_load(TEST_APP_PATH, &session), "v2 recovery must load");
+	zassert_ok(mbs_llext_app_unload(session));
 }
 
 ZTEST(mbs_llext_contract, test_app_probe_uses_edk_version_as_provenance)

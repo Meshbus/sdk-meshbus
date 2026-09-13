@@ -6,6 +6,7 @@ pub struct Section {
     pub name: String,
     pub kind: u64,
     pub flags: u64,
+    pub address: u64,
     pub offset: u64,
     pub size: u64,
     pub link: usize,
@@ -38,7 +39,103 @@ fn number(data: &[u8], offset: usize, n: usize, le: bool) -> Result<u64> {
     }
     Ok(out)
 }
+struct Symbol {
+    name: String,
+    address: u64,
+    section: u64,
+    binding: u8,
+}
+fn elf_string(data: &[u8], offset: usize) -> Result<String> {
+    let tail = data
+        .get(offset..)
+        .ok_or_else(|| anyhow::anyhow!("ELF string offset out of range"))?;
+    let end = tail
+        .iter()
+        .position(|b| *b == 0)
+        .ok_or_else(|| anyhow::anyhow!("unterminated ELF string"))?;
+    Ok(std::str::from_utf8(&tail[..end])?.to_owned())
+}
 impl Elf {
+    fn symbols(&self, data: &[u8]) -> Result<Vec<Symbol>> {
+        let wide = self.class == 2;
+        let little = data[5] == 1;
+        let mut symbols = Vec::new();
+        for table in self.sections.iter().filter(|s| s.kind == 2) {
+            let minimum = if wide { 24 } else { 16 };
+            ensure!(
+                table.entsize >= minimum && table.size % table.entsize == 0,
+                "invalid ELF symbol stride"
+            );
+            let names = self
+                .sections
+                .get(table.link)
+                .ok_or_else(|| anyhow::anyhow!("invalid ELF symbol names"))?;
+            ensure!(names.kind == 3, "ELF symbols need a string table");
+            let strings = &data[names.offset as usize..(names.offset + names.size) as usize];
+            for offset in (0..table.size).step_by(table.entsize as usize) {
+                let p = (table.offset + offset) as usize;
+                symbols.push(Symbol {
+                    name: elf_string(strings, number(data, p, 4, little)? as usize)?,
+                    address: number(
+                        data,
+                        p + if wide { 8 } else { 4 },
+                        if wide { 8 } else { 4 },
+                        little,
+                    )?,
+                    section: number(data, p + if wide { 6 } else { 14 }, 2, little)?,
+                    binding: data[p + if wide { 4 } else { 12 }] >> 4,
+                });
+            }
+        }
+        Ok(symbols)
+    }
+    pub fn required_imports(&self, data: &[u8]) -> Result<BTreeSet<String>> {
+        Ok(self
+            .symbols(data)?
+            .into_iter()
+            .filter(|s| !s.name.is_empty() && s.section == 0 && s.binding != 2)
+            .map(|s| s.name)
+            .collect())
+    }
+    fn at_address<'a>(&self, data: &'a [u8], address: u64) -> Result<&'a [u8]> {
+        for section in &self.sections {
+            if section.flags & 2 != 0
+                && section.kind != 8
+                && address >= section.address
+                && address - section.address < section.size
+            {
+                let offset = section.offset + address - section.address;
+                return Ok(&data[offset as usize..(section.offset + section.size) as usize]);
+            }
+        }
+        anyhow::bail!("ELF address {address:#x} is not backed by file data")
+    }
+    /// Read the actual built-in export table, including named aliases; not all global symbols are exports.
+    pub fn builtin_exports(&self, data: &[u8]) -> Result<BTreeSet<String>> {
+        let symbols = self.symbols(data)?;
+        let find = |name: &str| {
+            symbols
+                .iter()
+                .find(|s| s.name == name)
+                .map(|s| s.address)
+                .ok_or_else(|| anyhow::anyhow!("missing ELF export boundary {name}"))
+        };
+        let start = find("_llext_const_symbol_list_start")?;
+        let end = find("_llext_const_symbol_list_end")?;
+        let width = if self.class == 2 { 8 } else { 4 };
+        ensure!(
+            end >= start && end - start <= 1024 * 1024 && (end - start) % (width * 2) == 0,
+            "invalid ELF built-in export table"
+        );
+        let mut names = BTreeSet::new();
+        for address in (start..end).step_by((width * 2) as usize) {
+            let entry = self.at_address(data, address)?;
+            let name = number(entry, 0, width as usize, data[5] == 1)?;
+            names.insert(elf_string(self.at_address(data, name)?, 0)?);
+        }
+        Ok(names)
+    }
+
     pub fn parse(d: &[u8]) -> Result<Self> {
         ensure!(
             d.len() >= 52
@@ -74,6 +171,7 @@ impl Elf {
                 name: String::new(),
                 kind: number(d, p + 4, 4, le)?,
                 flags: number(d, p + 8, width, le)?,
+                address: number(d, p + 8 + width, width, le)?,
                 offset: number(d, p + 8 + 2 * width, width, le)?,
                 size: number(d, p + 8 + 3 * width, width, le)?,
                 link: number(d, p + 8 + 4 * width, 4, le)? as usize,

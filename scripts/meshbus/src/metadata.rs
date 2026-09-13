@@ -69,7 +69,12 @@ pub fn build(
     edk_version: &str,
     target: &str,
     heap: u32,
+    interface_abi: Option<u32>,
 ) -> Result<Vec<u8>> {
+    ensure!(
+        matches!((metadata, interface_abi), (1, None) | (2, Some(1..))),
+        "metadata v1 requires no ABI; v2 requires a positive interface ABI"
+    );
     let allowed = ["id", "name", "version", "entry-point", "stack-size"];
     for key in data
         .as_object()
@@ -126,7 +131,8 @@ pub fn build(
     fixed(&mut out, version, 15)?;
     fixed(&mut out, entry, 63)?;
     fixed(&mut out, edk_version, 15)?;
-    out.extend([0; 48]);
+    out.extend(interface_abi.unwrap_or(0).to_le_bytes());
+    out.extend([0; 44]);
     fixed(&mut out, target, 63)?;
     let path = source.join("icon.png");
     let png = if path.exists() {
@@ -147,9 +153,32 @@ pub fn build(
 mod tests {
     use super::*;
     #[test]
+    fn interface_abi_is_explicit_and_versioned() {
+        let app = serde_json::json!({"id":"abi", "name":"ABI", "version":"1.0.0",
+            "entry-point":"main", "stack-size":1024});
+        let root = tempfile::tempdir().unwrap();
+        let old = build(&app, root.path(), 1, "1.0.0", "board/cpu", 4096, None).unwrap();
+        let new = build(
+            &app,
+            root.path(),
+            2,
+            "1.0.0",
+            "board/cpu",
+            4096,
+            Some(0x12345678),
+        )
+        .unwrap();
+        assert_eq!(&old[216..264], &[0; 48]);
+        assert_eq!(&new[216..220], &[0x78, 0x56, 0x34, 0x12]);
+        assert_eq!(&old[264..], &new[264..]);
+        for (version, abi) in [(1, Some(1)), (2, None), (2, Some(0)), (3, Some(1))] {
+            assert!(build(&app, root.path(), version, "1.0.0", "board/cpu", 4096, abi).is_err());
+        }
+    }
+    #[test]
     fn rejects_injected_fields() {
         let v = serde_json::json!({"metadata-version":1});
-        assert!(build(&v, Path::new("."), 1, "1.0.0", "a", 1).is_err());
+        assert!(build(&v, Path::new("."), 1, "1.0.0", "a", 1, None).is_err());
     }
 
     #[test]
@@ -160,7 +189,7 @@ mod tests {
         });
         let root = tempfile::tempdir().unwrap();
         assert_eq!(
-            build(&app, root.path(), 1, "1.0.0", "board/cpu", 4096)
+            build(&app, root.path(), 1, "1.0.0", "board/cpu", 4096, None)
                 .unwrap()
                 .len(),
             368
@@ -172,7 +201,8 @@ mod tests {
         ] {
             let mut invalid = app.clone();
             invalid[key] = value.into();
-            let error = build(&invalid, root.path(), 1, "1.0.0", "board/cpu", 4096).unwrap_err();
+            let error =
+                build(&invalid, root.path(), 1, "1.0.0", "board/cpu", 4096, None).unwrap_err();
             assert!(
                 error
                     .to_string()

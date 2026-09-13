@@ -13,6 +13,13 @@ if(NOT MBS_LLEXT_METADATA_VERSION MATCHES "^[1-9][0-9]*$")
 	message(FATAL_ERROR
 		"Meshbus LLEXT METADATA_VERSION must contain one positive integer")
 endif()
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+	"${CMAKE_CURRENT_SOURCE_DIR}/INTERFACE_ABI")
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/INTERFACE_ABI" MBS_LLEXT_INTERFACE_ABI)
+string(STRIP "${MBS_LLEXT_INTERFACE_ABI}" MBS_LLEXT_INTERFACE_ABI)
+if(NOT MBS_LLEXT_INTERFACE_ABI MATCHES "^[1-9][0-9]*$")
+	message(FATAL_ERROR "Meshbus LLEXT INTERFACE_ABI must contain one positive integer")
+endif()
 configure_file(
 	"${CMAKE_CURRENT_SOURCE_DIR}/mbs_llext_metadata_version.h.in"
 	"${ZEPHYR_BINARY_DIR}/include/generated/mbs_llext_metadata_version.h"
