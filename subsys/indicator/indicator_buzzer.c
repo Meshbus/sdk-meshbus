@@ -27,12 +27,16 @@ struct buzzer_play_state {
 	struct indicator_buzzer_melody melody; /**< Current melody */
 	uint8_t current_note;                  /**< Current note index */
 	bool active;                           /**< Playback is active */
+    bool repeat;
+    uint32_t token;
+    int64_t deadline; /* Absolute uptime in ms; INT64_MAX for a held note. */
 };
 static struct {
 	struct buzzer_play_state play;
 	bool ready;
 } buzzer_state;
 static K_MUTEX_DEFINE(buzzer_mutex);
+static uint32_t next_playback_token;
 static K_SEM_DEFINE(buzzer_done_sem, 0, 1);
 static struct k_work_delayable buzzer_work;
 /** Static buffer for RTTTL notes */
@@ -165,60 +169,47 @@ static void buzzer_update_output(void)
 	}
 }
 
+static void buzzer_schedule_note(void)
+{
+    struct buzzer_play_state *play = &buzzer_state.play;
+    uint16_t duration = play->melody.notes[play->current_note].duration_ms;
+    play->deadline = duration ? k_uptime_get() + duration : INT64_MAX;
+    if (duration) { k_work_reschedule(&buzzer_work, K_MSEC(duration)); }
+    else { (void)k_work_cancel_delayable(&buzzer_work); }
+}
+
 static void buzzer_work_handler(struct k_work *work)
 {
-	ARG_UNUSED(work);
-
-	k_mutex_lock(&buzzer_mutex, K_FOREVER);
-
-	if (!buzzer_state.play.active) {
-		/* If playback was stopped, stop() already turned output off while power was held.
-		 * Avoid touching PWM after the shared power-domain may have been released.
-		 */
-		k_mutex_unlock(&buzzer_mutex);
-		return;
-	}
-
-	struct buzzer_play_state *play = &buzzer_state.play;
-
-	/* Move to next note */
-	play->current_note++;
-
-	if (play->current_note >= play->melody.length) {
-		/* Melody complete */
-		play->active = false;
-		buzzer_update_output();
-		k_mutex_unlock(&buzzer_mutex);
-		/* Signal completion */
-		k_sem_give(&buzzer_done_sem);
-		return;
-	}
-
-	/* Play current note */
-	buzzer_update_output();
-
-	uint16_t duration = play->melody.notes[play->current_note].duration_ms;
-	k_mutex_unlock(&buzzer_mutex);
-
-	if (duration > 0) {
-		k_work_reschedule(&buzzer_work, K_MSEC(duration));
-	}
+    ARG_UNUSED(work);
+    k_mutex_lock(&buzzer_mutex, K_FOREVER);
+    struct buzzer_play_state *play = &buzzer_state.play;
+    if (!play->active || play->deadline == INT64_MAX) {
+        k_mutex_unlock(&buzzer_mutex); return;
+    }
+    int64_t remaining = play->deadline - k_uptime_get();
+    if (remaining > 0) {
+        k_work_reschedule(&buzzer_work, K_MSEC(remaining));
+        k_mutex_unlock(&buzzer_mutex); return;
+    }
+    if (++play->current_note >= play->melody.length && play->repeat) {
+        play->current_note = 0;
+    }
+    if (play->current_note >= play->melody.length) {
+        play->active = false;
+        buzzer_update_output();
+        k_sem_give(&buzzer_done_sem);
+    } else {
+        buzzer_update_output();
+        buzzer_schedule_note();
+    }
+    k_mutex_unlock(&buzzer_mutex);
 }
 
 static void buzzer_start_play(void)
 {
-	struct buzzer_play_state *play = &buzzer_state.play;
-
-	play->current_note = 0;
-
-	buzzer_update_output();
-
-	if (play->melody.notes != NULL && play->melody.length > 0) {
-		uint16_t duration = play->melody.notes[0].duration_ms;
-		if (duration > 0) {
-			k_work_reschedule(&buzzer_work, K_MSEC(duration));
-		}
-	}
+    buzzer_state.play.current_note = 0;
+    buzzer_update_output();
+    buzzer_schedule_note();
 }
 
 bool indicator_buzzer_is_ready(void)
@@ -226,12 +217,18 @@ bool indicator_buzzer_is_ready(void)
 	return buzzer_state.ready;
 }
 
-int indicator_buzzer_play(const struct indicator_buzzer_melody *melody)
+static int buzzer_play_owned(const struct indicator_buzzer_melody *melody, uint32_t *token, bool repeat)
 {
+	if (token) { *token = 0; }
 	if (melody == NULL || melody->notes == NULL || melody->length == 0) {
 		return -EINVAL;
 	}
 
+    if (repeat) {
+        for (uint8_t i = 0; i < melody->length; ++i) {
+            if (!melody->notes[i].duration_ms) { return -EINVAL; }
+        }
+    }
 	if (!buzzer_state.ready) {
 		return -ENODEV;
 	}
@@ -242,8 +239,12 @@ int indicator_buzzer_play(const struct indicator_buzzer_melody *melody)
 	k_sem_reset(&buzzer_done_sem);
 
 	/* Setup state - replaces any current request */
+	buzzer_state.play.repeat = repeat;
 	buzzer_state.play.melody = *melody;
 	buzzer_state.play.active = true;
+    if (++next_playback_token == 0) { ++next_playback_token; }
+    buzzer_state.play.token = next_playback_token;
+    if (token) { *token = next_playback_token; }
 
 	buzzer_start_play();
 
@@ -252,6 +253,37 @@ int indicator_buzzer_play(const struct indicator_buzzer_melody *melody)
 	LOG_DBG("Play started: notes=%d", melody->length);
 
 	return 0;
+}
+
+int indicator_buzzer_play_owned(const struct indicator_buzzer_melody *melody, uint32_t *token)
+{ return buzzer_play_owned(melody, token, false); }
+
+int indicator_buzzer_play_owned_repeat(const struct indicator_buzzer_melody *melody, uint32_t *token)
+{ return buzzer_play_owned(melody, token, true); }
+
+int indicator_buzzer_play(const struct indicator_buzzer_melody *melody)
+{
+    return indicator_buzzer_play_owned(melody, NULL);
+}
+
+bool indicator_buzzer_playing(uint32_t token)
+{
+    k_mutex_lock(&buzzer_mutex, K_FOREVER);
+    bool active = token != 0 && buzzer_state.play.active && buzzer_state.play.token == token;
+    k_mutex_unlock(&buzzer_mutex);
+    return active;
+}
+
+void indicator_buzzer_stop_owned(uint32_t token)
+{
+    k_mutex_lock(&buzzer_mutex, K_FOREVER);
+    if (token != 0 && buzzer_state.play.token == token && buzzer_state.play.active) {
+        buzzer_state.play.active = false;
+        buzzer_update_output();
+        (void)k_work_cancel_delayable(&buzzer_work);
+        k_sem_give(&buzzer_done_sem);
+    }
+    k_mutex_unlock(&buzzer_mutex);
 }
 
 void indicator_buzzer_stop(void)
@@ -289,8 +321,10 @@ int indicator_buzzer_play_sync(const struct indicator_buzzer_melody *melody, k_t
 	(void)k_work_cancel_delayable(&buzzer_work);
 	k_sem_reset(&buzzer_done_sem);
 
+	buzzer_state.play.repeat = false;
 	buzzer_state.play.melody = *melody;
 	buzzer_state.play.active = true;
+    buzzer_state.play.token = 0;
 
 	for (uint8_t note = 0U; note < melody->length; note++) {
 		if (sys_timepoint_expired(end)) {
@@ -529,6 +563,15 @@ int mbs_indicator_buzzer_init(void)
 {
 	return 0;
 }
+
+int indicator_buzzer_play_owned(const struct indicator_buzzer_melody *melody, uint32_t *token)
+{
+    ARG_UNUSED(melody); if (token) { *token = 0; } return -ENODEV;
+}
+int indicator_buzzer_play_owned_repeat(const struct indicator_buzzer_melody *melody, uint32_t *token)
+{ return indicator_buzzer_play_owned(melody, token); }
+bool indicator_buzzer_playing(uint32_t token) { ARG_UNUSED(token); return false; }
+void indicator_buzzer_stop_owned(uint32_t token) { ARG_UNUSED(token); }
 
 int indicator_buzzer_play(const struct indicator_buzzer_melody *melody)
 {

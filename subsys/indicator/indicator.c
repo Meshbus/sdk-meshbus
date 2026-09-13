@@ -860,6 +860,40 @@ int mbs_indicator_buzzer_rtttl(const char *rtttl_string)
 	return indicator_buzzer_play_rtttl(rtttl_string);
 }
 
+int mbs_indicator_buzzer_play_owned(enum indicator_buzzer_source source,
+                                  const struct indicator_buzzer_melody *melody,
+                                  uint32_t *token)
+{
+    if (token == NULL) { return -EINVAL; }
+    *token = 0;
+    if (melody == NULL || melody->notes == NULL || melody->length == 0) { return -EINVAL; }
+    if (!indicator_buzzer_source_allowed(source)) { return -EACCES; }
+    if (!indicator_buzzer_available()) { return -ENODEV; }
+    return indicator_buzzer_play_owned(melody, token);
+}
+
+int mbs_indicator_buzzer_play_owned_repeat(enum indicator_buzzer_source source,
+                                  const struct indicator_buzzer_melody *melody,
+                                  uint32_t *token)
+{
+    if (token == NULL) { return -EINVAL; }
+    *token = 0;
+    if (melody == NULL || melody->notes == NULL || melody->length == 0) { return -EINVAL; }
+    if (!indicator_buzzer_source_allowed(source)) { return -EACCES; }
+    if (!indicator_buzzer_available()) { return -ENODEV; }
+    return indicator_buzzer_play_owned_repeat(melody, token);
+}
+
+bool mbs_indicator_buzzer_playing(uint32_t token)
+{
+    return token != 0 && indicator_buzzer_playing(token);
+}
+
+void mbs_indicator_buzzer_stop_owned(uint32_t token)
+{
+    if (token != 0) { indicator_buzzer_stop_owned(token); }
+}
+
 void mbs_indicator_buzzer_stop(void)
 {
 	if (!indicator_buzzer_available()) {

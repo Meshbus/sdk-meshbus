@@ -23,9 +23,24 @@ int mbs_indicator_buzzer_init(void);
 int indicator_buzzer_play(const struct indicator_buzzer_melody *melody);
 int indicator_buzzer_play_rtttl(const char *rtttl_string);
 void indicator_buzzer_stop(void);
+int indicator_buzzer_play_owned(const struct indicator_buzzer_melody *melody, uint32_t *token);
+int indicator_buzzer_play_owned_repeat(const struct indicator_buzzer_melody *melody, uint32_t *token);
+bool indicator_buzzer_playing(uint32_t token);
+void indicator_buzzer_stop_owned(uint32_t token);
+
 int indicator_buzzer_play_sync(const struct indicator_buzzer_melody *melody, k_timeout_t timeout);
 
 #else /* Stubs when buzzer module is disabled */
+static inline int indicator_buzzer_play_owned(const struct indicator_buzzer_melody *melody,
+                                              uint32_t *token)
+{
+    ARG_UNUSED(melody); if (token) { *token = 0; } return -ENODEV;
+}
+static inline int indicator_buzzer_play_owned_repeat(const struct indicator_buzzer_melody *melody, uint32_t *token)
+{ return indicator_buzzer_play_owned(melody, token); }
+static inline bool indicator_buzzer_playing(uint32_t token) { ARG_UNUSED(token); return false; }
+static inline void indicator_buzzer_stop_owned(uint32_t token) { ARG_UNUSED(token); }
+
 
 static inline bool indicator_buzzer_is_ready(void)
 {

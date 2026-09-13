@@ -1,0 +1,6 @@
+tests:
+  subsys.meshbus.indicator.playback:
+    tags: [meshbus, indicator, contract, ztest]
+    harness: ztest
+    platform_allow: [qemu_x86]
+    integration_platforms: [qemu_x86]

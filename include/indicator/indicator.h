@@ -222,6 +222,27 @@ int mbs_indicator_buzzer_play(enum indicator_buzzer_source source,
  */
 void mbs_indicator_buzzer_stop(void);
 
+/**
+ * Start borrowed-note playback and return its nonzero ownership token.
+ * The caller retains notes unchanged until completion or stop_owned returns.
+ * A subsequent playback request preempts this token. No callback enters caller
+ * code. Returns -ENODEV for unavailable hardware, -EACCES for disabled audio.
+ */
+int mbs_indicator_buzzer_play_owned(enum indicator_buzzer_source source,
+                                  const struct indicator_buzzer_melody *melody,
+                                  uint32_t *token);
+/** Repeat a finite-duration melody under one token until stopped or preempted.
+ * All note durations must be nonzero. The same borrowed-note lifetime applies.
+ */
+int mbs_indicator_buzzer_play_owned_repeat(enum indicator_buzzer_source source,
+                                         const struct indicator_buzzer_melody *melody,
+                                         uint32_t *token);
+/** Query whether this token still owns active playback. Token zero is inactive. */
+bool mbs_indicator_buzzer_playing(uint32_t token);
+/** Stop only this token, synchronizing with note reads before returning. */
+void mbs_indicator_buzzer_stop_owned(uint32_t token);
+
+
 #ifdef __cplusplus
 }
 #endif
