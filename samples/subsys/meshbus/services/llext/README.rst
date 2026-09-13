@@ -42,6 +42,60 @@ identities and package hashes in validation records. Package generation,
 successful relocation/load and observed application behavior are separate
 levels of evidence.
 
+Native Zephyr peripherals
+*************************
+
+``CONFIG_MBS_LLEXT_BRIDGE`` exports the host's devicetree devices. MBA code can
+include ``<zephyr/drivers/i2c.h>``, ``spi.h``, ``gpio.h`` and ``adc.h`` and use
+``DEVICE_DT_GET()``, ``GPIO_DT_SPEC_GET()`` and the other native Zephyr device
+macros with the generated devicetree headers from its EDK. Drivers run in the
+host; inline driver APIs in the MBA dispatch through the host device's API
+table. Out-of-line APIs and helpers must also be present in the host's live
+LLEXT export table.
+When ADC is enabled, the host exports ``adc_gain_invert()`` and
+``adc_gain_invert_64()`` for native raw-to-voltage conversion helpers.
+
+``apps/native_peripherals`` is a C2 example containing synchronous I2C register
+read, SPI exchange, GPIO output and ADC sampling recipes::
+
+  west meshbus llext --llext-sdk /path/to/edk.tar.xz \
+    --zephyr-sdk /path/to/zephyr-sdk -o build/llext \
+    meshbus/samples/subsys/meshbus/services/llext/apps/native_peripherals
+
+Its entry only prints readiness for ``i2c21``, ``spi00``, ``gpio1`` and ``adc``;
+it does not issue transfers or reconfigure pins. Add calls to the included
+recipes for your wiring, chip select, ADC channel and peripheral protocol.
+These functions are example code compiled into the MBA, not new Meshbus APIs.
+On another board, change the node labels to match that firmware's devicetree.
+
+The C2 controllers are shared: ``spi00`` hosts the radio, I2C controllers host
+onboard devices, and the ADC includes the battery measurement channel. Consult
+the board DTS and product overlay before selecting addresses, pins or channels.
+Bus speed, pin configuration and power-state changes also affect host users of
+that controller. An application must unregister callbacks and finish pending
+I/O before returning; the loader cannot reclaim arbitrary driver registrations.
+
+The host must enable each controller's driver, devicetree node and pinctrl.
+Changing an MBA's compile definitions does not enable missing host hardware.
+An external I2C/SPI chip can use an application-owned protocol implementation
+over an existing controller without adding a Zephyr device for that chip.
+
+Device exports use hashes of devicetree paths, reducing dependency-ordinal
+changes between builds. Export a fresh EDK after enabling this feature. Old
+ordinal-based device imports are not rewritten or provided with aliases.
+Path hashes do not stabilize ``struct device``, driver API layouts, pin mappings
+or behavior. Cross-version loading retains the metadata v2 interface ABI gate;
+metadata v1 remains best effort. Neither compares EDK version strings for
+equality. A missing directly imported device fails relocation; use
+``device_get_binding()`` when a missing runtime device should be handled by the
+application instead.
+
+``tests/subsys/llext`` loads a real MBA using ``DEVICE_DT_GET()`` for four
+test-owned I2C/SPI/GPIO/ADC devices on QEMU. It checks driver dispatch and returned
+data and ADC voltage conversion, then unloads the MBA. The drivers and storage
+are simulated; this does not qualify physical buses, analog readings, pinmux or
+shared-device operation.
+
 Application metadata
 ********************
 

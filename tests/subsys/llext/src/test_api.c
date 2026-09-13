@@ -44,6 +44,11 @@
 #define BAD_SYMBOL_APP_ID "mbs_badsymapp"
 #define BAD_SYMBOL_APP_PATH "/extra/apps/" BAD_SYMBOL_APP_ID ".mba"
 #define TRUNCATED_APP_PATH "/extra/apps/truncated.mba"
+#define PERIPHERAL_APP_PATH "/extra/apps/mbs_peripherals.mba"
+
+static const uint8_t peripheral_ext[] __aligned(4) = {
+	#include "mbs_peripherals.inc"
+};
 
 static atomic_t app_count;
 static const uint8_t bad_abi_ext[] __aligned(4) = {
@@ -185,6 +190,7 @@ static void *suite_setup(void)
 	atomic_clear(&app_count);
 
 	zassert_ok(write_file(TEST_APP_PATH, app_ext, sizeof(app_ext)));
+	zassert_ok(write_file(PERIPHERAL_APP_PATH, peripheral_ext, sizeof(peripheral_ext)));
 	zassert_ok(write_file(OTHER_EDK_APP_PATH, other_edk_app_ext,
 			      sizeof(other_edk_app_ext)));
 	zassert_ok(write_file(OLDER_EDK_APP_PATH, older_edk_app_ext,
@@ -203,6 +209,32 @@ static void *suite_setup(void)
 	zassert_ok(write_file(TRUNCATED_APP_PATH, app_ext, 16U));
 
 	return NULL;
+}
+
+ZTEST(mbs_llext_contract, test_native_peripheral_device_calls)
+{
+	struct mbs_llext_app_session *session;
+	mbs_llext_app_entry_t entry;
+	struct peripheral_result result = {0};
+
+	zassert_ok(mbs_llext_app_load(PERIPHERAL_APP_PATH, &session));
+	zassert_ok(mbs_llext_app_get_entry(session, &entry));
+	entry(&result);
+	zassert_ok(mbs_llext_app_unload(session));
+	zassert_false(mbs_llext_runtime_busy());
+
+	zassert_equal(result.ready_mask, 0xf, "all four host devices must resolve");
+	zassert_ok(result.i2c_rc);
+	zassert_equal(result.i2c_value, 0xa5);
+	zassert_ok(result.spi_rc);
+	zassert_equal(result.spi_value, 0xc3);
+	zassert_ok(result.gpio_rc);
+	zassert_equal(result.gpio_value, 1);
+	zassert_ok(result.adc_setup_rc);
+	zassert_ok(result.adc_read_rc);
+	zassert_equal(result.adc_value, 1234);
+	zassert_ok(result.adc_mv_rc);
+	zassert_equal(result.adc_mv, 1084);
 }
 
 ZTEST(mbs_llext_contract, test_app_probe_load_entry_unload)

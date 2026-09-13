@@ -9,6 +9,12 @@
 };
 
 / {
+	/* Implemented by peripheral_devices.c, without physical controllers. */
+	llext_i2c: llext-i2c {};
+	llext_spi: llext-spi {};
+	llext_gpio: llext-gpio {};
+	llext_adc: llext-adc {};
+
 	mbs_telemetry: meshbus-telemetry {
 		compatible = "fobe,meshbus-telemetry";
 	};

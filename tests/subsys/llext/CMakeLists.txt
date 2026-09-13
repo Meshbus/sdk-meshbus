@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(mbs_llext_contract_test)
 
-target_sources(app PRIVATE src/test_api.c)
+target_sources(app PRIVATE src/test_api.c src/peripheral_devices.c)
 
 set(llext_targets)
 set(llext_outputs)
@@ -14,6 +14,16 @@ list(APPEND llext_targets mbs_badabi_ext)
 list(APPEND llext_outputs ${bad_abi_bin})
 generate_inc_file_for_target(app ${bad_abi_bin}
 	${ZEPHYR_BINARY_DIR}/include/generated/mbs_badabi.inc)
+
+set(ext_peripheral_bin ${PROJECT_BINARY_DIR}/llext/mbs_peripherals.mba)
+set(ext_peripheral_inc ${ZEPHYR_BINARY_DIR}/include/generated/mbs_peripherals.inc)
+add_llext_target(mbs_peripheral_ext
+	OUTPUT ${ext_peripheral_bin}
+	SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/peripheral_ext.c
+)
+list(APPEND llext_targets mbs_peripheral_ext)
+list(APPEND llext_outputs ${ext_peripheral_bin})
+generate_inc_file_for_target(app ${ext_peripheral_bin} ${ext_peripheral_inc})
 
 
 set(ext_app_bin ${PROJECT_BINARY_DIR}/llext/mbs_app.mba)
@@ -118,6 +128,16 @@ generate_inc_file_for_target(app ${ext_bad_symbol_app_bin} ${ext_bad_symbol_app_
 foreach(llext_target ${llext_targets})
 	if(TARGET ${llext_target}_llext_lib AND TARGET mbs_proto)
 		add_dependencies(${llext_target}_llext_lib mbs_proto)
+	endif()
+	# Zephyr's processing target is order-only. Track the object files too,
+	# so incremental builds do not embed an old MBA after its ABI changes.
+	get_target_property(llext_lib_type ${llext_target}_llext_lib TYPE)
+	if(llext_lib_type STREQUAL "OBJECT_LIBRARY")
+		add_custom_command(
+			OUTPUT ${PROJECT_BINARY_DIR}/llext/${llext_target}_debug.elf
+			APPEND
+			DEPENDS $<TARGET_OBJECTS:${llext_target}_llext_lib>
+		)
 	endif()
 endforeach()
 

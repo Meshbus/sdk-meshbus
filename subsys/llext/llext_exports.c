@@ -8,6 +8,14 @@
 #include <llext/llext.h>
 #include <llext/zbus.h>
 
+#if defined(CONFIG_ADC)
+#include <zephyr/drivers/adc.h>
+
+/* Native adc_raw_to_*() helpers call these out-of-line gain conversions. */
+EXPORT_SYMBOL(adc_gain_invert);
+EXPORT_SYMBOL(adc_gain_invert_64);
+#endif
+
 #if defined(CONFIG_FILE_SYSTEM)
 #include <zephyr/fs/fs.h>
 #endif

@@ -181,6 +181,12 @@ Display and ZUI headers use `<display/*.h>` and `<zui/*.h>`. The exporter
 also accepts their legacy `zephyr/` layout, but rejects mixed shared roots.
 Driver, devicetree binding, DFU and linker files remain outside the MBA public
 header allowlist even though they now also use flat SDK paths.
+This restriction applies to Meshbus-owned headers. Upstream
+`<zephyr/drivers/*.h>` and the host's generated devicetree headers remain in the
+EDK for native peripheral access. The LLEXT bridge exports host devices using
+path-hash symbols; regenerate the EDK after adopting this export configuration.
+See the [native peripheral example](samples/subsys/meshbus/services/llext/README.rst)
+for supported usage and the distinction between build, load and hardware evidence.
 
 Current EDKs expose Meshbus headers as `<module/module.h>`, with narrow Clock,
 GNSS and LLEXT capability headers documented in [the SDK guide](README.md).

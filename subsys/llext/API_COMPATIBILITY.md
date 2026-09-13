@@ -38,6 +38,15 @@ must change, increment `INTERFACE_ABI` and review the v1 acceptance policy;
 never assume matching symbol names prove compatibility. Additive symbols do
 not require an ABI increment: unavailable imports still fail symbol checks.
 
+With `CONFIG_MBS_LLEXT_BRIDGE`, host devicetree devices are exported for native
+Zephyr driver calls from MBAs. Device symbols use path hashes rather than
+dependency ordinals. This reduces identifier churn, but does not stabilize
+device/driver structures, device paths, pin mappings or driver behavior. Old
+ordinal-based device imports are not aliased. Applications need an EDK exported
+with the host's device-export configuration. Cross-version loading retains the
+metadata v2 interface ABI gate and metadata v1 best-effort policy above. Missing
+direct device imports fail relocation.
+
 The metadata wire-format version is tracked independently in
 `METADATA_VERSION`. v2 changes interpretation of four formerly reserved bytes;
 it does not change record size or any other offset. This gate does not restrict

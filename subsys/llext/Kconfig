@@ -15,6 +15,8 @@ menuconfig MBS_LLEXT
 config MBS_LLEXT_BRIDGE
 	bool "Meshbus LLEXT Bridge and exports"
 	depends on LLEXT
+	select LLEXT_EXPORT_DEVICES
+	select LLEXT_EXPORT_DEV_IDS_BY_HASH
 	select EVENTS
 	select ZBUS_RUNTIME_OBSERVERS
 	select ZBUS_PREFER_DYNAMIC_ALLOCATION
@@ -24,6 +26,9 @@ config MBS_LLEXT_BRIDGE
 	  This option keeps service LLEXT integration code in
 	  subsys/llext while allowing it to be disabled
 	  independently from the Desktop app loader.
+	  Export host devicetree devices for native Zephyr driver APIs. Device
+	  symbols use path hashes instead of dependency ordinals; this does not
+	  guarantee driver ABI compatibility across firmware versions.
 
 if MBS_LLEXT
 

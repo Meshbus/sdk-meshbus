@@ -49,6 +49,7 @@ endif()
 if(CONFIG_MBS_LLEXT_BRIDGE)
 	zephyr_library_sources(
 		llext_exports.c
+		llext_device_exports.c
 		llext_bridge_common.c
 		llext_zbus.c
 	)
