@@ -13,7 +13,7 @@ if(NOT DEFINED MESHBUS_ARDUBOY_SDK_DIR)
 endif()
 if(NOT MESHBUS_ARDUBOY_SDK_DIR)
     get_filename_component(MESHBUS_ARDUBOY_SDK_DIR
-        ${PROJECT_SOURCE_DIR}/../../../../../../../../modules/lib/meshbus-arduboy
+        ${PROJECT_SOURCE_DIR}/../../../../../../../../modules/lib/arduboy
         ABSOLUTE
     )
 endif()
@@ -24,11 +24,15 @@ file(GLOB MICROCITY_UPSTREAM CONFIGURE_DEPENDS
     ${PROJECT_SOURCE_DIR}/upstream/*.h
 )
 
+file(GLOB MICROCITY_CPP CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/upstream/*.cpp)
 meshbus_arduboy_llext_add_app(${PROJECT_NAME}
-    SOURCE
+    RUNTIME COMPATIBILITY
+    SOURCES
+        ${MICROCITY_CPP}
         ${PROJECT_SOURCE_DIR}/src/microcity_app.cpp
     DEFINES
         MICROCITY_ZEPHYR=1
+    FLAGS -include ${PROJECT_SOURCE_DIR}/src/platform.hpp
     INCLUDES
         ${LLEXT_EDK_INSTALL_DIR}/include/meshbus/include
         ${PROJECT_SOURCE_DIR}/upstream

@@ -13,7 +13,7 @@ if(NOT DEFINED MESHBUS_ARDUBOY_SDK_DIR)
 endif()
 if(NOT MESHBUS_ARDUBOY_SDK_DIR)
     get_filename_component(MESHBUS_ARDUBOY_SDK_DIR
-        ${PROJECT_SOURCE_DIR}/../../../../../../../../modules/lib/meshbus-arduboy
+        ${PROJECT_SOURCE_DIR}/../../../../../../../../modules/lib/arduboy
         ABSOLUTE
     )
 endif()
@@ -27,8 +27,12 @@ file(GLOB_RECURSE ARDUBOY3D_PORT_HEADERS CONFIGURE_DEPENDS
     ${PROJECT_SOURCE_DIR}/src/*.h
 )
 
+file(GLOB ARDUBOY3D_CPP CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/upstream/*.cpp)
 meshbus_arduboy_llext_add_app(${PROJECT_NAME}
-    SOURCE
+    RUNTIME COMPATIBILITY
+    SOURCES
+        ${ARDUBOY3D_CPP}
+        ${PROJECT_SOURCE_DIR}/src/sketch.cpp
         ${PROJECT_SOURCE_DIR}/src/arduboy3d_app.cpp
     DEFINES
         ARDUBOY3D_ZEPHYR=1

@@ -13,7 +13,7 @@ if(NOT DEFINED MESHBUS_ARDUBOY_SDK_DIR)
 endif()
 if(NOT MESHBUS_ARDUBOY_SDK_DIR)
     get_filename_component(MESHBUS_ARDUBOY_SDK_DIR
-        ${PROJECT_SOURCE_DIR}/../../../../../../../../modules/lib/meshbus-arduboy
+        ${PROJECT_SOURCE_DIR}/../../../../../../../../modules/lib/arduboy
         ABSOLUTE
     )
 endif()
@@ -26,10 +26,16 @@ file(GLOB HOPPER_UPSTREAM CONFIGURE_DEPENDS
     ${PROJECT_SOURCE_DIR}/upstream/*.json
 )
 
+set(test_save_definition)
+if(ARDUBOY_TEST_SAVE_ID)
+    list(APPEND test_save_definition "ARDUBOY_TEST_SAVE_ID=\"${ARDUBOY_TEST_SAVE_ID}\"")
+endif()
 meshbus_arduboy_llext_add_app(${PROJECT_NAME}
+    RUNTIME COMPATIBILITY
     SOURCE
         ${PROJECT_SOURCE_DIR}/src/hopper_app.cpp
     DEFINES
+        ${test_save_definition}
         HOPPER_ZEPHYR=1
         MESHBUS_ARDUBOY_LLEXT_GAME_ENABLE_EEPROM=1
     FLAGS

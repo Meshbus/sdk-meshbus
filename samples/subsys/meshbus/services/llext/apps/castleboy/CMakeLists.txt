@@ -13,7 +13,7 @@ if(NOT DEFINED MESHBUS_ARDUBOY_SDK_DIR)
 endif()
 if(NOT MESHBUS_ARDUBOY_SDK_DIR)
     get_filename_component(MESHBUS_ARDUBOY_SDK_DIR
-        ${PROJECT_SOURCE_DIR}/../../../../../../../../modules/lib/meshbus-arduboy
+        ${PROJECT_SOURCE_DIR}/../../../../../../../../modules/lib/arduboy
         ABSOLUTE
     )
 endif()
@@ -26,6 +26,8 @@ file(GLOB CASTLEBOY_UPSTREAM CONFIGURE_DEPENDS
 )
 
 meshbus_arduboy_llext_add_app(${PROJECT_NAME}
+    RUNTIME COMPATIBILITY
+    SKETCH ${PROJECT_SOURCE_DIR}/upstream/CastleBoy.ino
     SOURCE
         ${PROJECT_SOURCE_DIR}/src/castleboy_app.cpp
     DEFINES

@@ -1,241 +1,29 @@
-/*
- * Ard Drivin Meshbus MBA port layer.
- *
- * SPDX-License-Identifier: MIT
- */
-
-#include <errno.h>
-#include <stdint.h>
-#include <string.h>
-
+/* SPDX-License-Identifier: MIT */
 #include <zephyr/kernel.h>
 #include <zephyr/llext/symbol.h>
-#include <desktop/desktop.h>
-#include <indicator/indicator.h>
-#include <zephyr/random/random.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
 #include <zui/zui.h>
-
 #include <ArduboyTones.h>
-
+#include <meshbus_arduboy/runtime.hpp>
+#include <meshbus_arduboy/compat.hpp>
 #include "../upstream/ArduboyRem.h"
 #include "../upstream/pics/font.h"
-
-#include <meshbus_arduboy/compat.hpp>
-#include <meshbus_arduboy/llext_game.hpp>
-
-void setup();
-void loop();
-extern "C" void meshbus_arduboy_tone_stop();
-
-namespace {
-
-constexpr uint32_t screen_id = 1U;
-constexpr uint16_t game_fps = 67U;
+extern "C" void meshbus_arduboy_audio_begin();
+extern "C" bool meshbus_arduboy_audio_enabled();
+extern "C" void meshbus_arduboy_audio_set_enabled(bool);
+extern "C" void meshbus_arduboy_audio_save();
+constexpr uint16_t default_frame_micros = 1000000U / 67U;
 constexpr size_t visible_framebuffer_size = WIDTH * HEIGHT / 8U;
-constexpr size_t eeprom_size = 1024U;
-constexpr const char *save_id = "ard_drivin";
-constexpr uint32_t default_frame_micros = 1000000U / game_fps;
-constexpr size_t tone_buffer_count = 3U;
-
-struct ArdDrivinApp {
-	meshbus::arduboy::llext_game::FullscreenState<ArdDrivinApp> runtime;
-	uint8_t eeprom_data[eeprom_size];
-	uint8_t buttons;
-};
-
-struct ToneBuffer {
-	indicator_buzzer_note note;
-	indicator_buzzer_melody melody;
-};
-
-ArdDrivinApp *current_app;
-ToneBuffer tone_buffers[tone_buffer_count];
-uint8_t next_tone_buffer;
-uint32_t rng_state = 0x41524444U; /* ARDD */
-uint32_t time_us;
-
-uint8_t buttons_from_zui(uint32_t down)
-{
-	uint8_t buttons = 0U;
-
-	if ((down & ZUI_ACTION_PRIMARY) != 0U) {
-		buttons |= A_BUTTON;
-	}
-	if ((down & (ZUI_ACTION_SECONDARY | ZUI_ACTION_CANCEL)) != 0U) {
-		buttons |= B_BUTTON;
-	}
-	if ((down & ZUI_ACTION_UP) != 0U) {
-		buttons |= UP_BUTTON;
-	}
-	if ((down & ZUI_ACTION_DOWN) != 0U) {
-		buttons |= DOWN_BUTTON;
-	}
-	if ((down & ZUI_ACTION_LEFT) != 0U) {
-		buttons |= LEFT_BUTTON;
-	}
-	if ((down & ZUI_ACTION_RIGHT) != 0U) {
-		buttons |= RIGHT_BUTTON;
-	}
-
-	return buttons;
-}
-
-ToneBuffer *next_tone()
-{
-	ToneBuffer *buffer = &tone_buffers[next_tone_buffer];
-
-	next_tone_buffer++;
-	if (next_tone_buffer >= tone_buffer_count) {
-		next_tone_buffer = 0U;
-	}
-	return buffer;
-}
-
-void clear_for_next_frame()
-{
-	uint8_t alternate = (ArduboyCoreRem::flicker & 1U) != 0U ? 0x55U : 0xaaU;
-
-	for (size_t i = 0U; i < sizeof(ArduboyBaseRem::sBuffer); i++) {
-		ArduboyBaseRem::sBuffer[i] = alternate;
-		alternate = static_cast<uint8_t>(~alternate);
-	}
-}
-
-void tick(ArdDrivinApp *app)
-{
-	app->buttons = buttons_from_zui(app->runtime.actions.down);
-	loop();
-}
-
-uint8_t *framebuffer(ArdDrivinApp *app)
-{
-	ARG_UNUSED(app);
-	return ArduboyBaseRem::sBuffer;
-}
-
-uint8_t *eeprom_data(ArdDrivinApp *app)
-{
-	return app->eeprom_data;
-}
-
-void app_setup(ArdDrivinApp *app)
-{
-	current_app = app;
-	time_us = 0U;
-	meshbus_arduboy_random_seed(sys_rand32_get());
-	memset(ArduboyBaseRem::sBuffer, 0, sizeof(ArduboyBaseRem::sBuffer));
-	setup();
-}
-
-void teardown(ArdDrivinApp *app)
-{
-	meshbus_arduboy_tone_stop();
-	if (current_app == app) {
-		current_app = nullptr;
-	}
-}
-
-const zui_screen_ops screen_ops = {
-	.draw = meshbus::arduboy::llext_game::draw<ArdDrivinApp>,
-	.input = meshbus::arduboy::llext_game::input<ArdDrivinApp>,
-	.event = meshbus::arduboy::llext_game::event<ArdDrivinApp>,
-};
-
-const meshbus::arduboy::llext_game::FullscreenConfig<ArdDrivinApp> game_config = {
-	.log_tag = "ard-drivin-app",
-	.screen_id = screen_id,
-	.fps = game_fps,
-	.width = WIDTH,
-	.height = HEIGHT,
-	.stride = WIDTH,
-	.format = ZUI_BITMAP_FORMAT_MONO_VLSB,
-	.exit_action_mask = ZUI_ACTION_CANCEL,
-	.framebuffer = framebuffer,
-	.eeprom = {
-		.save_id = save_id,
-		.data = eeprom_data,
-		.size = eeprom_size,
-	},
-	.setup = app_setup,
-	.tick = tick,
-	.idle = nullptr,
-	.teardown = teardown,
-};
-
-} /* namespace */
-
 byte ArduboyCoreRem::flicker = 0;
 uint8_t ArduboyBaseRem::sBuffer[((HEIGHT + 8) * WIDTH) / 8] = {};
 bool ArduboyAudioRem::audio_enabled = false;
-
-extern "C" uint8_t *meshbus_arduboy_framebuffer()
-{
-	return ArduboyBaseRem::sBuffer;
+static void clear_for_next_frame() {
+    uint8_t alternate = (ArduboyCoreRem::flicker & 1U) ? 0x55U : 0xaaU;
+    for (size_t i=0;i<sizeof(ArduboyBaseRem::sBuffer);++i) {
+        ArduboyBaseRem::sBuffer[i]=alternate;alternate=static_cast<uint8_t>(~alternate);
+    }
 }
-
-extern "C" uint32_t meshbus_arduboy_millis()
-{
-	return time_us / 1000U;
-}
-
-extern "C" uint32_t meshbus_arduboy_micros()
-{
-	return time_us;
-}
-
-extern "C" void meshbus_arduboy_random_seed(uint32_t seed)
-{
-	if (seed != 0U) {
-		rng_state = seed;
-	}
-}
-
-extern "C" long meshbus_arduboy_random(long max)
-{
-	if (max <= 0) {
-		return 0;
-	}
-
-	rng_state ^= rng_state << 13;
-	rng_state ^= rng_state >> 17;
-	rng_state ^= rng_state << 5;
-	return static_cast<long>(rng_state % static_cast<uint32_t>(max));
-}
-
-extern "C" long meshbus_arduboy_random_range(long min, long max)
-{
-	if (max <= min) {
-		return min;
-	}
-	return min + meshbus_arduboy_random(max - min);
-}
-
-extern "C" void meshbus_arduboy_tone_play(uint16_t freq, uint16_t duration_ms,
-					bool (*enabled_cb)())
-{
-	if ((enabled_cb != nullptr && !enabled_cb()) || freq == 0U ||
-	    !mbs_indicator_buzzer_is_ready()) {
-		return;
-	}
-
-	ToneBuffer *buffer = next_tone();
-
-	buffer->note = {
-		.freq_hz = freq,
-		.duration_ms = static_cast<uint16_t>(duration_ms == 0U ? 20U : duration_ms),
-	};
-	buffer->melody.notes = &buffer->note;
-	buffer->melody.length = 1U;
-	(void)mbs_indicator_buzzer_play(INDICATOR_SOURCE_SYSTEM, &buffer->melody);
-}
-
-extern "C" void meshbus_arduboy_tone_stop()
-{
-	mbs_indicator_buzzer_stop();
-}
-
 ArduboyCoreRem::ArduboyCoreRem() {}
 
 void ArduboyCoreRem::idle() {}
@@ -269,8 +57,11 @@ void ArduboyCoreRem::paintScreen(const uint8_t *image)
 
 void ArduboyCoreRem::paintScreen(uint8_t image[])
 {
-	ARG_UNUSED(image);
-	clear_for_next_frame();
+	if (image && meshbus_arduboy_framebuffer()) {
+        memcpy(meshbus_arduboy_framebuffer(), image, visible_framebuffer_size);
+        meshbus_arduboy_display(false);
+    }
+    clear_for_next_frame();
 }
 
 void ArduboyCoreRem::blank()
@@ -321,7 +112,7 @@ void ArduboyCoreRem::boot() {}
 
 uint8_t ArduboyCoreRem::buttonsState()
 {
-	return current_app == nullptr ? 0U : current_app->buttons;
+	return meshbus_arduboy_buttons();
 }
 
 ArduboyBaseRem::ArduboyBaseRem()
@@ -467,9 +258,11 @@ void ArduboyBaseRem::drawRect(int16_t x, int16_t y, uint8_t w, uint8_t h,
 	drawFastVLine(x + w - 1, y, h, color);
 }
 
+// Rem draws into its extended canvas; display() publishes it to the runtime.
+// Never mix runtime-targeted helpers with sBuffer: publication would erase them.
 void ArduboyBaseRem::drawFastVLine(int16_t x, int16_t y, uint8_t h, uint8_t color)
 {
-	meshbus::arduboy::fill_rect(x, y, 1U, h, color);
+	meshbus::arduboy::fill_rect_to(sBuffer, x, y, 1U, h, color);
 }
 
 void ArduboyBaseRem::drawFastHLine(int16_t x, uint8_t y, int16_t w, uint8_t color)
@@ -490,13 +283,13 @@ void ArduboyBaseRem::drawFastHLine(int16_t x, uint8_t y, int16_t w, uint8_t colo
 		x_end = WIDTH;
 	}
 
-	meshbus::arduboy::fill_rect(x, y, static_cast<uint8_t>(x_end - x), 1U, color);
+	meshbus::arduboy::fill_rect_to(sBuffer, x, y, static_cast<uint8_t>(x_end - x), 1U, color);
 }
 
 void ArduboyBaseRem::fillRect(int16_t x, int16_t y, uint8_t w, uint8_t h,
 			      uint8_t color)
 {
-	meshbus::arduboy::fill_rect(x, y, w, h, color);
+	meshbus::arduboy::fill_rect_to(sBuffer, x, y, w, h, color);
 }
 
 void ArduboyBaseRem::fillScreen(uint8_t color)
@@ -549,7 +342,7 @@ void ArduboyBaseRem::fillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1
 void ArduboyBaseRem::drawBitmap(int16_t x, int16_t y, const uint8_t *bitmap,
 				uint8_t w, uint8_t h)
 {
-	meshbus::arduboy::draw_bitmap(x, y, bitmap, w, h, WHITE);
+	meshbus::arduboy::draw_bitmap_to(sBuffer, x, y, bitmap, w, h, WHITE);
 }
 
 void ArduboyBaseRem::drawMaskBitmap(int8_t x, int8_t y, const uint8_t *bitmap,
@@ -677,7 +470,7 @@ void ArduboyBaseRem::drawTurboBitmap(int16_t x, int16_t y, const uint8_t *bitmap
 void ArduboyBaseRem::drawSlowXYBitmap(int16_t x, int16_t y, const uint8_t *bitmap,
 				      uint8_t w, uint8_t h, uint8_t color)
 {
-	meshbus::arduboy::draw_xy_bitmap(x, y, bitmap, w, h, color);
+	meshbus::arduboy::draw_xy_bitmap_to(sBuffer, x, y, bitmap, w, h, color);
 }
 
 void ArduboyBaseRem::drawCompressed(int16_t sx, int16_t sy, const uint8_t *bitmap,
@@ -696,13 +489,13 @@ unsigned char *ArduboyBaseRem::getBuffer()
 
 void ArduboyBaseRem::initRandomSeed()
 {
-	meshbus_arduboy_random_seed(meshbus_arduboy_micros() ^ rng_state);
+	meshbus_arduboy_random_seed(meshbus_arduboy_micros());
 }
 
 uint16_t ArduboyBaseRem::rawADC(uint8_t adc_bits)
 {
 	ARG_UNUSED(adc_bits);
-	return static_cast<uint16_t>(rng_state);
+	return static_cast<uint16_t>(meshbus_arduboy_micros());
 }
 
 void ArduboyBaseRem::setFrameRate(uint16_t rate)
@@ -712,8 +505,11 @@ void ArduboyBaseRem::setFrameRate(uint16_t rate)
 
 void ArduboyBaseRem::nextFrame()
 {
-	time_us += eachFrameMicros == 0U ? default_frame_micros : eachFrameMicros;
-	nextFrameStart = static_cast<uint16_t>(time_us);
+	uint16_t now = static_cast<uint16_t>(meshbus_arduboy_micros());
+    uint16_t elapsed = static_cast<uint16_t>(now - nextFrameStart);
+    uint16_t period = eachFrameMicros ? eachFrameMicros : default_frame_micros;
+    if (elapsed < period) { meshbus_arduboy_delay((period - elapsed + 999U) / 1000U); }
+    nextFrameStart = static_cast<uint16_t>(meshbus_arduboy_micros());
 	flicker++;
 }
 
@@ -863,44 +659,77 @@ void ArduboyRem::clear()
 
 void ArduboyAudioRem::begin()
 {
-	audio_enabled = meshbus_arduboy_eeprom_read(EEPROM_AUDIO_ON_OFF) != 0U;
+	meshbus_arduboy_audio_begin();
+    audio_enabled = meshbus_arduboy_audio_enabled();
 }
 
 void ArduboyAudioRem::on()
 {
 	audio_enabled = true;
+    meshbus_arduboy_audio_set_enabled(true);
 }
 
 void ArduboyAudioRem::off()
 {
 	audio_enabled = false;
+    meshbus_arduboy_audio_set_enabled(false);
 }
 
 void ArduboyAudioRem::saveOnOff()
 {
-	meshbus_arduboy_eeprom_update(EEPROM_AUDIO_ON_OFF, audio_enabled ? 1U : 0U);
+	meshbus_arduboy_audio_save();
 }
 
 bool ArduboyAudioRem::enabled()
 {
-	return audio_enabled;
+	return meshbus_arduboy_audio_enabled();
 }
 
 extern "C" void __cxa_pure_virtual()
 {
 }
 
-extern "C" void ard_drivin_app_main(void *args)
-{
-	ArdDrivinApp app{};
-
-	current_app = &app;
-	meshbus::arduboy::llext_game::run(args, &app, &game_config, &screen_ops);
-	if (current_app == &app) {
-		current_app = nullptr;
-	}
+void setup();
+void loop();
+enum class EState : uint8_t;
+extern EState currentState;
+extern uint8_t speed, gameTimer, gear;
+extern uint16_t lastMilli;
+extern int16_t playerX;
+// ArduboyRem retains its AVR board button masks, distinct from SDK defaults.
+static uint8_t rem_buttons(uint32_t actions) {
+    uint8_t value=0;
+    if(actions & ZUI_ACTION_PRIMARY) value|=A_BUTTON;
+    if(actions & ZUI_ACTION_SECONDARY) value|=B_BUTTON;
+    if(actions & ZUI_ACTION_UP) value|=UP_BUTTON;
+    if(actions & ZUI_ACTION_DOWN) value|=DOWN_BUTTON;
+    if(actions & ZUI_ACTION_LEFT) value|=LEFT_BUTTON;
+    if(actions & ZUI_ACTION_RIGHT) value|=RIGHT_BUTTON;
+    return value;
 }
-
+static const meshbus::arduboy::RuntimeHooks rem_hooks{nullptr,nullptr,rem_buttons};
+static void setup_race() {
+    setup();
+    lastMilli = static_cast<uint16_t>(meshbus_arduboy_millis());
+}
+static void loop_race() {
+    static uint32_t report_at;
+    static int previous = -1;
+    loop();
+    uint32_t now = meshbus_arduboy_millis();
+    int state = static_cast<int>(currentState);
+    if (previous != state || now - report_at >= 2000) {
+        previous = state;report_at = now;
+        printk("[ard_drivin] state=%d speed=%u gear=%u x=%d timer=%u\n",
+            state,speed,gear,playerX,gameTimer);
+    }
+}
+extern "C" void ard_drivin_app_main(void *args) {
+    meshbus::arduboy::SketchConfig config{"ard_drivin",setup_race,loop_race};
+    // Rem's void nextFrame owns its microsecond-period wait; shared runner
+    // consumes input each loop and guarantees a scheduling opportunity.
+    config.fps=67;config.frame_gated=false;config.hooks=&rem_hooks;
+    int rc=meshbus::arduboy::run_sketch(args,config);
+    printk("[ard_drivin] complete rc=%d\n",rc);
+}
 LL_EXTENSION_SYMBOL(ard_drivin_app_main);
-
-#include "../upstream/main.cpp"

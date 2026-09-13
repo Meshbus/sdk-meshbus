@@ -13,7 +13,7 @@ if(NOT DEFINED MESHBUS_ARDUBOY_SDK_DIR)
 endif()
 if(NOT MESHBUS_ARDUBOY_SDK_DIR)
     get_filename_component(MESHBUS_ARDUBOY_SDK_DIR
-        ${PROJECT_SOURCE_DIR}/../../../../../../../../modules/lib/meshbus-arduboy
+        ${PROJECT_SOURCE_DIR}/../../../../../../../../modules/lib/arduboy
         ABSOLUTE
     )
 endif()
@@ -28,8 +28,16 @@ file(GLOB_RECURSE ARD_DRIVIN_UPSTREAM CONFIGURE_DEPENDS
     ${PROJECT_SOURCE_DIR}/upstream/*.txt
 )
 
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/src/prepare.py"
+    "${PROJECT_SOURCE_DIR}/upstream/main.cpp" "${PROJECT_BINARY_DIR}/ard_drivin_game.cpp"
+    COMMAND_ERROR_IS_FATAL ANY)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${PROJECT_SOURCE_DIR}/upstream/main.cpp" "${PROJECT_SOURCE_DIR}/src/prepare.py")
 meshbus_arduboy_llext_add_app(${PROJECT_NAME}
-    SOURCE
+    RUNTIME COMPATIBILITY
+    SOURCES
+        ${PROJECT_BINARY_DIR}/ard_drivin_game.cpp
         ${PROJECT_SOURCE_DIR}/src/ard_drivin_app.cpp
     DEFINES
         ARD_DRIVIN_ZEPHYR=1
