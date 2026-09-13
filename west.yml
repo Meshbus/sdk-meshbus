@@ -21,6 +21,10 @@ manifest:
       path: modules/lib/meshcore
       repo-path: sdk-meshcore
       revision: main
+    - name: arduboy
+      path: modules/lib/arduboy
+      repo-path: sdk-arduboy
+      revision: main
     - name: detools
       path: modules/lib/detools
       repo-path: sdk-detools
