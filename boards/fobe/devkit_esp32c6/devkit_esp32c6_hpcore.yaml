@@ -1,0 +1,17 @@
+identifier: devkit_esp32c6/esp32c6/hpcore
+name: FoBE DevKit ESP32-C6 HP Core
+vendor: fobe
+type: mcu
+arch: riscv
+ram: 512
+flash: 4096
+toolchain:
+  - zephyr
+supported:
+  - gpio
+  - uart
+  - i2c
+  - spi
+  - adc
+  - watchdog
+  - entropy
