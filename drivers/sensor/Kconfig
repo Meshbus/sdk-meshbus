@@ -7,4 +7,6 @@ rsource "ion/Kconfig"
 rsource "qst/Kconfig"
 rsource "st/lsm6ds3_family/Kconfig"
 
+rsource "sps30/Kconfig"
+
 endif # SENSOR

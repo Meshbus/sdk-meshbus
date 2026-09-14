@@ -1,0 +1,6 @@
+tests:
+  drivers.sensor.sps30:
+    tags: [sensor, i2c]
+    platform_allow: [qemu_x86]
+    integration_platforms: [qemu_x86]
+    harness: ztest

@@ -1,0 +1,15 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/ {
+	i2c@100 {
+		compatible = "zephyr,i2c-emul-controller";
+		clock-frequency = <100000>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x100 4>;
+		status = "okay";
+		pm: sps30@69 {
+			compatible = "sensirion,sps30";
+			reg = <0x69>;
+		};
+	};
+};

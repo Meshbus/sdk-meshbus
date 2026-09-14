@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
+description: Sensirion SPS30 particulate matter sensor on I2C
+compatible: "sensirion,sps30"
+include: [sensor-device.yaml, i2c-device.yaml]

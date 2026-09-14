@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+config SPS30
+	bool "Sensirion SPS30 particulate matter sensor"
+	default y
+	depends on DT_HAS_SENSIRION_SPS30_ENABLED
+	depends on I2C
+	select CRC
+	help
+	  Read PM1.0, PM2.5 and PM10 mass concentrations over I2C.
