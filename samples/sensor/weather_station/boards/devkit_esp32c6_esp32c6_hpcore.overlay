@@ -1,0 +1,36 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/ {
+	aliases {
+		sw0 = &weather_button;
+	};
+	buttons {
+		compatible = "gpio-keys";
+		weather_button: button {
+			gpios = <&gpio0 9 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+		};
+	};
+};
+
+&i2c0 {
+	weather_particles: sps30@69 {
+		compatible = "sensirion,sps30";
+		reg = <0x69>;
+	};
+	weather_air: ens160@52 {
+		compatible = "sciosense,ens160";
+		reg = <0x52>;
+	};
+	weather_humidity: sht40@44 {
+		compatible = "sensirion,sht4x";
+		reg = <0x44>;
+		repeatability = <2>;
+	};
+	weather_pressure: lps22@5c {
+		compatible = "st,lps22hb-press";
+		reg = <0x5c>;
+	};
+};
+
+&esp32_bt_hci {
+	status = "okay";
+};

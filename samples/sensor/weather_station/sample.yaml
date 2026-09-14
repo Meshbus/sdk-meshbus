@@ -1,0 +1,10 @@
+sample:
+  name: Matrix weather station
+  description: Scroll environmental readings and advance with the GPIO9 button
+common:
+  tags: [sensor, display, gpio, i2c]
+  build_only: true
+  platform_allow: [devkit_esp32c6/esp32c6/hpcore]
+  integration_platforms: [devkit_esp32c6/esp32c6/hpcore]
+tests:
+  sample.sensor.weather_station: {}
