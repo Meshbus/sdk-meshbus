@@ -54,7 +54,7 @@ class ArtifactTests(unittest.TestCase):
                   "off_manifest": ["meshbus"] if off_manifest else [],
                   "projects": {"meshbus": {"revision": "a" * 40, "dirty": False}}}
         conf = {"CONFIG_MBS_FIRMWARE": "y", "CONFIG_MBS_LLEXT": "y" if llext else "n"}
-        ctx = (build, {"cmake": {"toolchain": {"name": "zephyr"}}}, conf,
+        ctx = (build, {"cmake": {"toolchain": {"name": "zephyr", "path": "/fixture/toolchain"}}}, conf,
                "fixture_board/soc/cpu", "1.2.3", self.root / "meshbus", source)
         self.enterContext(patch.object(release, "context", return_value=ctx))
         self.enterContext(patch.object(release, "cache", return_value="compiler"))
@@ -138,6 +138,9 @@ class ArtifactTests(unittest.TestCase):
                 archive = destination / "test-edk.tar.xz"
                 archive.write_bytes(b"EDK fixture")
                 art.sidecar(archive)
+            elif command[:3] == ["meshbus", "app", "source"]:
+                self.assertEqual(command[command.index("--toolchain") + 1], "/fixture/toolchain")
+                art.write_json(Path(command[command.index("--output") + 1]), {"schema": 1})
             return "test-version"
 
         manifest = {"target": "fixture_board/soc/cpu",
@@ -149,6 +152,7 @@ class ArtifactTests(unittest.TestCase):
             part = release.firmware(build, self.root / "valid", True)
         record = json.loads((part / "release-part.json").read_text())
         self.assertEqual(record["edk_tool"], identity)
+        self.assertEqual(json.loads((part / "release-source.json").read_text())["schema"], 1)
         art.verify_checksums(part)
 
     def test_intel_hex_handles_unaligned_64k_crossing(self):
@@ -447,7 +451,7 @@ class SigningTests(unittest.TestCase):
                 return None
             return real_run(command, **kwargs)
 
-        def package(*_):
+        def package(*_, app_sdk=None):
             self.assertTrue(keys[-1].exists(), "key must remain available during EDK export")
 
         args.image_signing_key = self.private

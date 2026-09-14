@@ -462,7 +462,7 @@ def image_private_key(key_file, build_root):
     return private_key
 
 
-def firmware(build_dir, output, development, image_public_key=None):
+def firmware(build_dir, output, development, image_public_key=None, app_sdk=None):
     build, info, conf, target, version, source_root, source = context(build_dir)
     product = next((t for t in targets(source_root / "apps/meshbus/boards") if t["board"] == target), None)
     art.require(product, "not a qualified product target")
@@ -582,6 +582,12 @@ def firmware(build_dir, output, development, image_public_key=None):
         manifest = cli_json("edk", "verify", archives[0], command=edk_command)["manifest"]
         art.require(manifest["target"] == target and manifest["host"]["version"] == version,
                     "EDK identity differs from product")
+        # The same producer is used by standalone local imports and releases.
+        source_command = [*edk_command, "app", "source", "--output", part / "release-source.json",
+                          "--edk", archives[0], "--toolchain", info["cmake"]["toolchain"]["path"]]
+        if app_sdk:
+            source_command += ["--sdk", Path(app_sdk).resolve(strict=True)]
+        run(source_command)
     art.write_json(part / "release-part.json", record)
     art.checksums(part)
     return part
@@ -621,7 +627,7 @@ def build_products(args):
             directory.mkdir(parents=True, exist_ok=True)
             run([sys.executable, imgtool(), "getpub", "-k", image_key,
                  "-e", "pem", "-o", directory / "image-public.pem"])
-        firmware(directory, args.output, args.development)
+        firmware(directory, args.output, args.development, app_sdk=getattr(args, "app_sdk", None))
 
 
 def client(args):
@@ -789,6 +795,8 @@ def add_arguments(parser):
     for command in (build, fw):
         command.add_argument("--output", type=Path, required=True)
         command.add_argument("--development", action="store_true")
+        command.add_argument("--app-sdk", type=Path,
+                             help="Local sdk-arduboy directory included in the generated app release source")
     cli = sub.add_parser("cli", help="Explicitly build and archive the native Rust CLI")
     cli.add_argument("--workspace", type=Path, default=Path("."))
     cli.add_argument("--output", type=Path, required=True)
@@ -811,7 +819,7 @@ def execute(args):
             build_products(args)
         elif args.release_command == "firmware":
             print(json.dumps({"part": str(firmware(args.build_dir, args.output, args.development,
-                                                   args.image_public_key))}))
+                                                   args.image_public_key, args.app_sdk))}))
         elif args.release_command == "cli":
             print(json.dumps({"part": str(client(args))}))
         elif args.release_command == "assemble":

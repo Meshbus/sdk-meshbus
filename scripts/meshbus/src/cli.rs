@@ -15,6 +15,8 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    /// Create, build and manage owner-supplied MBA projects.
+    App(crate::app::AppArgs),
     /// Build an extension against a released EDK or a local host build.
     Llext(crate::llext::LlextArgs),
     /// Export, verify or qualify a public extension development kit.
@@ -31,6 +33,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 
 fn run_from(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match cli.command {
+        Command::App(args) => crate::app::run(args).map_err(crate::HostError)?,
         Command::Llext(args) => crate::llext::run(args).map_err(crate::HostError)?,
         Command::Edk(args) => crate::edk::run(args).map_err(crate::HostError)?,
         Command::Connect(args) => run_connect(args)?,

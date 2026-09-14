@@ -11,6 +11,9 @@ uses that executable and skips the local build. Build failures stop execution.
 
 ## Commands
 
+- `meshbus app` creates, synchronizes and builds projects from local release
+  artifacts; see [MBA development](APP_DEVELOPMENT.md).
+
 - `meshbus llext` builds a Desktop `.mba` package.
 - `meshbus edk` exports an EDK; `edk verify` checks it offline; `edk qualify` runs compiler checks.
 - `meshbus firmware package` creates or verifies delta packages.

@@ -51,3 +51,5 @@ pub mod edk;
 pub mod elf;
 pub mod llext;
 pub mod metadata;
+
+pub mod app;

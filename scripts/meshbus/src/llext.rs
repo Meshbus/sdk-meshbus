@@ -27,6 +27,7 @@ pub struct LlextArgs {
 /// Inputs for a package build, independent of command-line parsing.
 #[derive(Debug)]
 pub struct BuildRequest {
+    pub tools: Option<BuildTools>,
     pub build_dir: Option<PathBuf>,
     pub output_dir: Option<PathBuf>,
     pub llext_sdk: Option<PathBuf>,
@@ -36,9 +37,18 @@ pub struct BuildRequest {
     pub cmake_args: Vec<String>,
 }
 
+/// Explicit host tools for managed project builds; legacy builds use PATH.
+#[derive(Debug)]
+pub struct BuildTools {
+    pub cmake: PathBuf,
+    pub ninja: PathBuf,
+    pub python: PathBuf,
+}
+
 impl From<LlextArgs> for BuildRequest {
     fn from(args: LlextArgs) -> Self {
         Self {
+            tools: None,
             build_dir: args.build_dir,
             output_dir: args.output_dir,
             llext_sdk: args.llext_sdk,
@@ -53,6 +63,7 @@ impl From<LlextArgs> for BuildRequest {
 pub fn tool(sdk: &Path, name: &str) -> Result<PathBuf> {
     // SDK 1.x and SDK 0.x layout. Target libc must match the EDK's flags.
     for (directory, prefix) in [
+        ("bin", "arm-zephyr-eabi"),
         ("gnu/arm-zephyr-eabi/bin", "arm-zephyr-eabi"),
         ("arm-zephyr-eabi/bin", "arm-zephyr-eabi"),
     ] {
@@ -132,6 +143,11 @@ pub fn build(args: &BuildRequest) -> Result<PathBuf> {
         "extension CMakeLists.txt missing"
     );
     let data: Value = serde_yaml_ng::from_slice(&host::read(&source.join("llext.yaml"), 65536)?)?;
+    let data = if data.get("project-schema").is_some() {
+        crate::app::metadata(&data)?
+    } else {
+        data
+    };
     let id = metadata::string(&data, "id")?;
     let output = args
         .output_dir
@@ -197,7 +213,15 @@ pub fn build(args: &BuildRequest) -> Result<PathBuf> {
         &std::env::var_os("PATH").unwrap_or_default(),
     ));
     let path = std::env::join_paths(paths)?;
-    let mut configure = Command::new("cmake");
+    let cmake = args
+        .tools
+        .as_ref()
+        .map_or(Path::new("cmake"), |t| t.cmake.as_path());
+    let mut configure = Command::new(cmake);
+    if let Some(tools) = &args.tools {
+        configure.arg(format!("-DCMAKE_MAKE_PROGRAM={}", tools.ninja.display()));
+        configure.arg(format!("-DPython3_EXECUTABLE={}", tools.python.display()));
+    }
     configure
         .arg("-S")
         .arg(&source)
@@ -216,7 +240,7 @@ pub fn build(args: &BuildRequest) -> Result<PathBuf> {
         .env("ZEPHYR_SDK_INSTALL_DIR", &toolchain);
     host::run(&mut configure)?;
     host::run(
-        Command::new("cmake")
+        Command::new(cmake)
             .arg("--build")
             .arg(&build)
             .env("PATH", &path)
@@ -227,6 +251,9 @@ pub fn build(args: &BuildRequest) -> Result<PathBuf> {
         .into_iter()
         .filter(|p| {
             p.extension().is_some_and(|e| e == "llext")
+                && !["normalized.llext", "packaged.llext"]
+                    .iter()
+                    .any(|n| p.file_name().is_some_and(|f| f == *n))
                 && !p
                     .file_name()
                     .unwrap()

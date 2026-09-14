@@ -965,6 +965,7 @@ pub fn qualify(args: &QualifyArgs) -> Result<Value> {
             .as_ref()
             .context("--packages-output required")?;
         packages.push(crate::llext::build(&crate::llext::BuildRequest {
+            tools: None,
             build_dir: None,
             output_dir: Some(output.clone()),
             llext_sdk: Some(root.clone()),
