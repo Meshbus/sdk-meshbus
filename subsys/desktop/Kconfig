@@ -65,6 +65,16 @@ config MBS_DESKTOP_LAUNCHER
 	  at /extra/apps, probes selected .mba packages for metadata, and runs one
 	  foreground external app session at a time.
 
+config MBS_DESKTOP_PACKAGES
+	bool "Registered MBA package installation and recovery"
+	depends on MBS_DESKTOP_LAUNCHER && FILE_SYSTEM
+	select JSON_LIBRARY
+	select PSA_CRYPTO
+	select PSA_WANT_ALG_SHA_256
+	help
+	  Register immutable MBA file sets and block launch during installation.
+	  Versioned installs retain one previous version for explicit rollback.
+
 config MBS_DESKTOP_LAUNCHER_MAX_APPS
 	int "Maximum cached external Desktop app icons"
 	depends on MBS_DESKTOP_LAUNCHER

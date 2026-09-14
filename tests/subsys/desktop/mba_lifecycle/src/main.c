@@ -1,5 +1,9 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include <desktop/session.h>
+#include <desktop/package.h>
+#include <llext/metadata.h>
+#include <psa/crypto.h>
+#include <stdio.h>
 
 #include "desktop_private.h"
 
@@ -52,6 +56,7 @@ static unsigned int unload_failures;
 static unsigned int error_count;
 static int shown_error;
 static int external_cleanup_count;
+static const char *expected_resource_path;
 
 /* UI adapter: observe the same restore/error operations the real UI receives. */
 struct zui_desktop *zui_desktop_get_instance(void)
@@ -158,6 +163,11 @@ void mba_test_run(void *arg)
 	if (expect_mba) {
 		zassert_not_null(args->user_data);
 	}
+	if (expected_resource_path != NULL) {
+		char resolved[192];
+		zassert_ok(mbs_desktop_app_resource_path("assets.abr", resolved, sizeof(resolved)));
+		zassert_str_equal(resolved, expected_resource_path);
+	}
 	/* Entry arguments are mutable; they do not own the retained session. */
 	args->user_data = NULL;
 	entry_count++;
@@ -219,6 +229,7 @@ static void before(void *fixture)
 	error_count = 0;
 	shown_error = 0;
 	external_cleanup_count = 0;
+	expected_resource_path = NULL;
 	k_sem_reset(&entered);
 	k_sem_reset(&return_from_entry);
 	k_sem_reset(&exit_notified);
@@ -531,6 +542,192 @@ ZTEST(mba_lifecycle, test_managed_timeout_cannot_authorize_replacement)
 	zassert_ok(complete_app());
 	zassert_ok(mbs_desktop_mba_get_status(session, &status));
 	zassert_true(status.resources_reclaimed);
+}
+
+#define PACKAGE_ROOT "/extra/apps/mba-lifecycle/versions/"
+#define STORE        "/extra/apps/.meshbus"
+#define HASH_A       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+#define HASH_B       "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+static bool payload_capacity_only;
+int __real_fs_statvfs(const char *, struct fs_statvfs *);
+int __wrap_fs_statvfs(const char *path, struct fs_statvfs *stat)
+{
+	int rc = __real_fs_statvfs(path, stat);
+	if (rc == 0 && payload_capacity_only) {
+		stat->f_bfree = DIV_ROUND_UP(sizeof(app_binary), stat->f_frsize) + 1;
+	}
+	return rc;
+}
+static const char *fail_rename;
+static const char *fail_unlink;
+int __real_fs_rename(const char *, const char *);
+int __wrap_fs_rename(const char *from, const char *to)
+{
+	if (fail_rename != NULL && strcmp(to, fail_rename) == 0) {
+		fail_rename = NULL;
+		return -EIO;
+	}
+	return __real_fs_rename(from, to);
+}
+int __real_fs_unlink(const char *);
+int __wrap_fs_unlink(const char *path)
+{
+	if (fail_unlink != NULL && strcmp(path, fail_unlink) == 0) {
+		fail_unlink = NULL;
+		return -EIO;
+	}
+	return __real_fs_unlink(path);
+}
+int __wrap_mbs_llext_host_info_get(meshbus_LlextHostInfoResponse *info)
+{
+	memset(info, 0, sizeof(*info));
+	strcpy(info->target, CONFIG_BOARD_TARGET);
+	strcpy(info->build_revision, "fixture");
+	info->metadata_version = MBS_LLEXT_APP_METADATA_VERSION;
+	info->interface_abi = MBS_LLEXT_INTERFACE_ABI;
+	info->image_sha256.size = 32;
+	memset(info->image_sha256.bytes, 0xaa, 32);
+	return 0;
+}
+EXPORT_SYMBOL(mbs_desktop_app_resource_path);
+static void mkdir_test(const char *path)
+{
+	int rc = fs_mkdir(path);
+	zassert_true(rc == 0 || rc == -EEXIST, "mkdir %s: %d", path, rc);
+}
+static void digest_test(const void *data, size_t length, char result[65])
+{
+	uint8_t hash[32];
+	size_t size;
+	zassert_equal(psa_hash_compute(PSA_ALG_SHA_256, data, length, hash, 32, &size),
+		      PSA_SUCCESS);
+	zassert_equal(bin2hex(hash, 32, result, 65), 64);
+}
+static meshbus_DesktopPackageResponse package_response;
+static int package_action(int action, const char *bundle, bool purge)
+{
+	meshbus_DesktopPackageRequest request = meshbus_DesktopPackageRequest_init_zero;
+	request.action = action;
+	strcpy(request.app_id, "mba-lifecycle");
+	strcpy(request.manifest_path, STORE "/incoming.json");
+	request.replace = true;
+	request.remove_saves = purge;
+	if (bundle) {
+		strcpy(request.bundle, bundle);
+	}
+	return mbs_desktop_package_manage(&request, &package_response);
+}
+static void incoming_test(const char *hash, char mba[192], char resource[192])
+{
+	char directory[160], mba_hash[65], resource_hash[65];
+	char *json = k_malloc(4096);
+	zassert_not_null(json);
+	snprintf(directory, sizeof(directory), PACKAGE_ROOT "%.32s", hash);
+	mkdir_test(directory);
+	snprintf(mba, 192, "%s/game.mba", directory);
+	snprintf(resource, 192, "%s/assets.abr", directory);
+	digest_test(app_binary, sizeof(app_binary), mba_hash);
+	digest_test("asset", 5, resource_hash);
+	int length = snprintf(
+		json, 4096,
+		"{\"schema\":1,\"id\":\"mba-lifecycle\",\"version\":\"1.0.0\","
+		"\"bundle\":\"%s\",\"image\":\"" HASH_A "\",\"target\":\"" CONFIG_BOARD_TARGET "\","
+		"\"firmware\":\"fixture\",\"metadata_version\":%u,\"interface_abi\":%u,"
+		"\"mba_path\":\"%s\",\"atomic\":true,\"operation\":0,\"purge_saves\":false,"
+		"\"files\":[{\"path\":\"%s\",\"length\":%u,\"sha256\":\"%s\"},"
+		"{\"path\":\"%s\",\"length\":5,\"sha256\":\"%s\"}],"
+		"\"requires\":[\"mba_test_run\",\"mbs_desktop_app_resource_path\"]}",
+		hash, MBS_LLEXT_APP_METADATA_VERSION, MBS_LLEXT_INTERFACE_ABI, mba, mba,
+		(unsigned int)sizeof(app_binary), mba_hash, resource, resource_hash);
+	zassert_true(length > 0 && length < 4096);
+	write_package(STORE "/incoming.json", (uint8_t *)json, length);
+	k_free(json);
+}
+ZTEST(mba_lifecycle, test_package_commit_recovery_and_save_preservation)
+{
+	char mba[192], resource[192], first_mba[192];
+	struct fs_dirent entry;
+	mkdir_test("/extra/apps");
+	mkdir_test(STORE);
+	mkdir_test("/extra/apps/mba-lifecycle");
+	mkdir_test("/extra/apps/mba-lifecycle/versions");
+	mkdir_test("/extra/saves");
+	write_package("/extra/saves/mba-lifecycle.dat", (uint8_t *)"save", 4);
+	write_package("/extra/apps/unrelated.txt", (uint8_t *)"user", 4);
+	incoming_test(HASH_A, mba, resource);
+	strcpy(first_mba, mba);
+	payload_capacity_only = true;
+	zassert_equal(package_action(1, NULL, false), -ENOSPC);
+	payload_capacity_only = false;
+	zassert_equal(fs_stat(STORE "/pending.json", &entry), -ENOENT);
+	zassert_ok(package_action(1, NULL, false));
+	zassert_equal(desktop_package_path_validate(APP_PATH), -EBUSY);
+	write_package(mba, app_binary, sizeof(app_binary));
+	zassert_equal(package_action(2, NULL, false), -ENOENT);
+	zassert_equal(package_response.current_bundle[0], '\0');
+	write_package(resource, (uint8_t *)"asset", 5);
+	fail_rename = STORE "/mba-lifecycle/current.json";
+	zassert_equal(package_action(2, NULL, false), -EIO);
+	zassert_equal(package_response.current_bundle[0], '\0');
+	zassert_ok(package_action(2, NULL, false));
+	zassert_ok(desktop_package_path_validate(mba));
+	incoming_test(HASH_B, mba, resource);
+	zassert_ok(package_action(1, NULL, false));
+	write_package(mba, app_binary, sizeof(app_binary));
+	write_package(resource, (uint8_t *)"asset", 5);
+	fail_unlink = STORE "/pending.json";
+	zassert_equal(package_action(2, NULL, false), -EIO);
+	zassert_str_equal(package_response.current_bundle, HASH_B);
+	zassert_str_equal(package_response.state, "committed-recovery");
+	zassert_equal(desktop_package_path_validate(mba), -EBUSY);
+	zassert_ok(fs_unmount(&mount));
+	zassert_ok(fs_mount(&mount));
+	zassert_ok(package_action(2, NULL, false));
+	zassert_ok(package_action(2, NULL, false));
+	zassert_equal(desktop_package_path_validate(first_mba), -ENOENT);
+	fail_unlink = STORE "/pending.json";
+	zassert_equal(package_action(5, HASH_A, false), -EIO);
+	zassert_ok(package_action(5, HASH_A, false));
+	zassert_ok(package_action(5, HASH_A, false));
+	zassert_str_equal(package_response.current_bundle, HASH_A);
+	incoming_test("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", mba,
+		      resource);
+	zassert_ok(package_action(1, NULL, false));
+	write_package(mba, app_binary, sizeof(app_binary));
+	write_package(resource, (uint8_t *)"asset", 5);
+	fail_rename = STORE "/mba-lifecycle/current.json";
+	zassert_equal(package_action(2, NULL, false), -EIO);
+	zassert_ok(fs_stat(STORE "/garbage.json", &entry));
+	zassert_ok(package_action(3, NULL, false));
+	zassert_equal(fs_stat(STORE "/garbage.json", &entry), -ENOENT);
+	zassert_str_equal(package_response.current_bundle, HASH_A);
+	expected_resource_path = PACKAGE_ROOT "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/assets.abr";
+	zassert_ok(desktop_mba_start(&desktop, first_mba));
+	zassert_ok(k_sem_take(&entered, K_SECONDS(1)));
+	zassert_ok(complete_app());
+	expected_resource_path = NULL;
+	fail_unlink = first_mba;
+	zassert_equal(package_action(4, NULL, false), -EIO);
+	zassert_str_equal(package_response.state, "uninstalling");
+	zassert_ok(package_action(2, NULL, false));
+	zassert_str_equal(package_response.state, "absent");
+	zassert_ok(fs_stat("/extra/saves/mba-lifecycle.dat", &entry));
+	zassert_equal(entry.size, 4);
+	zassert_ok(fs_stat("/extra/apps/unrelated.txt", &entry));
+	zassert_equal(fs_stat(first_mba, &entry), -ENOENT);
+	zassert_equal(fs_stat(mba, &entry), -ENOENT);
+	/* Explicit purge intent survives a lost final response and a default retry. */
+	incoming_test(HASH_A, mba, resource);
+	zassert_ok(package_action(1, NULL, false));
+	write_package(mba, app_binary, sizeof(app_binary));
+	write_package(resource, (uint8_t *)"asset", 5);
+	zassert_ok(package_action(2, NULL, false));
+	fail_unlink = STORE "/pending.json";
+	zassert_equal(package_action(4, NULL, true), -EIO);
+	zassert_ok(package_action(4, NULL, false));
+	zassert_equal(fs_stat("/extra/saves/mba-lifecycle.dat", &entry), -ENOENT);
+	zassert_ok(fs_unlink(STORE "/incoming.json"));
+	zassert_ok(fs_unlink("/extra/apps/unrelated.txt"));
 }
 
 ZTEST_SUITE(mba_lifecycle, NULL, setup, before, after, teardown);

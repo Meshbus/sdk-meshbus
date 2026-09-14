@@ -5,6 +5,7 @@
 #include <desktop/session.h>
 #include <zephyr/random/random.h>
 #include <string.h>
+#include <stdio.h>
 
 #include <errno.h>
 
@@ -33,11 +34,22 @@ static void lifecycle_end(struct zui_desktop *desktop)
 	}
 }
 
+bool desktop_app_lifecycle_acquire(void)
+{
+	return atomic_cas(&lifecycle_busy, 0, 1);
+}
+
+void desktop_app_lifecycle_release(void)
+{
+	lifecycle_end(zui_desktop_get_instance());
+}
+
 #if defined(CONFIG_MBS_DESKTOP_LAUNCHER)
 static struct {
 	struct mbs_llext_app_session *session;
 	mbs_desktop_app_handle_t handle;
 	uint64_t owner;
+	char path[MBS_LLEXT_PATH_MAX_LEN + 1];
 } mba;
 
 #define MBA_STATE(name) meshbus_DesktopMbaState_DESKTOP_MBA_STATE_##name
@@ -250,7 +262,18 @@ static int mba_start_expected(struct zui_desktop *desktop, const char *path, con
 	if (ret != 0) {
 		goto out;
 	}
+	if (strlen(path) >= sizeof(mba.path)) {
+		ret = -ENAMETOOLONG;
+		goto out;
+	}
+	strcpy(mba.path, path);
 	mba.owner = expected_id != NULL ? managed.session_id : 0U;
+#if defined(CONFIG_MBS_DESKTOP_PACKAGES)
+	ret = desktop_package_path_validate(path);
+	if (ret != 0) {
+		goto out;
+	}
+#endif
 	ret = mbs_llext_app_load(path, &mba.session);
 	if (ret != 0) {
 		/* Load can return resources whose own failure cleanup did not finish. */
@@ -580,5 +603,35 @@ void desktop_mba_process_requests(struct zui_desktop *desktop)
 		managed.detail = -ETIMEDOUT;
 	}
 	k_spin_unlock(&managed_lock, key);
+#endif
+}
+
+int mbs_desktop_app_resource_path(const char *name, char *path, size_t capacity)
+{
+#if !defined(CONFIG_MBS_DESKTOP_LAUNCHER)
+	ARG_UNUSED(name);
+	ARG_UNUSED(path);
+	ARG_UNUSED(capacity);
+	return -ENOTSUP;
+#else
+	const char *slash;
+	int length;
+
+	/* The app owns this read: path is set before its thread starts, and
+	 * cannot change until that thread has joined and reclamation finishes.
+	 */
+	if (name == NULL || path == NULL || capacity == 0U || name[0] == '\0' ||
+	    name[0] == '.' || strchr(name, '/') != NULL || strchr(name, '\\') != NULL) {
+		return -EINVAL;
+	}
+	if (mba.session == NULL) {
+		return -ENODEV;
+	}
+	slash = strrchr(mba.path, '/');
+	if (slash == NULL) {
+		return -EINVAL;
+	}
+	length = snprintf(path, capacity, "%.*s/%s", (int)(slash - mba.path), mba.path, name);
+	return length < 0 || (size_t)length >= capacity ? -ENAMETOOLONG : 0;
 #endif
 }

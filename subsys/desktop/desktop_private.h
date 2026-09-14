@@ -209,6 +209,13 @@ int desktop_power_menu_init(struct zui_desktop *desktop);
 void desktop_power_menu_deinit(struct zui_desktop *desktop);
 void desktop_power_menu_poll(struct zui_desktop *desktop);
 
+/* One operation gate shared by launch, cleanup and package mutations.
+ * Reject reentrancy; never hold a kernel state lock across filesystem I/O.
+ */
+bool desktop_app_lifecycle_acquire(void);
+void desktop_app_lifecycle_release(void);
+int desktop_package_path_validate(const char *path);
+
 #ifdef __cplusplus
 }
 #endif

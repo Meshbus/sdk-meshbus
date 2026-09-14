@@ -9,11 +9,13 @@ set(MBA_TEST_DIR "${CMAKE_CURRENT_LIST_DIR}")
 target_sources(app PRIVATE
 	${MBA_TEST_DIR}/src/main.c
 	${DESKTOP_DIR}/app_runtime.c
+	${DESKTOP_DIR}/packages.c
 	${DESKTOP_DIR}/registry/apps_registry.c
 )
 target_include_directories(app PRIVATE ${DESKTOP_DIR})
 target_compile_definitions(app PRIVATE
 	CONFIG_MBS_DESKTOP=1
+	CONFIG_MBS_DESKTOP_PACKAGES=1
 	CONFIG_MBS_DESKTOP_LOG_LEVEL=3
 	CONFIG_MBS_DESKTOP_LAUNCHER=1
 	CONFIG_MBS_DESKTOP_APP_SHARED_STACK_SIZE=2048
@@ -22,6 +24,10 @@ target_compile_definitions(app PRIVATE
 zephyr_linker_sources(SECTIONS ${DESKTOP_DIR}/registry/iterables_apps.ld)
 zephyr_link_libraries(
 	-Wl,--wrap=llext_unload
+	-Wl,--wrap=mbs_llext_host_info_get
+	-Wl,--wrap=fs_rename
+	-Wl,--wrap=fs_unlink
+	-Wl,--wrap=fs_statvfs
 	-Wl,--wrap=zui_desktop_request_app_exit
 	-Wl,--wrap=desktop_app_registry_start
 	-Wl,--wrap=zui_host_set_layer_enabled

@@ -39,6 +39,8 @@ if(CONFIG_MBS_DESKTOP)
 		launcher.c
 	)
 
+	zephyr_library_sources_ifdef(CONFIG_MBS_DESKTOP_PACKAGES packages.c)
+
 	zephyr_library_sources_ifdef(CONFIG_MCUMGR
 		mgmt.c
 	)

@@ -11,6 +11,9 @@
 #if defined(CONFIG_MBS_DESKTOP)
 #include <desktop/desktop.h>
 EXPORT_SYMBOL(mbs_desktop_app_stop_requested);
+#if defined(CONFIG_MBS_DESKTOP_PACKAGES)
+EXPORT_SYMBOL(mbs_desktop_app_resource_path);
+#endif
 #endif
 
 #if defined(CONFIG_ADC)

@@ -196,6 +196,12 @@ int mbs_desktop_external_app_start(const struct mbs_desktop_external_app_desc *d
 /** @brief Poll the cooperative foreground app stop request. No resources are
  * reclaimed by this call. The app must return through its normal cleanup path. */
 bool mbs_desktop_app_stop_requested(void);
+/** Resolve a resource basename beside the currently executing MBA. Only the
+ * running MBA thread may call this; output belongs to the caller and is valid
+ * on success. Returns 0, -ENOTSUP, -ENODEV, -EINVAL or -ENAMETOOLONG. This enables a
+ * versioned file set without embedding a firmware install path in the app.
+ */
+int mbs_desktop_app_resource_path(const char *name, char *path, size_t capacity);
 
 /** @brief Return true until a one-shot external Desktop app thread is fully reclaimed. */
 bool mbs_desktop_external_app_is_active(void);

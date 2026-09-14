@@ -6,6 +6,7 @@
 
 #include <errno.h>
 #include <desktop/session.h>
+#include <desktop/package.h>
 
 #include <zephyr/logging/log.h>
 #include <zephyr/mgmt/mcumgr/mgmt/handlers.h>
@@ -99,7 +100,42 @@ static int mbs_desktop_mgmt_mba_stop(struct smp_streamer *ctxt)
 		meshbus_DesktopMbaResponse_fields, meshbus_DesktopMbaResponse_size);
 }
 
+static int mbs_desktop_mgmt_package(struct smp_streamer *ctxt)
+{
+#if defined(CONFIG_MBS_DESKTOP_PACKAGES)
+	/* File-system and crypto calls share the small MCUmgr worker stack. */
+	struct package_exchange {
+		meshbus_DesktopPackageRequest request;
+		meshbus_DesktopPackageResponse response;
+	} *exchange = k_calloc(1, sizeof(*exchange));
+	int rc;
+
+	if (exchange == NULL) {
+		return -ENOMEM;
+	}
+	rc = mbs_mgmt_decode_proto(ctxt, &exchange->request, sizeof(exchange->request),
+				   meshbus_DesktopPackageRequest_fields, false);
+	if (rc == 0) {
+		exchange->response.detail =
+			mbs_desktop_package_manage(&exchange->request, &exchange->response);
+		rc = mbs_mgmt_encode_proto(ctxt, &exchange->response,
+					   meshbus_DesktopPackageResponse_fields,
+					   meshbus_DesktopPackageResponse_size);
+	}
+	k_free(exchange);
+	return rc;
+#else
+	ARG_UNUSED(ctxt);
+	return -ENOTSUP;
+#endif
+}
+
 static const struct mgmt_handler mbs_desktop_mgmt_group_handlers[] = {
+	[meshbus_DesktopMgmtCommandId_DESKTOP_MGMT_COMMAND_ID_PACKAGE] =
+		{
+			.mh_read = mbs_desktop_mgmt_package,
+			.mh_write = mbs_desktop_mgmt_package,
+		},
 	[meshbus_DesktopMgmtCommandId_DESKTOP_MGMT_COMMAND_ID_MBA_STATUS] =
 		{mbs_desktop_mgmt_mba_status, NULL},
 	[meshbus_DesktopMgmtCommandId_DESKTOP_MGMT_COMMAND_ID_MBA_START] =
