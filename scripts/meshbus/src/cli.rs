@@ -68,7 +68,17 @@ mod tests {
             let Command::Llext(args) = cli.command else {
                 panic!("wrong command")
             };
-            assert_eq!(args.cmake_args, ["-DFEATURE=ON"]);
+            let request = crate::llext::BuildRequest::from(args);
+            assert_eq!(request.cmake_args, ["-DFEATURE=ON"]);
+            assert_eq!(
+                request.build_dir.as_deref(),
+                Some(std::path::Path::new("host"))
+            );
+            assert_eq!(request.source_dir, std::path::Path::new("extension"));
+            assert!(request.output_dir.is_none());
+            assert!(request.llext_sdk.is_none());
+            assert!(request.zephyr_sdk.is_none());
+            assert!(!request.force_edk);
         }
     }
 }

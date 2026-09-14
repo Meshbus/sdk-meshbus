@@ -24,6 +24,32 @@ pub struct LlextArgs {
     #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
     pub cmake_args: Vec<String>,
 }
+/// Inputs for a package build, independent of command-line parsing.
+#[derive(Debug)]
+pub struct BuildRequest {
+    pub build_dir: Option<PathBuf>,
+    pub output_dir: Option<PathBuf>,
+    pub llext_sdk: Option<PathBuf>,
+    pub zephyr_sdk: Option<PathBuf>,
+    pub force_edk: bool,
+    pub source_dir: PathBuf,
+    pub cmake_args: Vec<String>,
+}
+
+impl From<LlextArgs> for BuildRequest {
+    fn from(args: LlextArgs) -> Self {
+        Self {
+            build_dir: args.build_dir,
+            output_dir: args.output_dir,
+            llext_sdk: args.llext_sdk,
+            zephyr_sdk: args.zephyr_sdk,
+            force_edk: args.force_edk,
+            source_dir: args.source_dir,
+            cmake_args: args.cmake_args,
+        }
+    }
+}
+
 pub fn tool(sdk: &Path, name: &str) -> Result<PathBuf> {
     // SDK 1.x and SDK 0.x layout. Target libc must match the EDK's flags.
     for (directory, prefix) in [
@@ -42,7 +68,7 @@ pub fn tool(sdk: &Path, name: &str) -> Result<PathBuf> {
         sdk.display()
     )
 }
-fn sdk_path(args: &LlextArgs) -> Result<PathBuf> {
+fn sdk_path(args: &BuildRequest) -> Result<PathBuf> {
     if let Some(p) = &args.zephyr_sdk {
         return Ok(p.canonicalize()?);
     }
@@ -91,7 +117,7 @@ pub fn internal_tool() -> Option<Result<i32>> {
         Ok(status.code().unwrap_or(1))
     })())
 }
-pub fn build(args: &LlextArgs) -> Result<PathBuf> {
+pub fn build(args: &BuildRequest) -> Result<PathBuf> {
     ensure!(
         args.build_dir.is_some() || args.llext_sdk.is_some(),
         "pass --build-dir or --llext-sdk"
@@ -349,7 +375,7 @@ pub fn resource_collection(build: &Path, package: &Path, id: &str) -> Result<Pat
     Ok(manifest)
 }
 pub fn run(args: LlextArgs) -> Result<()> {
-    let package = build(&args)?;
+    let package = build(&args.into())?;
     host::print(
         &serde_json::json!({"report":package.with_extension("build.json"),"package":package}),
     )
