@@ -1,0 +1,14 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * This overlay binds the board hardware used by the input sample.
+ */
+
+/ {
+	chosen {
+		meshbus,input-buttons = &buttons;
+		meshbus,input-encoder = &encoder;
+	};
+};

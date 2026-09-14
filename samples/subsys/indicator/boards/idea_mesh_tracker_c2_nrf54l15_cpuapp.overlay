@@ -1,0 +1,16 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * This overlay binds the board hardware used by the indicator sample.
+ */
+
+/ {
+	chosen {
+		meshbus,indicator-light-active = &led0;
+		meshbus,indicator-buzzer = &pwm20;
+		meshbus,indicator-buzzer-power = &peripheral_power;
+		meshbus,indicator-light-power = &peripheral_power;
+	};
+};
