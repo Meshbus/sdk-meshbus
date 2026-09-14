@@ -1,0 +1,18 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+sample:
+  name: Modulino LED Matrix looping test
+  description: Startup Display API checks followed by continuously looping visual scenes
+common:
+  tags:
+    - display
+    - i2c
+  build_only: true
+  filter: dt_compat_enabled("arduino,modulino-led-matrix")
+tests:
+  sample.display.modulino_led_matrix:
+    platform_allow:
+      - devkit_esp32c6/esp32c6/hpcore
+    integration_platforms:
+      - devkit_esp32c6/esp32c6/hpcore
