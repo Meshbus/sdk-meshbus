@@ -24,6 +24,8 @@ use serde_json::{Map as JsonMap, Value as JsonValue, json};
 use serialport::{ClearBuffer, SerialPort};
 use thiserror::Error;
 
+mod app_management;
+pub use app_management::DeviceClient;
 mod configuration;
 mod console;
 mod firmware_delta;

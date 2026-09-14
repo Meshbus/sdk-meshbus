@@ -22,6 +22,7 @@ pub struct Artifact {
 pub struct Release {
     pub target: String,
     pub firmware: String,
+    pub image_sha256: Option<String>,
     pub profile: String,
     pub host_platform: String,
     pub edk: Artifact,
@@ -185,18 +186,25 @@ pub fn source(path: &Path) -> Result<Source> {
     let mut seen = std::collections::BTreeSet::new();
     for r in &value.releases {
         ensure!(
-            seen.insert((&r.target, &r.profile, &r.firmware, &r.host_platform)),
+            seen.insert((
+                &r.target,
+                &r.profile,
+                &r.firmware,
+                &r.host_platform,
+                &r.image_sha256
+            )),
             "duplicate release identity"
         );
     }
     Ok(value)
 }
-pub fn select(
-    project: &Path,
+pub fn resolve_selection(
+    _project: &Path,
     path: &Path,
     target: &str,
     firmware: &str,
     profile: &str,
+    image_sha256: Option<&str>,
 ) -> Result<Selection> {
     let path = path.canonicalize()?;
     let src = source(&path)?;
@@ -205,6 +213,7 @@ pub fn select(
             && r.firmware == firmware
             && r.profile == profile
             && r.host_platform == platform()
+            && image_sha256.is_none_or(|hash| r.image_sha256.as_deref() == Some(hash))
     });
     let mut release = matches
         .next()
@@ -228,6 +237,17 @@ pub fn select(
         source: path,
         release,
     };
+    Ok(selection)
+}
+pub fn select(
+    project: &Path,
+    path: &Path,
+    target: &str,
+    firmware: &str,
+    profile: &str,
+    image_sha256: Option<&str>,
+) -> Result<Selection> {
+    let selection = resolve_selection(project, path, target, firmware, profile, image_sha256)?;
     write_json(&project.join(".meshbus-target.json"), &selection)?;
     Ok(selection)
 }
@@ -236,6 +256,7 @@ pub fn check_edk(release: &Release) -> Result<()> {
     ensure!(
         m["target"] == release.target
             && m["host"]["build-revision"] == release.firmware
+            && m["host"]["image-sha256"] == serde_json::to_value(&release.image_sha256)?
             && m["metadata-version"] == release.metadata_version
             && m["interface-abi"] == serde_json::to_value(release.interface_abi)?,
         "EDK identity differs from selected release"

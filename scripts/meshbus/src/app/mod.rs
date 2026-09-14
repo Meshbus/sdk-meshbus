@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 //! Customer MBA workflows. Release builds remain owned by `west release`.
+pub mod bundle;
+pub mod device;
 mod doctor;
 mod inputs;
 mod project;
+mod session;
 use anyhow::{Context, Result, ensure};
 use clap::{Args, Subcommand, ValueEnum};
 use std::{
@@ -16,6 +19,10 @@ pub struct AppArgs {
     pub project: PathBuf,
     #[arg(long, global = true)]
     pub cache_dir: Option<PathBuf>,
+    #[arg(long, global = true)]
+    pub device: Option<String>,
+    #[arg(long, global = true)]
+    pub log_file: Option<PathBuf>,
     #[command(subcommand)]
     pub command: AppCommand,
 }
@@ -65,6 +72,10 @@ pub enum AppCommand {
         template: Template,
     },
     Build(BuildArgs),
+    /// Collect or verify a versioned MBA/sidecar file set.
+    Package {
+        mba: PathBuf,
+    },
     /// Describe a set of local release inputs without publishing anything.
     Source(SourceArgs),
     /// Select a release by exact target, firmware and profile.
@@ -72,9 +83,9 @@ pub enum AppCommand {
         #[arg(long)]
         source: PathBuf,
         #[arg(long)]
-        target: String,
+        target: Option<String>,
         #[arg(long)]
-        firmware: String,
+        firmware: Option<String>,
         #[arg(long, default_value = "default")]
         profile: String,
     },
@@ -92,6 +103,25 @@ pub enum AppCommand {
     },
     /// Diagnose project inputs without changing them.
     Doctor,
+    /// Start an MBA by its metadata ID and installed path.
+    Start {
+        id: String,
+        #[arg(long)]
+        path: String,
+    },
+    /// Query the latest or an exact managed Session.
+    Status {
+        #[arg(long)]
+        session: Option<u64>,
+    },
+    /// Cooperatively stop exactly the selected app; never abort its thread.
+    Stop {
+        id: String,
+        #[arg(long)]
+        session: Option<u64>,
+        #[arg(long, default_value_t=5000, value_parser=clap::value_parser!(u32).range(1..=30000))]
+        timeout_ms: u32,
+    },
 }
 fn executable(explicit: Option<&Path>, name: &str) -> Result<PathBuf> {
     if let Some(path) = explicit {
@@ -125,6 +155,7 @@ fn create_source(args: SourceArgs) -> Result<()> {
     let mut release = Release {
         target: crate::metadata::string(&m, "target")?.into(),
         firmware: crate::metadata::string(&m["host"], "build-revision")?.into(),
+        image_sha256: m["host"]["image-sha256"].as_str().map(str::to_owned),
         profile: args.profile,
         host_platform: inputs::platform(),
         edk,
@@ -174,6 +205,10 @@ pub fn run(args: AppArgs) -> Result<()> {
             let package = project::build(&args.project, &inputs)?;
             crate::host::print(&serde_json::json!({"package":package}))
         }
+        AppCommand::Package { mba } => {
+            let manifest = bundle::collect(&mba)?;
+            crate::host::print(&serde_json::json!({"manifest":manifest}))
+        }
         AppCommand::Source(inputs) => create_source(inputs),
         AppCommand::Target {
             source,
@@ -182,13 +217,24 @@ pub fn run(args: AppArgs) -> Result<()> {
             profile,
         } => {
             project::read(&args.project)?;
-            crate::host::print(&inputs::select(
-                &args.project,
-                &source,
-                &target,
-                &firmware,
-                &profile,
-            )?)
+            if let Some(device) = args.device.as_deref() {
+                ensure!(
+                    target.is_none() && firmware.is_none(),
+                    "choose --device or explicit target/firmware"
+                );
+                device::target(&args.project, device, &source, &profile)
+            } else {
+                crate::host::print(&inputs::select(
+                    &args.project,
+                    &source,
+                    target.as_deref().context("supply --target or --device")?,
+                    firmware
+                        .as_deref()
+                        .context("supply --firmware or --device")?,
+                    &profile,
+                    None,
+                )?)
+            }
         }
         AppCommand::Sync { locked, offline: _ } => crate::host::print(&inputs::sync(
             &args.project,
@@ -203,6 +249,32 @@ pub fn run(args: AppArgs) -> Result<()> {
             true,
         )?),
         AppCommand::Doctor => doctor::run(&args.project),
+        AppCommand::Start { id, path } => {
+            let (mut client, binding) =
+                device::open(&args.project, args.device.as_deref(), args.log_file)?;
+            session::check_host(&args.project, &binding.host)?;
+            session::print_result(&session::start(&mut client, &id, &path)?)
+        }
+        AppCommand::Status { session: id } => {
+            let (mut client, _) =
+                device::open(&args.project, args.device.as_deref(), args.log_file)?;
+            crate::host::print(&session::status(&mut client, id.unwrap_or(0))?)
+        }
+        AppCommand::Stop {
+            id,
+            session: instance,
+            timeout_ms,
+        } => {
+            let (mut client, _) =
+                device::open(&args.project, args.device.as_deref(), args.log_file)?;
+            let status = session::stop(&mut client, &id, instance, timeout_ms)?;
+            session::print_result(&status)?;
+            ensure!(
+                status.resources_reclaimed,
+                "Session resources are not reclaimed; replacement is forbidden"
+            );
+            Ok(())
+        }
     }
 }
 pub(crate) use project::metadata;

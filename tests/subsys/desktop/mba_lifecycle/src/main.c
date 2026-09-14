@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: Apache-2.0 */
+#include <desktop/session.h>
 
 #include "desktop_private.h"
 
@@ -43,6 +44,7 @@ static uint32_t screen;
 static bool desktop_visible;
 static bool delay_thread_exit;
 static bool poll_exit_during_start;
+static bool cooperative_stop;
 static bool expect_mba;
 static unsigned int entry_count;
 static unsigned int unload_count;
@@ -127,7 +129,14 @@ int __real_desktop_app_registry_start(struct zui_desktop *instance,
 int __wrap_desktop_app_registry_start(struct zui_desktop *instance,
 				      mbs_desktop_app_handle_t handle)
 {
-	int ret = __real_desktop_app_registry_start(instance, handle);
+	mbs_desktop_mba_status competing;
+	int ret;
+
+	/* A managed reservation cannot interleave with any launch before the
+	 * new app thread becomes visible to the runtime busy checks.
+	 */
+	zassert_equal(mbs_desktop_mba_start("mba-test", APP_PATH, &competing), -EBUSY);
+	ret = __real_desktop_app_registry_start(instance, handle);
 
 	if (ret == 0 && poll_exit_during_start) {
 		zassert_ok(k_sem_take(&exit_notified, K_SECONDS(1)));
@@ -153,7 +162,13 @@ void mba_test_run(void *arg)
 	args->user_data = NULL;
 	entry_count++;
 	k_sem_give(&entered);
-	zassert_ok(k_sem_take(&return_from_entry, K_SECONDS(2)));
+	if (cooperative_stop) {
+		while (!mbs_desktop_app_stop_requested()) {
+			k_sleep(K_MSEC(1));
+		}
+	} else {
+		zassert_ok(k_sem_take(&return_from_entry, K_SECONDS(2)));
+	}
 }
 EXPORT_SYMBOL(mba_test_run);
 
@@ -196,6 +211,7 @@ static void before(void *fixture)
 	desktop_visible = true;
 	delay_thread_exit = false;
 	poll_exit_during_start = false;
+	cooperative_stop = false;
 	expect_mba = true;
 	entry_count = 0;
 	unload_count = 0;
@@ -426,6 +442,95 @@ static void teardown(void *fixture)
 
 	zassert_ok(mba_test_storage_cleanup());
 #endif
+}
+
+static K_THREAD_STACK_DEFINE(request_stack, 4096);
+static struct k_thread request_thread;
+
+static void process_on_wakeup(void *a, void *b, void *c)
+{
+	ARG_UNUSED(a); ARG_UNUSED(b); ARG_UNUSED(c);
+	zassert_ok(k_sem_take(&desktop.redraw_sem, K_SECONDS(1)));
+	desktop_mba_process_requests(&desktop);
+}
+
+ZTEST(mba_lifecycle, test_managed_acceptance_allows_immediate_desktop_preemption)
+{
+	mbs_desktop_mba_status status;
+	int priority = k_thread_priority_get(k_current_get());
+
+	cooperative_stop = true;
+	/* MCUmgr is preemptible; the default ztest thread is cooperative. */
+	k_thread_priority_set(k_current_get(), K_PRIO_PREEMPT(1));
+	k_thread_create(&request_thread, request_stack, K_THREAD_STACK_SIZEOF(request_stack),
+		process_on_wakeup, NULL, NULL, NULL, K_PRIO_COOP(0), 0, K_NO_WAIT);
+	zassert_ok(mbs_desktop_mba_start("mba-lifecycle", APP_PATH, &status));
+	zassert_ok(k_thread_join(&request_thread, K_SECONDS(1)));
+	k_thread_priority_set(k_current_get(), priority);
+	zassert_ok(k_sem_take(&entered, K_SECONDS(1)));
+	zassert_ok(mbs_desktop_mba_get_status(status.session_id, &status));
+	zassert_equal(status.state, meshbus_DesktopMbaState_DESKTOP_MBA_STATE_RUNNING);
+	zassert_ok(mbs_desktop_mba_stop(status.session_id, 1000, &status));
+	desktop_mba_process_requests(&desktop);
+	zassert_ok(k_sem_take(&exit_notified, K_SECONDS(1)));
+	zassert_ok(desktop_app_complete_exit(&desktop, K_SECONDS(1)));
+}
+
+ZTEST(mba_lifecycle, test_managed_stop_reports_reclamation_and_retries_cleanup)
+{
+	mbs_desktop_mba_status status;
+	uint64_t session;
+
+	cooperative_stop = true;
+	screen = MBS_DESKTOP_VIEW_DASHBOARD;
+	zassert_ok(mbs_desktop_mba_start("mba-lifecycle", APP_PATH, &status));
+	session = status.session_id;
+	zassert_not_equal(session, 0U);
+	zassert_equal(status.state, meshbus_DesktopMbaState_DESKTOP_MBA_STATE_ACCEPTED);
+	zassert_equal(entry_count, 0U);
+	zassert_equal(desktop_mba_start(&desktop, APP_PATH), -EBUSY);
+	desktop_mba_process_requests(&desktop);
+	zassert_ok(k_sem_take(&entered, K_SECONDS(1)));
+	zassert_ok(mbs_desktop_mba_get_status(session, &status));
+	zassert_equal(status.state, meshbus_DesktopMbaState_DESKTOP_MBA_STATE_RUNNING);
+	zassert_equal(mbs_desktop_mba_stop(session + 1, 100, &status), -ESTALE);
+	unload_failures = 1;
+	zassert_ok(mbs_desktop_mba_stop(session, 1000, &status));
+	zassert_false(status.resources_reclaimed);
+	desktop_mba_process_requests(&desktop);
+	zassert_ok(k_sem_take(&exit_notified, K_SECONDS(1)));
+	zassert_equal(desktop_app_complete_exit(&desktop, K_SECONDS(1)), -EIO);
+	zassert_ok(mbs_desktop_mba_get_status(session, &status));
+	zassert_equal(status.state, meshbus_DesktopMbaState_DESKTOP_MBA_STATE_FAILED);
+	zassert_false(status.resources_reclaimed);
+	zassert_equal(mbs_desktop_mba_start("mba-lifecycle", APP_PATH, &status), -EBUSY);
+	zassert_ok(mbs_desktop_mba_stop(session, 1000, &status));
+	desktop_mba_process_requests(&desktop);
+	zassert_ok(mbs_desktop_mba_get_status(session, &status));
+	zassert_true(status.resources_reclaimed);
+	zassert_equal(status.state, meshbus_DesktopMbaState_DESKTOP_MBA_STATE_ENDED);
+}
+
+ZTEST(mba_lifecycle, test_managed_timeout_cannot_authorize_replacement)
+{
+	mbs_desktop_mba_status status;
+	uint64_t session;
+
+	zassert_ok(mbs_desktop_mba_start("mba-lifecycle", APP_PATH, &status));
+	session = status.session_id;
+	desktop_mba_process_requests(&desktop);
+	zassert_ok(k_sem_take(&entered, K_SECONDS(1)));
+	zassert_ok(mbs_desktop_mba_stop(session, 1, &status));
+	desktop_mba_process_requests(&desktop);
+	k_sleep(K_MSEC(2));
+	desktop_mba_process_requests(&desktop);
+	zassert_ok(mbs_desktop_mba_get_status(session, &status));
+	zassert_equal(status.detail, -ETIMEDOUT);
+	zassert_false(status.resources_reclaimed);
+	zassert_equal(mbs_desktop_mba_start("mba-lifecycle", APP_PATH, &status), -EBUSY);
+	zassert_ok(complete_app());
+	zassert_ok(mbs_desktop_mba_get_status(session, &status));
+	zassert_true(status.resources_reclaimed);
 }
 
 ZTEST_SUITE(mba_lifecycle, NULL, setup, before, after, teardown);

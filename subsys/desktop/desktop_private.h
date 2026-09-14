@@ -188,6 +188,8 @@ int desktop_mba_start(struct zui_desktop *desktop, const char *path);
  * Join failure keeps the exit pending; MBA cleanup failure restores Desktop,
  * reports the error and retains the session until another explicit launch.
  */
+void desktop_mba_process_requests(struct zui_desktop *desktop);
+bool desktop_mba_stop_pending(void);
 int desktop_app_complete_exit(struct zui_desktop *desktop, k_timeout_t timeout);
 
 int desktop_dashboard_init(struct zui_desktop *desktop);

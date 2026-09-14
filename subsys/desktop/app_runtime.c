@@ -2,6 +2,9 @@
 
 #include "desktop_private.h"
 #include "registry/apps_registry_prvi.h"
+#include <desktop/session.h>
+#include <zephyr/random/random.h>
+#include <string.h>
 
 #include <errno.h>
 
@@ -34,7 +37,38 @@ static void lifecycle_end(struct zui_desktop *desktop)
 static struct {
 	struct mbs_llext_app_session *session;
 	mbs_desktop_app_handle_t handle;
+	uint64_t owner;
 } mba;
+
+#define MBA_STATE(name) meshbus_DesktopMbaState_DESKTOP_MBA_STATE_##name
+static struct k_spinlock managed_lock;
+static mbs_desktop_mba_status managed = {
+	.protocol_version = 1U,
+	.resources_reclaimed = true,
+};
+static bool managed_start_pending;
+static bool managed_stop_queued;
+static int64_t managed_stop_deadline;
+static uint64_t managed_epoch;
+static uint32_t managed_sequence;
+
+static void managed_finish(int detail)
+{
+	k_spinlock_key_t key = k_spin_lock(&managed_lock);
+
+	if (managed.session_id != 0U && mba.owner == managed.session_id &&
+	    !managed.resources_reclaimed &&
+	    managed.state != MBA_STATE(ACCEPTED)) {
+		managed.resources_reclaimed = mba.session == NULL &&
+			!mbs_desktop_app_handle_is_valid(mba.handle);
+		managed.detail = detail != 0 ? detail : managed.detail;
+		managed.state = managed.detail != 0 ? MBA_STATE(FAILED) : MBA_STATE(ENDED);
+		if (managed.resources_reclaimed) {
+			mba.owner = 0U;
+		}
+	}
+	k_spin_unlock(&managed_lock, key);
+}
 
 static int mba_reclaim(void)
 {
@@ -175,11 +209,12 @@ int mbs_desktop_external_app_start(const struct mbs_desktop_external_app_desc *d
 #endif
 }
 
-int desktop_mba_start(struct zui_desktop *desktop, const char *path)
+static int mba_start_expected(struct zui_desktop *desktop, const char *path, const char *expected_id)
 {
 #if !defined(CONFIG_MBS_DESKTOP_LAUNCHER)
 	ARG_UNUSED(desktop);
 	ARG_UNUSED(path);
+	ARG_UNUSED(expected_id);
 	return -ENOTSUP;
 #else
 	struct mbs_llext_app_info info;
@@ -192,6 +227,15 @@ int desktop_mba_start(struct zui_desktop *desktop, const char *path)
 	}
 	if (!atomic_cas(&lifecycle_busy, 0, 1)) {
 		return -EBUSY;
+	}
+	/* Share the gate with managed reservation, including the UI path. */
+	k_spinlock_key_t key = k_spin_lock(&managed_lock);
+	bool reserved = expected_id == NULL && !managed.resources_reclaimed;
+
+	k_spin_unlock(&managed_lock, key);
+	if (reserved) {
+		ret = -EBUSY;
+		goto out;
 	}
 	ret = launcher_ready(desktop);
 	if (ret != 0) {
@@ -206,6 +250,7 @@ int desktop_mba_start(struct zui_desktop *desktop, const char *path)
 	if (ret != 0) {
 		goto out;
 	}
+	mba.owner = expected_id != NULL ? managed.session_id : 0U;
 	ret = mbs_llext_app_load(path, &mba.session);
 	if (ret != 0) {
 		/* Load can return resources whose own failure cleanup did not finish. */
@@ -213,6 +258,10 @@ int desktop_mba_start(struct zui_desktop *desktop, const char *path)
 	}
 	ret = mbs_llext_app_get_info(mba.session, &info);
 	if (ret != 0) {
+		goto reclaim;
+	}
+	if (expected_id != NULL && strcmp(expected_id, info.id) != 0) {
+		ret = -EINVAL;
 		goto reclaim;
 	}
 	ret = mbs_llext_app_get_entry(mba.session, &entry);
@@ -241,6 +290,11 @@ out:
 	lifecycle_end(desktop);
 	return ret;
 #endif
+}
+
+int desktop_mba_start(struct zui_desktop *desktop, const char *path)
+{
+	return mba_start_expected(desktop, path, NULL);
 }
 
 bool mbs_desktop_external_app_is_active(void)
@@ -308,6 +362,9 @@ int desktop_app_complete_exit(struct zui_desktop *desktop, k_timeout_t timeout)
 		mba.handle = MBS_DESKTOP_APP_HANDLE_INVALID;
 	}
 #endif
+#if defined(CONFIG_MBS_DESKTOP_LAUNCHER)
+	managed_finish(cleanup_ret);
+#endif
 	atomic_clear(&desktop->app_exit_pending);
 	app_restore_desktop(desktop);
 #if defined(CONFIG_MBS_DESKTOP_LAUNCHER)
@@ -320,4 +377,208 @@ int desktop_app_complete_exit(struct zui_desktop *desktop, k_timeout_t timeout)
 out:
 	lifecycle_end(desktop);
 	return ret;
+}
+
+int mbs_desktop_mba_get_status(uint64_t session, mbs_desktop_mba_status *status)
+{
+	if (status == NULL) {
+		return -EINVAL;
+	}
+#if !defined(CONFIG_MBS_DESKTOP_LAUNCHER)
+	ARG_UNUSED(session);
+	return -ENOTSUP;
+#else
+	k_spinlock_key_t key = k_spin_lock(&managed_lock);
+
+	if (session != 0U && session != managed.session_id) {
+		k_spin_unlock(&managed_lock, key);
+		return -ESTALE;
+	}
+	*status = managed;
+	k_spin_unlock(&managed_lock, key);
+	/* A manually launched app also forbids replacement, even if the last
+	 * managed Session ended. Do not claim global reclamation while it runs.
+	 */
+	if (mbs_llext_runtime_busy() || mbs_desktop_external_app_is_active()) {
+		status->resources_reclaimed = false;
+	}
+	return 0;
+#endif
+}
+
+int mbs_desktop_mba_start(const char *id, const char *path, mbs_desktop_mba_status *status)
+{
+#if !defined(CONFIG_MBS_DESKTOP_LAUNCHER)
+	ARG_UNUSED(id); ARG_UNUSED(path); ARG_UNUSED(status);
+	return -ENOTSUP;
+#else
+	struct zui_desktop *desktop = zui_desktop_get_instance();
+	k_spinlock_key_t key;
+	uint64_t epoch;
+	int ret = 0;
+
+	if (id == NULL || path == NULL || status == NULL || id[0] == '\0' ||
+	    strlen(id) >= sizeof(managed.app_id) || strlen(path) >= sizeof(managed.path)) {
+		return -EINVAL;
+	}
+	if (desktop == NULL || desktop->host == NULL) {
+		return -ENODEV;
+	}
+	if (!atomic_cas(&lifecycle_busy, 0, 1)) {
+		return -EBUSY;
+	}
+	if (mbs_llext_runtime_busy() || mbs_desktop_app_handle_is_valid(desktop->active_app_handle)) {
+		ret = -EBUSY;
+		goto out;
+	}
+	epoch = (uint64_t)sys_rand32_get() << 32;
+	key = k_spin_lock(&managed_lock);
+	if (managed_start_pending || !managed.resources_reclaimed) {
+		k_spin_unlock(&managed_lock, key);
+		ret = -EBUSY;
+		goto out;
+	}
+	if (managed_sequence == UINT32_MAX) {
+		k_spin_unlock(&managed_lock, key);
+		ret = -EOVERFLOW;
+		goto out;
+	}
+	if (managed_sequence == 0U) {
+		managed_epoch = epoch;
+	}
+	managed = (mbs_desktop_mba_status){
+		.protocol_version = 1U,
+		.session_id = managed_epoch | ++managed_sequence,
+		.state = MBA_STATE(ACCEPTED),
+	};
+	strcpy(managed.app_id, id);
+	strcpy(managed.path, path);
+	managed_start_pending = true;
+	managed_stop_queued = false;
+	*status = managed;
+	/* Publish the queued request only after releasing the lifecycle gate.
+	 * Desktop can preempt MCUmgr immediately when the spinlock is released,
+	 * even before the explicit wakeup below.
+	 */
+	lifecycle_end(desktop);
+	k_spin_unlock(&managed_lock, key);
+	k_sem_give(&desktop->redraw_sem);
+	return 0;
+out:
+	lifecycle_end(desktop);
+	return ret;
+#endif
+}
+
+int mbs_desktop_mba_stop(uint64_t session, uint32_t timeout_ms, mbs_desktop_mba_status *status)
+{
+#if !defined(CONFIG_MBS_DESKTOP_LAUNCHER)
+	ARG_UNUSED(session); ARG_UNUSED(timeout_ms); ARG_UNUSED(status);
+	return -ENOTSUP;
+#else
+	struct zui_desktop *desktop = zui_desktop_get_instance();
+	k_spinlock_key_t key;
+
+	if (status == NULL || session == 0U || timeout_ms == 0U || timeout_ms > 30000U) {
+		return -EINVAL;
+	}
+	if (desktop == NULL) {
+		return -ENODEV;
+	}
+	key = k_spin_lock(&managed_lock);
+	if (session != managed.session_id) {
+		k_spin_unlock(&managed_lock, key);
+		return -ESTALE;
+	}
+	if (managed_start_pending || managed.state == MBA_STATE(STARTING)) {
+		k_spin_unlock(&managed_lock, key);
+		return -EBUSY;
+	}
+	if (!managed.resources_reclaimed) {
+		managed.state = MBA_STATE(STOPPING);
+		managed.detail = 0;
+		managed_stop_deadline = k_uptime_get() + timeout_ms;
+		managed_stop_queued = true;
+	}
+	*status = managed;
+	k_spin_unlock(&managed_lock, key);
+	k_sem_give(&desktop->redraw_sem);
+	return mbs_desktop_mba_get_status(session, status);
+#endif
+}
+
+bool desktop_mba_stop_pending(void)
+{
+#if !defined(CONFIG_MBS_DESKTOP_LAUNCHER)
+	return false;
+#else
+	k_spinlock_key_t key = k_spin_lock(&managed_lock);
+	bool pending = managed.state == MBA_STATE(STOPPING);
+
+	k_spin_unlock(&managed_lock, key);
+	return pending;
+#endif
+}
+
+void desktop_mba_process_requests(struct zui_desktop *desktop)
+{
+#if !defined(CONFIG_MBS_DESKTOP_LAUNCHER)
+	ARG_UNUSED(desktop);
+#else
+	mbs_desktop_mba_status request;
+	k_spinlock_key_t key = k_spin_lock(&managed_lock);
+	bool start = managed_start_pending;
+	bool stop = managed_stop_queued;
+	int ret = 0;
+
+	request = managed;
+	managed_start_pending = false;
+	managed_stop_queued = false;
+	if (start) {
+		managed.state = MBA_STATE(STARTING);
+	}
+	k_spin_unlock(&managed_lock, key);
+	if (start) {
+		if (mbs_desktop_app_handle_is_valid(desktop->active_app_handle)) {
+			ret = -EBUSY;
+		} else {
+			ret = zui_desktop_switch(desktop, MBS_DESKTOP_VIEW_LAUNCHER);
+			if (ret == 0) {
+				ret = mba_start_expected(desktop, request.path, request.app_id);
+			}
+		}
+		key = k_spin_lock(&managed_lock);
+		managed.detail = ret;
+		managed.state = ret == 0 ? MBA_STATE(RUNNING) : MBA_STATE(FAILED);
+		managed.resources_reclaimed = ret != 0 && (mba.owner != request.session_id ||
+			(mba.session == NULL && !mbs_desktop_app_handle_is_valid(mba.handle)));
+		k_spin_unlock(&managed_lock, key);
+	} else if (stop) {
+		if (!atomic_cas(&lifecycle_busy, 0, 1)) {
+			ret = -EBUSY;
+		} else {
+			if (mba.owner != request.session_id) {
+				ret = -ESTALE;
+			} else if (mbs_desktop_app_handle_is_valid(mba.handle)) {
+				ret = desktop_app_registry_request_stop(mba.handle);
+			} else {
+				ret = mba_reclaim();
+				managed_finish(ret);
+			}
+			lifecycle_end(desktop);
+		}
+		if (ret != 0) {
+			key = k_spin_lock(&managed_lock);
+			managed.state = MBA_STATE(FAILED);
+			managed.detail = ret;
+			k_spin_unlock(&managed_lock, key);
+		}
+	}
+	key = k_spin_lock(&managed_lock);
+	if (managed.state == MBA_STATE(STOPPING) && k_uptime_get() >= managed_stop_deadline) {
+		managed.state = MBA_STATE(FAILED);
+		managed.detail = -ETIMEDOUT;
+	}
+	k_spin_unlock(&managed_lock, key);
+#endif
 }

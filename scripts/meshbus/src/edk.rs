@@ -820,7 +820,21 @@ pub fn create(build: &Path, out: &Path, development: bool, force: bool) -> Resul
     } else {
         Some(Elf::parse(&host_bytes)?.builtin_exports(&host_bytes)?)
     };
-    let manifest = json!({"schema":1,"interface-abi":ctx.interface_abi()?,"exported-symbols":exports,"metadata-version":ctx.metadata_version()?,"publishable":!development&&clean(&ctx.provenance),"host":{"application":"app","version":ctx.version,"build-revision":macro_value(&ctx.build.join("zephyr/include/generated/zephyr/app_version.h"),"APP_BUILD_VERSION")?,"source-revision":ctx.provenance["firmware"]["revision"]},"target":ctx.target,"edk":{"header-policy":"meshbus-public-v1","sdk-sha256":digest(&root)?},"zephyr":{"version":ctx.info["cmake"]["zephyr"]["version"],"revision":ctx.provenance["projects"]["zephyr"]["revision"]},"toolchain":{"name":ctx.info["cmake"]["toolchain"]["name"],"identity":format!("{}/{}-{compiler_version}",ctx.toolchain()?.file_name().unwrap().to_string_lossy(),compiler.file_name().unwrap().to_string_lossy()),"compiler":compiler.file_name().unwrap().to_string_lossy()},"provenance":ctx.provenance});
+    let mut manifest = json!({"schema":1,"interface-abi":ctx.interface_abi()?,"exported-symbols":exports,"metadata-version":ctx.metadata_version()?,"publishable":!development&&clean(&ctx.provenance),"host":{"application":"app","version":ctx.version,"build-revision":macro_value(&ctx.build.join("zephyr/include/generated/zephyr/app_version.h"),"APP_BUILD_VERSION")?,"source-revision":ctx.provenance["firmware"]["revision"]},"target":ctx.target,"edk":{"header-policy":"meshbus-public-v1","sdk-sha256":digest(&root)?},"zephyr":{"version":ctx.info["cmake"]["zephyr"]["version"],"revision":ctx.provenance["projects"]["zephyr"]["revision"]},"toolchain":{"name":ctx.info["cmake"]["toolchain"]["name"],"identity":format!("{}/{}-{compiler_version}",ctx.toolchain()?.file_name().unwrap().to_string_lossy(),compiler.file_name().unwrap().to_string_lossy()),"compiler":compiler.file_name().unwrap().to_string_lossy()},"provenance":ctx.provenance});
+    if ctx
+        .config
+        .get("CONFIG_MBS_FIRMWARE_IMAGE_IDENTITY")
+        .is_some_and(|v| v == "y")
+    {
+        let runners: Value =
+            serde_yaml_ng::from_slice(&fs::read(ctx.build.join("zephyr/runners.yaml"))?)?;
+        let image = ctx
+            .build
+            .join("zephyr")
+            .join(metadata::string(&runners["config"], "bin_file")?);
+        let data = host::read(&image, 16 * 1024 * 1024)?;
+        manifest["host"]["image-sha256"] = Value::String(image_identity(&data)?);
+    }
     host::json(&root.join("edk-release.json"), &manifest)?;
     fs::copy(
         Path::new(metadata::string(
@@ -1006,4 +1020,31 @@ pub fn run(args: EdkArgs) -> Result<()> {
             host::print(&json!({"edk":path}))
         }
     }
+}
+
+/// Match the firmware's read-only primary-image identity, including both TLVs.
+pub fn image_identity(data: &[u8]) -> Result<String> {
+    ensure!(
+        data.len() >= 32 && data[..4] == [0x3d, 0xb8, 0xf3, 0x96],
+        "not an MCUboot image"
+    );
+    let header = u16::from_le_bytes(data[8..10].try_into()?) as usize;
+    let protected = u16::from_le_bytes(data[10..12].try_into()?) as usize;
+    let image = u32::from_le_bytes(data[12..16].try_into()?) as usize;
+    ensure!(header >= 32, "invalid image header size");
+    let offset = header
+        .checked_add(image)
+        .and_then(|v| v.checked_add(protected))
+        .context("image size overflow")?;
+    let info = data
+        .get(offset..)
+        .and_then(|v| v.get(..4))
+        .context("truncated image TLV header")?;
+    ensure!(info[..2] == [0x07, 0x69], "missing image TLVs");
+    let length = u16::from_le_bytes(info[2..4].try_into()?) as usize;
+    ensure!(length >= 4, "invalid image TLV size");
+    let end = offset
+        .checked_add(length)
+        .context("image TLV size overflow")?;
+    Ok(host::hash(data.get(..end).context("truncated image TLVs")?))
 }

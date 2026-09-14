@@ -56,6 +56,7 @@ struct external_app_slot {
 static K_MUTEX_DEFINE(app_registry_mutex);
 static const struct mbs_desktop_app_desc *apps[MBS_DESKTOP_APP_REGISTRY_MAX];
 static struct app_runtime runtime;
+static atomic_t app_stop_requested;
 #if defined(CONFIG_MBS_DESKTOP_LAUNCHER)
 static struct external_app_slot external_app;
 #endif
@@ -66,6 +67,25 @@ static size_t app_count;
  */
 static uint8_t registry_epoch;
 static bool frozen;
+
+bool mbs_desktop_app_stop_requested(void)
+{
+	return atomic_get(&app_stop_requested) != 0;
+}
+
+int desktop_app_registry_request_stop(mbs_desktop_app_handle_t handle)
+{
+	int ret = 0;
+
+	k_mutex_lock(&app_registry_mutex, K_FOREVER);
+	if (runtime.handle != handle || runtime.state == APP_RUNTIME_IDLE) {
+		ret = -ESTALE;
+	} else {
+		atomic_set(&app_stop_requested, 1);
+	}
+	k_mutex_unlock(&app_registry_mutex);
+	return ret;
+}
 
 static bool app_id_equal(const char *a, const char *b)
 {
@@ -541,6 +561,7 @@ int desktop_app_registry_start(struct zui_desktop *desktop,
 	runtime.handle = handle;
 	runtime.desktop = desktop;
 	runtime.state = APP_RUNTIME_RUNNING;
+	atomic_clear(&app_stop_requested);
 	runtime.tid = k_thread_create(&runtime.thread, shared_stack, shared_stack_size,
 				      app_thread_entry, (void *)desc, NULL, NULL,
 				      CONFIG_MBS_DESKTOP_APP_THREAD_PRIORITY, 0, K_NO_WAIT);

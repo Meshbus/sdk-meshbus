@@ -8,6 +8,11 @@
 #include <llext/llext.h>
 #include <llext/zbus.h>
 
+#if defined(CONFIG_MBS_DESKTOP)
+#include <desktop/desktop.h>
+EXPORT_SYMBOL(mbs_desktop_app_stop_requested);
+#endif
+
 #if defined(CONFIG_ADC)
 #include <zephyr/drivers/adc.h>
 

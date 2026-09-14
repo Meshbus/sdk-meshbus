@@ -48,7 +48,23 @@ MBS_MGMT_CONFIG_RESET_HANDLER_DEFINE(
 	meshbus_LlextConfigResetRequest_fields, meshbus_LlextConfigResetResponse_fields,
 	MBS_LLEXT_MGMT_PROTO_RSP_MAX_SIZE);
 
+static int mbs_llext_mgmt_host_info(struct smp_streamer *ctxt)
+{
+	meshbus_LlextHostInfoRequest req = meshbus_LlextHostInfoRequest_init_zero;
+	meshbus_LlextHostInfoResponse rsp = meshbus_LlextHostInfoResponse_init_zero;
+	int rc = mbs_mgmt_decode_proto(ctxt, &req, sizeof(req),
+		meshbus_LlextHostInfoRequest_fields, true);
+
+	if (rc == 0) {
+		rc = mbs_llext_host_info_get(&rsp);
+	}
+	return rc != 0 ? rc : mbs_mgmt_encode_proto(ctxt, &rsp,
+		meshbus_LlextHostInfoResponse_fields, meshbus_LlextHostInfoResponse_size);
+}
+
 static const struct mgmt_handler mbs_llext_mgmt_group_handlers[] = {
+	[meshbus_LlextMgmtCommandId_LLEXT_MGMT_COMMAND_ID_HOST_INFO] =
+		{mbs_llext_mgmt_host_info, NULL},
 	[meshbus_LlextMgmtCommandId_LLEXT_MGMT_COMMAND_ID_CONFIG] =
 		{mbs_llext_mgmt_config_get, mbs_llext_mgmt_config_set},
 	[meshbus_LlextMgmtCommandId_LLEXT_MGMT_COMMAND_ID_CONFIG_RESET] =

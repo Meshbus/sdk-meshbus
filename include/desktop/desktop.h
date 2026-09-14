@@ -193,6 +193,10 @@ const struct mbs_desktop_app_desc *mbs_desktop_app_registry_get_by_id(const char
  */
 int mbs_desktop_external_app_start(const struct mbs_desktop_external_app_desc *desc);
 
+/** @brief Poll the cooperative foreground app stop request. No resources are
+ * reclaimed by this call. The app must return through its normal cleanup path. */
+bool mbs_desktop_app_stop_requested(void);
+
 /** @brief Return true until a one-shot external Desktop app thread is fully reclaimed. */
 bool mbs_desktop_external_app_is_active(void);
 

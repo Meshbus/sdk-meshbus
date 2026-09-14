@@ -119,3 +119,64 @@ wrong host platforms, incompatible EDK identity and compiler version mismatches.
 Restore the indicated input, or explicitly select/update to accept new inputs.
 Build success proves a package was produced for that EDK; it does not prove
 installed firmware identity, physical display behavior, audio or device execution.
+
+## Select a connected C2 and manage a Session
+
+Identity-capable firmware reports a stable hardware ID and the SHA256 of its
+actual MCUboot image (header, payload and TLVs, excluding slot padding). The
+publisher's EDK records the same digest. This is an exact build match, not a
+signature or an authentication claim. An old firmware without this endpoint
+can still be targeted explicitly for offline builds.
+
+```sh
+meshbus app --project my-game --device <UART-port-or-USB-serial> \
+  target --source release-source.json
+meshbus app --project my-game update
+meshbus app --project my-game build --locked
+meshbus app --project my-game start my-game --path /extra/apps/my-game.mba
+meshbus app --project my-game status
+meshbus app --project my-game stop my-game --timeout-ms 5000
+```
+
+Device selection rejects ambiguous interfaces; macOS `tty`/`cu` aliases of the
+same UART use the call-out endpoint when selecting by USB serial. A local
+`.meshbus-device.json` binding verifies hardware identity on subsequent opens.
+Remove that binding explicitly to choose another device. The project lock must
+match the connected image, target, metadata and ABI before starting an app.
+These commands expect an already installed MBA; package installation is a
+separate workflow.
+
+A start acknowledgement contains a device-generated Session ID. The CLI waits
+for running, ended or failed status. `stop` targets that exact Session and asks
+it to exit cooperatively; it never aborts the app thread. New sdk-arduboy builds
+enable polling only when the matching EDK exports the stop API. Native apps can
+poll `mbs_desktop_app_stop_requested()` and return normally. A timeout or cleanup
+failure retains a failed Session with `resources_reclaimed: false`; replacing
+its files is forbidden. Query status and retry cleanup after the app returns.
+Use `--session` to reject a stale instance and `--log-file` to save logs received
+while exchanging commands. Deferred firmware logs may arrive after a short
+command has finished; this option alone is not a continuous log follower.
+
+## Generic file collection (schema 1)
+
+Every successful MBA build also writes `<id>.install/package.json`. Recollect
+an existing MBA and its matching build report with `meshbus app package app.mba`.
+The manifest identifies the MBA, application version, exact host requirements,
+resource paths, installation destinations, byte sizes and SHA256 digests. The
+CLI checks these against the actual MBA metadata and import table. Resources
+are opaque files; their conversion remains in the SDK.
+
+The schema discriminator is `schema: 1, kind: "meshbus-app"`. `mba` is one file
+record, `resources` is an array (empty for ordinary apps), and `host` contains
+`target`, `firmware`, optional `image_sha256`, `metadata_version`, optional
+`interface_abi` and required exported symbol names. Each file record contains
+`path` relative to the collection, `destination` under `/extra/apps`, `length`
+and `sha256`. Paths cannot traverse directories or address saves. Duplicate
+files/destinations, missing files, conflicting MBA identity/ABI, wrong digests
+and unsupported schemas are rejected.
+
+Existing Arduboy `install.json` schema 1 remains generated and is explicitly
+bridged into the generic collection, retaining its MBA and sidecar destinations.
+Its identity, MBA bytes and sidecar descriptor must match. No resource payload
+is parsed or re-encoded by the CLI. An old EDK without an exact image hash can
+produce a collection for offline use; that does not prove device compatibility.

@@ -39,6 +39,7 @@ endif()
 if(CONFIG_MBS_LLEXT)
 	zephyr_library_sources(
 		llext.c
+		host_info.c
 	)
 
 	zephyr_library_sources_ifdef(CONFIG_MCUMGR mgmt.c)

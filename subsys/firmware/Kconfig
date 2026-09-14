@@ -1,6 +1,15 @@
 # Copyright (c) 2026 FoBE Studio
 # SPDX-License-Identifier: Apache-2.0
 
+config MBS_FIRMWARE_IMAGE_IDENTITY
+	bool "Read installed firmware image identity"
+	depends on BOOTLOADER_MCUBOOT && FLASH_MAP
+	select PSA_CRYPTO
+	select PSA_WANT_ALG_SHA_256
+	help
+	  Read the primary MCUboot image digest for exact EDK selection without
+	  enabling firmware updates or changing boot signature verification.
+
 menuconfig MBS_FIRMWARE
 	bool "Meshbus firmware update coordinator [EXPERIMENTAL]"
 	default n

@@ -13,6 +13,7 @@ extern "C" {
 
 struct zui_desktop;
 
+int desktop_app_registry_request_stop(mbs_desktop_app_handle_t handle);
 int desktop_app_registry_start(struct zui_desktop *desktop,
 			       mbs_desktop_app_handle_t handle);
 int desktop_app_registry_complete_exit(mbs_desktop_app_handle_t handle,

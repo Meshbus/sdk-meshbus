@@ -143,6 +143,10 @@ pub fn build(args: &BuildRequest) -> Result<PathBuf> {
         "extension CMakeLists.txt missing"
     );
     let data: Value = serde_yaml_ng::from_slice(&host::read(&source.join("llext.yaml"), 65536)?)?;
+    let declared_requires = data
+        .get("requires")
+        .cloned()
+        .unwrap_or_else(|| serde_json::json!([]));
     let data = if data.get("project-schema").is_some() {
         crate::app::metadata(&data)?
     } else {
@@ -238,6 +242,11 @@ pub fn build(args: &BuildRequest) -> Result<PathBuf> {
         .env("MESHBUS_REAL_TOOLCHAIN", &toolchain)
         .env("LLEXT_EDK_INSTALL_DIR", &sdk)
         .env("ZEPHYR_SDK_INSTALL_DIR", &toolchain);
+    // This descriptor belongs to the current SDK configure, not the prior build.
+    let resource_spec = build.join("arduboy-resources.json");
+    if resource_spec.exists() {
+        fs::remove_file(&resource_spec)?;
+    }
     host::run(&mut configure)?;
     host::run(
         Command::new(cmake)
@@ -289,7 +298,7 @@ pub fn build(args: &BuildRequest) -> Result<PathBuf> {
     fs::write(
         output.join(format!("{id}.build.json")),
         serde_json::to_vec_pretty(
-            &serde_json::json!({"schema":1,"preflight":report,"sdk":capabilities,
+            &serde_json::json!({"schema":1,"preflight":report,"requires":declared_requires,"resource_collection":resource_spec.is_file(),"sdk":capabilities,
             "edk":manifest["edk"],"host":manifest["host"],"target":manifest["target"],
             "metadata_version":manifest["metadata-version"],"interface_abi":manifest["interface-abi"]}),
         )?,
@@ -342,9 +351,15 @@ pub fn build(args: &BuildRequest) -> Result<PathBuf> {
     // Drop intermediates with .llext suffix so a repeat build has one compiler output.
     fs::remove_file(normalized)?;
     fs::remove_file(pending)?;
-    if build.join("arduboy-resources.json").is_file() {
+    if resource_spec.is_file() {
         resource_collection(&build, &packaged, id)?;
+    } else {
+        let legacy = output.join(format!("{id}.install/install.json"));
+        if legacy.exists() {
+            fs::remove_file(legacy)?;
+        }
     }
+    crate::app::bundle::collect(&packaged)?;
     Ok(packaged)
 }
 

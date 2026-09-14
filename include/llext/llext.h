@@ -60,6 +60,13 @@ struct mbs_llext_app_info {
 /** @brief LLEXT runtime configuration (maps to meshbus_LlextConfig). */
 typedef meshbus_LlextConfig mbs_llext_config;
 
+/** @brief Copy device, firmware image and EDK compatibility identities.
+ * May block while reading flash. Does not modify settings or firmware.
+ * @param info Caller-owned output, valid on success.
+ * @return 0, -EINVAL, -ENOTSUP, or a negative flash/hardware error.
+ */
+int mbs_llext_host_info_get(meshbus_LlextHostInfoResponse *info);
+
 /**
  * @brief Copy the current LLEXT application configuration.
  *

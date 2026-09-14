@@ -25,6 +25,7 @@
 #endif
 
 #include "firmware_priv.h"
+#include "image_private.h"
 
 LOG_MODULE_REGISTER(mbs_firmware, CONFIG_MBS_FIRMWARE_LOG_LEVEL);
 
@@ -301,82 +302,13 @@ static int patch_reader_cb(void *user_data, uint8_t *buf, size_t size)
 	return 0;
 }
 
-static int patch_hash(const struct flash_area *area, size_t size,
-		      uint8_t hash[MBS_FIRMWARE_HASH_SIZE])
+static int source_hash_validate(const uint8_t expected[MBS_FIRMWARE_HASH_SIZE])
 {
-	psa_hash_operation_t op = PSA_HASH_OPERATION_INIT;
-	uint8_t buf[512];
-	size_t output_size = 0U;
-	psa_status_t status = psa_hash_setup(&op, PSA_ALG_SHA_256);
-
-	for (size_t offset = 0U; status == PSA_SUCCESS && offset < size;) {
-		size_t chunk = MIN(sizeof(buf), size - offset);
-
-		if (flash_area_read(area, offset, buf, chunk) != 0) {
-			status = PSA_ERROR_STORAGE_FAILURE;
-			break;
-		}
-		status = psa_hash_update(&op, buf, chunk);
-		offset += chunk;
-	}
-	if (status == PSA_SUCCESS) {
-		status = psa_hash_finish(&op, hash, MBS_FIRMWARE_HASH_SIZE,
-					 &output_size);
-	}
-	psa_hash_abort(&op);
-	return status == PSA_SUCCESS && output_size == MBS_FIRMWARE_HASH_SIZE
-		       ? 0 : -EIO;
-}
-
-static int source_hash_validate(
-	const uint8_t expected[MBS_FIRMWARE_HASH_SIZE])
-{
-	const struct flash_area *area;
-	uint8_t header[MCUBOOT_HEADER_SIZE] = {0};
-	uint8_t info[4] = {0};
 	uint8_t hash[MBS_FIRMWARE_HASH_SIZE];
-	uint16_t header_size;
-	uint16_t protected_size;
-	uint16_t tlv_size;
-	uint32_t image_size;
-	size_t tlv_offset;
-	size_t signed_size;
-	int rc = flash_area_open(PARTITION_ID(slot0_partition), &area);
+	size_t size;
+	int rc = mbs_firmware_image_identity(hash, &size);
 
-	if (rc != 0) {
-		return rc;
-	}
-	rc = flash_area_read(area, 0, header, sizeof(header));
-	header_size = sys_get_le16(&header[8]);
-	protected_size = sys_get_le16(&header[10]);
-	image_size = sys_get_le32(&header[12]);
-	if (rc == 0 && (sys_get_le32(header) != MCUBOOT_IMAGE_MAGIC ||
-			 header_size < MCUBOOT_HEADER_SIZE)) {
-		rc = -EINVAL;
-	}
-	tlv_offset = (size_t)header_size + image_size + protected_size;
-	if (rc == 0 && (tlv_offset > area->fa_size ||
-			 sizeof(info) > area->fa_size - tlv_offset)) {
-		rc = -ENOSPC;
-	}
-	if (rc == 0) {
-		rc = flash_area_read(area, tlv_offset, info, sizeof(info));
-	}
-	tlv_size = sys_get_le16(&info[2]);
-	if (rc == 0 && (sys_get_le16(info) != MCUBOOT_TLV_INFO_MAGIC ||
-			 tlv_size < sizeof(info) ||
-			 tlv_size > area->fa_size - tlv_offset)) {
-		rc = -EINVAL;
-	}
-	if (rc == 0) {
-		signed_size = tlv_offset + tlv_size;
-		rc = patch_hash(area, signed_size, hash);
-	}
-	flash_area_close(area);
-	if (rc == 0 && memcmp(hash, expected, sizeof(hash)) != 0) {
-		rc = -ESTALE;
-	}
-	return rc;
+	return rc == 0 && memcmp(hash, expected, sizeof(hash)) != 0 ? -ESTALE : rc;
 }
 
 static int patch_header_validate(
@@ -1072,7 +1004,7 @@ int mbs_firmware_delta_finish(const uint8_t transfer_id[MBS_FIRMWARE_TRANSFER_ID
 
 	rc = flash_area_open(PATCH_AREA_ID, &area);
 	if (rc == 0) {
-		rc = patch_hash(area, manifest.patch_size, hash);
+		rc = mbs_firmware_flash_hash(area, manifest.patch_size, hash);
 		if (rc == 0 && memcmp(hash, manifest.patch_hash, sizeof(hash)) != 0) {
 			rc = -EILSEQ;
 		}

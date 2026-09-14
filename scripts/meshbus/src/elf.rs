@@ -131,6 +131,11 @@ impl Elf {
         for address in (start..end).step_by((width * 2) as usize) {
             let entry = self.at_address(data, address)?;
             let name = number(entry, 0, width as usize, data[5] == 1)?;
+            // Zephyr can retain a table entry for a disabled syscall as a
+            // weak symbol resolved to zero. The runtime cannot import it.
+            if number(entry, width as usize, width as usize, data[5] == 1)? == 0 {
+                continue;
+            }
             names.insert(elf_string(self.at_address(data, name)?, 0)?);
         }
         Ok(names)

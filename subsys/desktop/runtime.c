@@ -622,7 +622,14 @@ static void mbs_desktop_thread_entry(void *arg1, void *arg2, void *arg3)
 #if IS_ENABLED(CONFIG_MBS_DESKTOP_PERF_LOG)
 		uint32_t loop_start_cycles = k_cycle_get_32();
 #endif
-		(void)k_sem_take(&desktop->redraw_sem, zui_desktop_wait_timeout(desktop));
+		k_timeout_t wait = zui_desktop_wait_timeout(desktop);
+
+		if (desktop_mba_stop_pending() &&
+		    (K_TIMEOUT_EQ(wait, K_FOREVER) || wait.ticks > K_MSEC(100).ticks)) {
+			wait = K_MSEC(100);
+		}
+		(void)k_sem_take(&desktop->redraw_sem, wait);
+		desktop_mba_process_requests(desktop);
 		(void)desktop_app_complete_exit(desktop, K_FOREVER);
 		desktop_power_menu_poll(desktop);
 		zui_desktop_refresh_sleep_policy(desktop);
