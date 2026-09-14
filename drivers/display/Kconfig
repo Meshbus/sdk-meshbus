@@ -1,0 +1,12 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+config MODULINO_LED_MATRIX
+	bool "Arduino Modulino LED Matrix display"
+	default y
+	depends on DISPLAY && I2C
+	depends on DT_HAS_ARDUINO_MODULINO_LED_MATRIX_ENABLED
+	help
+	  Drive a 12x8 Modulino LED Matrix running Arduino node_modulino_firmware
+	  over I2C. Supports vertically tiled MONO01 and packed L_4 grayscale.
+	  See docs/modulino-led-matrix.md for firmware protocol limitations.

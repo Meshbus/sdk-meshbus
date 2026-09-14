@@ -2,6 +2,7 @@ menu "Device Drivers"
 
 rsource "adc/Kconfig"
 rsource "charger/Kconfig"
+rsource "display/Kconfig"
 rsource "ethernet/Kconfig"
 rsource "sensor/Kconfig"
 rsource "gnss/Kconfig"
