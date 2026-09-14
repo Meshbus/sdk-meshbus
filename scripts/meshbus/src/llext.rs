@@ -123,7 +123,7 @@ pub fn internal_tool() -> Option<Result<i32>> {
         );
         let status = Command::new(tool(&sdk, compiler)?)
             .args(std::env::args_os().skip(1))
-            .args(["-Os", "-g0", "-fno-merge-constants"])
+            .args(["-Os", "-g", "-fno-merge-constants"])
             .status()?;
         Ok(status.code().unwrap_or(1))
     })())
@@ -347,6 +347,22 @@ pub fn build(args: &BuildRequest) -> Result<PathBuf> {
             .args(["--set-section-flags", ".meshbus.llext.meta=readonly"])
             .arg(&pending)
             .arg(&packaged),
+    )?;
+    // Keep exact matching symbols locally; only the compact MBA goes to the device.
+    let symbols = packaged.with_extension("symbols.elf");
+    fs::copy(&packaged, &symbols)?;
+    host::run(
+        Command::new(tool(&toolchain, "objcopy")?)
+            .arg("--strip-debug")
+            .arg(&packaged),
+    )?;
+    fs::write(
+        packaged.with_extension("symbols.json"),
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "schema":1,"mba_sha256":host::hash(&fs::read(&packaged)?),
+            "symbols_sha256":host::hash(&fs::read(&symbols)?),
+            "addr2line":tool(&toolchain, "addr2line")?.canonicalize()?
+        }))?,
     )?;
     // Drop intermediates with .llext suffix so a repeat build has one compiler output.
     fs::remove_file(normalized)?;

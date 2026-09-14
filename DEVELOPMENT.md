@@ -166,6 +166,9 @@ Patch only an in-scope cause, then rerun the same narrow command before
 expanding validation. Preserve both results when retrying a flaky or
 infrastructure failure.
 
+For standalone MBA build/install/run/watch workflows, see
+[app development](docs/app-development.md).
+
 ## Serial and Remote Tools
 
 For tool selection and evidence boundaries, see

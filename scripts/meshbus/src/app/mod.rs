@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 //! Customer MBA workflows. Release builds remain owned by `west release`.
 pub mod bundle;
+mod develop;
 pub mod device;
+mod diagnostics;
 mod doctor;
 mod inputs;
+mod install;
 mod project;
 mod session;
 use anyhow::{Context, Result, ensure};
@@ -72,6 +75,68 @@ pub enum AppCommand {
         template: Template,
     },
     Build(BuildArgs),
+    /// Capture a software frame associated with the last confirmed run.
+    Capture {
+        output: PathBuf,
+    },
+    /// Map an explicit section-relative offset using this run's verified symbols.
+    Diagnose {
+        #[arg(long)]
+        section: Option<String>,
+        #[arg(long)]
+        offset: Option<u64>,
+    },
+    /// Debounce source changes and deploy serially; Ctrl-C retains the last app.
+    Watch {
+        #[command(flatten)]
+        build: BuildArgs,
+        #[arg(long)]
+        atomic: bool,
+    },
+    /// Build, install, confirm start, then follow this Session's shared device log.
+    Run {
+        #[command(flatten)]
+        build: BuildArgs,
+        #[arg(long)]
+        atomic: bool,
+        #[arg(long)]
+        follow_seconds: Option<u64>,
+    },
+    /// Follow logs while querying the exact Session; Ctrl-C keeps the app running.
+    Logs {
+        #[arg(long)]
+        session: Option<u64>,
+        #[arg(long)]
+        follow_seconds: Option<u64>,
+    },
+    /// Verify, upload and commit one complete package on the bound device.
+    Install {
+        manifest: Option<PathBuf>,
+        #[arg(long)]
+        replace: bool,
+        #[arg(long)]
+        atomic: bool,
+    },
+    /// Query the persistent installed package and any interrupted transaction.
+    Installed {
+        id: Option<String>,
+    },
+    /// Retry the commit, or explicitly discard an uncommitted install.
+    Recover {
+        id: String,
+        #[arg(long)]
+        abort: bool,
+    },
+    /// Select the retained previous complete version.
+    Rollback {
+        id: String,
+    },
+    /// Remove only registered app files, preserving saves by default.
+    Uninstall {
+        id: String,
+        #[arg(long)]
+        remove_saves: bool,
+    },
     /// Collect or verify a versioned MBA/sidecar file set.
     Package {
         mba: PathBuf,
@@ -107,7 +172,7 @@ pub enum AppCommand {
     Start {
         id: String,
         #[arg(long)]
-        path: String,
+        path: Option<String>,
     },
     /// Query the latest or an exact managed Session.
     Status {
@@ -201,6 +266,51 @@ pub fn run(args: AppArgs) -> Result<()> {
             directory,
             template,
         } => project::create(&directory, template),
+        AppCommand::Run {
+            build,
+            atomic,
+            follow_seconds,
+        } => {
+            let guard = develop::InterruptGuard::install()?;
+            let (mut client, _, started) = develop::deploy(
+                &args.project,
+                &build,
+                args.device.as_deref(),
+                args.log_file,
+                atomic,
+            )?;
+            develop::follow(&mut client, started.session_id, follow_seconds, &guard)
+        }
+        AppCommand::Logs {
+            session: id,
+            follow_seconds,
+        } => {
+            let guard = develop::InterruptGuard::install()?;
+            let (mut client, binding) =
+                device::open(&args.project, args.device.as_deref(), args.log_file)?;
+            client.follow_logs()?;
+            let current = session::status(&mut client, id.unwrap_or(0))?;
+            ensure!(current.session_id != 0, "no managed Session");
+            let build = match client.file_hash(&current.path) {
+                Ok((length, sha256)) => serde_json::json!({"length":length,"mba_sha256":sha256}),
+                Err(error) => {
+                    serde_json::json!({"identity":"unknown","reason":format!("{error:#}")})
+                }
+            };
+            crate::host::print(
+                &serde_json::json!({"device":binding,"session":current,"build":build,"log_scope":"shared firmware stream; state is queried, never inferred from log lines"}),
+            )?;
+            develop::follow(&mut client, current.session_id, follow_seconds, &guard)
+        }
+        AppCommand::Watch { build, atomic } => {
+            develop::watch(&args.project, &build, args.device.as_deref(), atomic)
+        }
+        AppCommand::Capture { output } => {
+            diagnostics::capture(&args.project, args.device.as_deref(), &output)
+        }
+        AppCommand::Diagnose { section, offset } => {
+            diagnostics::diagnose(&args.project, section.as_deref(), offset)
+        }
         AppCommand::Build(inputs) => {
             let package = project::build(&args.project, &inputs)?;
             crate::host::print(&serde_json::json!({"package":package}))
@@ -249,10 +359,86 @@ pub fn run(args: AppArgs) -> Result<()> {
             true,
         )?),
         AppCommand::Doctor => doctor::run(&args.project),
+        AppCommand::Install {
+            manifest,
+            replace,
+            atomic,
+        } => {
+            let manifest = manifest
+                .map(Ok)
+                .unwrap_or_else(|| install::default_manifest(&args.project))?;
+            let (mut client, binding) =
+                device::open(&args.project, args.device.as_deref(), args.log_file)?;
+            session::check_host(&args.project, &binding.host)?;
+            crate::host::print(&install::install(
+                &mut client,
+                &binding.host,
+                &manifest,
+                replace,
+                atomic,
+            )?)
+        }
+        AppCommand::Installed { id } => {
+            let (mut client, _) =
+                device::open(&args.project, args.device.as_deref(), args.log_file)?;
+            match id {
+                Some(id) => crate::host::print(&install::command(&mut client, "status", &id, "")?),
+                None => crate::host::print(&install::list(&mut client)?),
+            }
+        }
+        AppCommand::Recover { id, abort } => {
+            let (mut client, _) =
+                device::open(&args.project, args.device.as_deref(), args.log_file)?;
+            install::idle(&mut client, &id)?;
+            crate::host::print(&install::command(
+                &mut client,
+                if abort { "abort" } else { "commit" },
+                &id,
+                "",
+            )?)
+        }
+        AppCommand::Rollback { id } => {
+            let (mut client, _) =
+                device::open(&args.project, args.device.as_deref(), args.log_file)?;
+            let installed = install::command(&mut client, "status", &id, "")?;
+            ensure!(
+                !installed.previous_bundle.is_empty(),
+                "no retained previous version"
+            );
+            install::idle(&mut client, &id)?;
+            crate::host::print(&install::command(
+                &mut client,
+                "rollback",
+                &id,
+                &installed.previous_bundle,
+            )?)
+        }
+        AppCommand::Uninstall { id, remove_saves } => {
+            let (mut client, _) =
+                device::open(&args.project, args.device.as_deref(), args.log_file)?;
+            install::idle(&mut client, &id)?;
+            crate::host::print(&install::command(
+                &mut client,
+                "uninstall",
+                &id,
+                &remove_saves.to_string(),
+            )?)
+        }
         AppCommand::Start { id, path } => {
             let (mut client, binding) =
                 device::open(&args.project, args.device.as_deref(), args.log_file)?;
             session::check_host(&args.project, &binding.host)?;
+            let path = match path {
+                Some(path) => path,
+                None => {
+                    let installed = install::command(&mut client, "status", &id, "")?;
+                    ensure!(
+                        !installed.mba_path.is_empty() && installed.pending_bundle.is_empty(),
+                        "app has no committed launchable package"
+                    );
+                    installed.mba_path
+                }
+            };
             session::print_result(&session::start(&mut client, &id, &path)?)
         }
         AppCommand::Status { session: id } => {

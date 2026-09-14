@@ -34,6 +34,9 @@ pub fn error_was_reported(error: &(dyn std::error::Error + 'static)) -> bool {
 }
 
 pub fn error_message(error: &(dyn std::error::Error + 'static)) -> String {
+    if let Some(error) = error.downcast_ref::<HostError>() {
+        return format!("{:#}", error.0);
+    }
     error
         .downcast_ref::<commands::connect::ConnectError>()
         .map_or_else(

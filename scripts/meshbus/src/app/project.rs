@@ -142,7 +142,7 @@ pub fn create(directory: &Path, template: Template) -> Result<()> {
     }
     fs::write(
         temp.path().join(".gitignore"),
-        "build/\n.meshbus-target.json\n.meshbus-device.json\n",
+        "build/\n.meshbus-target.json\n.meshbus-device.json\n.meshbus-runs/\n.meshbus-last-run.json\n",
     )?;
     // Do not replace an existing empty directory created by another process.
     fs::create_dir(directory).context("project directory was created concurrently")?;

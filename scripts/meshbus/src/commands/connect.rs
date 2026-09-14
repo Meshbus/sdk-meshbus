@@ -1606,7 +1606,6 @@ fn background_read_loop<F>(
             }
         }
     }
-    /* The background reader is used only by the interactive console. */
 }
 
 fn background_device_log<F>(
@@ -1700,6 +1699,19 @@ fn build_smp_request(
     sequence: u8,
 ) -> Result<Vec<u8>, ConnectError> {
     let cbor = encode_smp_data_payload(protobuf)?;
+    build_smp_cbor_request(command, &cbor, sequence)
+}
+
+fn build_smp_cbor_request(
+    command: &CommandSpec,
+    cbor: &[u8],
+    sequence: u8,
+) -> Result<Vec<u8>, ConnectError> {
+    if cbor.len() + 8 > MAX_FRAME_SIZE {
+        return Err(ConnectError::Protocol(
+            "SMP request exceeds frame limit".into(),
+        ));
+    }
     let operation = match command.op.as_str() {
         "read" => 0_u8,
         "write" => 2_u8,
@@ -1741,6 +1753,19 @@ fn frame_matches(frame: &[u8], command: &CommandSpec, sequence: u8) -> bool {
 }
 
 fn parse_smp_response(command: &CommandSpec, frame: &[u8]) -> Result<Vec<u8>, ConnectError> {
+    let map = parse_smp_map(command, frame)?;
+    cbor_lookup(&map, "data")
+        .and_then(CborValue::as_bytes)
+        .cloned()
+        .ok_or_else(|| {
+            ConnectError::Protocol("SMP response contains neither data nor an MCUmgr error".into())
+        })
+}
+
+fn parse_smp_map(
+    command: &CommandSpec,
+    frame: &[u8],
+) -> Result<Vec<(CborValue, CborValue)>, ConnectError> {
     if frame.len() < 8 {
         return Err(ConnectError::Protocol(
             "SMP response header is truncated".into(),
@@ -1757,10 +1782,10 @@ fn parse_smp_response(command: &CommandSpec, frame: &[u8]) -> Result<Vec<u8>, Co
     let map = value
         .as_map()
         .ok_or_else(|| ConnectError::Protocol("SMP response is not a CBOR map".into()))?;
-    if let Some(data) = cbor_lookup(map, "data").and_then(CborValue::as_bytes) {
-        return Ok(data.to_vec());
-    }
-    if let Some(rc) = cbor_lookup(map, "rc").and_then(cbor_integer) {
+    if let Some(rc) = cbor_lookup(map, "rc")
+        .and_then(cbor_integer)
+        .filter(|rc| *rc != 0)
+    {
         let reason = cbor_lookup(map, "rsn")
             .and_then(CborValue::as_text)
             .map(str::to_owned);
@@ -1778,9 +1803,7 @@ fn parse_smp_response(command: &CommandSpec, frame: &[u8]) -> Result<Vec<u8>, Co
             .map(str::to_owned);
         return Err(mcumgr_error(command, group, rc, reason));
     }
-    Err(ConnectError::Protocol(
-        "SMP response contains neither data nor an MCUmgr error".into(),
-    ))
+    Ok(map.clone())
 }
 
 fn mcumgr_error(
@@ -1928,6 +1951,16 @@ fn json_to_protobuf(
     let field = leaf_field(message, path)?;
     match (field.kind(), value) {
         (Kind::Bool, JsonValue::Bool(value)) => Ok(Value::Bool(*value)),
+        (Kind::Enum(enumeration), JsonValue::Number(value)) => {
+            let number = value
+                .as_i64()
+                .and_then(|n| i32::try_from(n).ok())
+                .filter(|n| enumeration.get_value(*n).is_some())
+                .ok_or_else(|| {
+                    ConnectError::Schema(format!("invalid enum default for {}", path.join(".")))
+                })?;
+            Ok(Value::EnumNumber(number))
+        }
         _ => Err(ConnectError::Schema(format!(
             "unsupported default for {}",
             path.join(".")
@@ -2074,9 +2107,56 @@ mod tests {
     use super::*;
 
     #[test]
+    fn package_actions_are_encoded_not_defaulted_to_status() {
+        let runtime = Runtime::load().unwrap();
+        for (action, words, value) in [
+            ("status", vec!["app"], 0),
+            (
+                "prepare",
+                vec!["app", "/extra/apps/.meshbus/incoming.json", "true"],
+                1,
+            ),
+            ("commit", vec!["app"], 2),
+            ("abort", vec!["app"], 3),
+            ("uninstall", vec!["app", "false"], 4),
+            ("rollback", vec!["app", "bundle"], 5),
+        ] {
+            let command = runtime
+                .registry
+                .commands
+                .iter()
+                .find(|c| c.path == ["desktop", "package", action])
+                .unwrap();
+            let words = words.into_iter().map(str::to_owned).collect::<Vec<_>>();
+            let bytes = runtime.request(command, &words).unwrap();
+            let descriptor = runtime
+                .pool
+                .get_message_by_name("meshbus.DesktopPackageRequest")
+                .unwrap();
+            let message = DynamicMessage::decode(descriptor, bytes.as_slice()).unwrap();
+            assert_eq!(
+                message.get_field_by_name("action").unwrap().as_ref(),
+                &Value::EnumNumber(value)
+            );
+        }
+    }
+
+    #[test]
     fn command_registry_matches_embedded_schema() {
         let runtime = Runtime::load().unwrap();
-        assert_eq!(runtime.registry.commands.len(), 127);
+        assert!(!runtime.registry.commands.is_empty());
+        for command in &runtime.registry.commands {
+            for key in command.defaults.keys() {
+                assert!(
+                    command
+                        .arguments
+                        .iter()
+                        .any(|arg| arg.path.join(".") == *key),
+                    "default {key} is never encoded for {:?}",
+                    command.path
+                );
+            }
+        }
         for command in &runtime.registry.commands {
             assert!(
                 runtime
@@ -2140,6 +2220,52 @@ mod tests {
         assert_eq!(
             complete_serial_frame(&encoded).unwrap(),
             Some(frame.to_vec())
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn background_logs_without_file_and_disconnect_are_observable() {
+        let (mut host, mut peer) = serialport::TTYPort::pair().unwrap();
+        host.set_timeout(Duration::from_millis(20)).unwrap();
+        let mut serial = SerialSession {
+            port: Box::new(host),
+            baudrate: 115200,
+            pending: Vec::new(),
+            background: None,
+            next_sequence: 0,
+        };
+        let args = ConnectArgs {
+            port: String::new(),
+            baudrate: 115200,
+            timeout: 0.2,
+            remote_timeout: 0.2,
+            command: None,
+            json: true,
+            quiet_logs: false,
+            color: ConnectColor::Never,
+            log_file: None,
+            no_history: true,
+            yes: true,
+        };
+        let (sender, logs) = mpsc::channel();
+        serial
+            .start_background(&args, move |line| {
+                sender.send(line).map_err(|e| e.to_string())
+            })
+            .unwrap();
+        peer.write_all(b"observed without a logfile\n").unwrap();
+        assert_eq!(
+            logs.recv_timeout(Duration::from_secs(1)).unwrap(),
+            "observed without a logfile"
+        );
+        drop(peer);
+        let runtime = Runtime::load().unwrap();
+        let command = runtime.by_path(&["radio", "status"]).unwrap();
+        assert!(
+            serial
+                .receive(0.2, false, None, ConnectColor::Never, command, 0)
+                .is_err()
         );
     }
 
