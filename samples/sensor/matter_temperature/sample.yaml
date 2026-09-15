@@ -1,0 +1,15 @@
+sample:
+  name: Experimental Matter environment sensor
+  description: SHT40, ENS160, SPS30 and LPS22HB Matter-over-Wi-Fi prototype
+common:
+  tags:
+    - sensor
+    - matter
+  platform_allow:
+    - devkit_esp32c6/esp32c6/hpcore
+  build_only: true
+tests:
+  sample.sensor.matter_temperature:
+    # The Matter fork and pinned host ZAP/GN tools must be prepared first.
+    # Build explicitly with build.sh; this is not part of the default matrix.
+    skip: true
