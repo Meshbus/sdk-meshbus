@@ -33,6 +33,11 @@ manifest:
       path: modules/lib/heatshrink
       repo-path: sdk-heatshrink
       revision: 8c98cde55c7bde2947064ff70eba30ab1c7dda7c
+    - name: matter
+      path: modules/lib/matter
+      repo-path: sdk-matter
+      clone-depth: 1
+      revision: master
 
   self:
     path: meshbus
