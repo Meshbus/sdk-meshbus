@@ -1,11 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 """Exercise product artifacts and command boundaries without building firmware."""
 import argparse
+from contextlib import redirect_stdout, redirect_stderr
+import io
 import importlib.util
 import json
 import os
 from pathlib import Path
 import shutil
+import struct
 import subprocess
 import sys
 import tarfile
@@ -22,9 +25,42 @@ import meshbus_cli
 
 
 def copy_board_metadata(workspace):
-    destination = workspace / "meshbus/apps/meshbus/boards/products.yml"
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(SCRIPTS.parent / "apps/meshbus/boards/products.yml", destination)
+    destination = workspace / "meshbus/apps/meshbus/boards"
+    shutil.copytree(SCRIPTS.parent / "apps/meshbus/boards", destination, dirs_exist_ok=True)
+    for profile_dir in destination.glob("*/*"):
+        relative = profile_dir.relative_to(destination)
+        definition = SCRIPTS.parent / "boards" / relative / "board.yml"
+        if definition.is_file():
+            hardware = workspace / "meshbus/boards" / relative
+            hardware.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(definition, hardware / "board.yml")
+    zephyr = workspace / "zephyr"
+    if not zephyr.exists():
+        zephyr.symlink_to(SCRIPTS.parent.parent / "zephyr", target_is_directory=True)
+
+
+def add_profile(workspace, name="fixture_board", vendor="test", qualifiers=("soc/cpu",)):
+    hardware = workspace / "meshbus/boards" / vendor / name
+    hardware.mkdir(parents=True, exist_ok=True)
+    variants = []
+    for qualifier in qualifiers:
+        children = variants
+        for part in qualifier.split("/"):
+            match = next((v for v in children if v["name"] == part), None)
+            if match is None:
+                match = {"name": part, "variants": []}
+                children.append(match)
+            children = match["variants"]
+    soc_directory = workspace / "meshbus/soc/test"
+    soc_directory.mkdir(parents=True, exist_ok=True)
+    art.write_json(soc_directory / "soc.yml", {"socs": [{"name": v["name"]} for v in variants]})
+    art.write_json(hardware / "board.yml", {"board": {"name": name, "full_name": name,
+                   "vendor": vendor, "socs": variants}})
+    directory = workspace / "meshbus/apps/meshbus/boards" / vendor / name
+    directory.mkdir(parents=True, exist_ok=True)
+    for qualifier in qualifiers:
+        (directory / f"{name}_{qualifier.replace('/', '_')}.conf").write_text("# APP profile\n")
+    return directory
 
 
 class ArtifactTests(unittest.TestCase):
@@ -35,8 +71,7 @@ class ArtifactTests(unittest.TestCase):
         copy_board_metadata(self.root)
 
     def product(self, llext=False, oversize=False, dirty=True, off_manifest=False):
-        art.write_json(self.root / "meshbus/apps/meshbus/boards/products.yml", {"products": [
-            {"id": "fixture_board", "board": "fixture_board/soc/cpu"}]})
+        add_profile(self.root)
         sysbuild = self.root / "sysbuild"
         build = sysbuild / "meshbus"
         for name, base, data in [("mcuboot", 0x1000, b"boot"), ("meshbus", 0x2000, b"application")]:
@@ -53,10 +88,12 @@ class ArtifactTests(unittest.TestCase):
         source = {"firmware": {"revision": None if dirty else "f" * 40, "dirty": dirty},
                   "off_manifest": ["meshbus"] if off_manifest else [],
                   "projects": {"meshbus": {"revision": "a" * 40, "dirty": False}}}
-        conf = {"CONFIG_MBS_FIRMWARE": "y", "CONFIG_MBS_LLEXT": "y" if llext else "n"}
+        conf = {"CONFIG_BOOTLOADER_MCUBOOT": "y", "CONFIG_MBS_FIRMWARE": "y", "CONFIG_MBS_LLEXT": "y" if llext else "n"}
         ctx = (build, {"cmake": {"toolchain": {"name": "zephyr", "path": "/fixture/toolchain"}}}, conf,
                "fixture_board/soc/cpu", "1.2.3", self.root / "meshbus", source)
         self.enterContext(patch.object(release, "context", return_value=ctx))
+        (sysbuild / "image-public.pem").write_text("public fixture\n")
+        self.enterContext(patch.object(release, "verify_native_signature", return_value={"verified": True}))
         self.enterContext(patch.object(release, "cache", return_value="compiler"))
         self.enterContext(patch.object(release, "run", return_value="test-version"))
         return sysbuild
@@ -80,7 +117,7 @@ class ArtifactTests(unittest.TestCase):
             self.assertEqual(mapping["full_bin"]["address"], 0x1000)
             self.assertEqual(mapping["id"], "fixture_board")
             self.assertNotIn("role", mapping)
-            self.assertEqual(first.name, "1.2.3-fixture_board")
+            self.assertEqual(first.name, "1.2.3-fixture_board_soc_cpu")
             self.assertFalse(mapping["publishable"])
         with self.assertRaisesRegex(ValueError, "not empty"):
             release.firmware(build, self.root / "first", True)
@@ -187,7 +224,7 @@ class ArtifactTests(unittest.TestCase):
         sysbuild = self.product()
         app = sysbuild / "meshbus"
         boot = sysbuild / "mcuboot"
-        with self.assertRaisesRegex(ValueError, "production C2 package requires"):
+        with self.assertRaisesRegex(ValueError, "production package requires"):
             release.generate_spdx(app, sysbuild, self.root / "missing", {}, self.root, True)
         with self.assertRaisesRegex(ValueError, "must enable.*together"):
             with (app / "zephyr/.config").open("a") as config_file:
@@ -300,7 +337,7 @@ class ArtifactTests(unittest.TestCase):
 
     def assembly_parts(self):
         source = self.root / "parts"
-        for target in release.release_targets():
+        for target in release.targets():
             part = source / "firmware" / f"1.2.3-{target['id']}"
             part.mkdir(parents=True)
             image = target["board"].encode()
@@ -317,14 +354,15 @@ class ArtifactTests(unittest.TestCase):
         return argparse.Namespace(input=source, output=self.root / "assembled", delta_package=[],
                                   manifest_public_key=None, image_public_key=None)
 
-    def test_assembly_requires_only_the_c2_firmware_target(self):
+    def test_assembly_requires_all_discovered_firmware_targets(self):
         args = self.assembly_parts()
         with patch.object(release, "cli_command", side_effect=AssertionError("no format tools needed")):
             release.assemble(args)
         art.verify_checksums(args.output)
         index = json.loads((args.output / "release.json").read_text())
         self.assertEqual([record["target"] for record in index["products"]],
-                         ["idea_mesh_tracker_c2/nrf54l15/cpuapp"])
+                         ["idea_mesh_tracker_c2/nrf54l15/cpuapp", "tracker_t1000_e/nrf52840",
+                          "wio_tracker_l1/nrf52840"])
         self.assertFalse(index["publishable"])
 
     def test_firmware_assembly_rejects_cli_parts(self):
@@ -384,6 +422,188 @@ class ArtifactTests(unittest.TestCase):
         self.assertFalse(args.output.exists())
 
 
+def uf2_bytes(binary, address=0x2000, family=0xADA52840):
+    count = (len(binary) + 255) // 256
+    return b"".join(
+        struct.pack("<8I", 0x0A324655, 0x9E5D5157, 0x2000, address + i * 256,
+                    256, i, count, family) + binary[i * 256:(i + 1) * 256].ljust(256, b"\0") +
+        bytes(220) + struct.pack("<I", 0x0AB16F30)
+        for i in range(count))
+
+
+class UF2Tests(unittest.TestCase):
+    setUp = ArtifactTests.setUp
+
+    def test_native_hex_conversion_with_sparse_regions(self):
+        spec = importlib.util.spec_from_file_location(
+            "native_uf2", SCRIPTS.parent.parent / "zephyr/scripts/build/uf2conv.py")
+        converter = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(converter)
+        converter.familyid = 0xADA52840
+        hex_data = release.full_hex([(0x2000, b"first"), (0x2020, b"second"),
+                                 (0x2400, b"last")]).encode()
+        binary = bytearray(b"\xff" * 0x404)
+        binary[:5] = b"first"
+        binary[0x20:0x26] = b"second"
+        binary[0x400:] = b"last"
+        uf2 = converter.convert_from_hex_to_uf2(hex_data.decode())
+        verified = release.verify_uf2(uf2, binary, 0x2000, 0x3000, converter.familyid, hex_data)
+        self.assertEqual(verified["hex_sha256"], art.digest(hex_data))
+        self.assertEqual(len(uf2), 1024)
+        binary[6] = 0
+        with self.assertRaisesRegex(ValueError, "HEX payload differs"):
+            release.verify_uf2(uf2, binary, 0x2000, 0x3000, converter.familyid, hex_data)
+        with self.assertRaisesRegex(ValueError, "invalid application HEX"):
+            release.verify_uf2(uf2, binary, 0x2000, 0x3000, converter.familyid, b"invalid")
+
+    def test_spdx_release_version_for_same_checkout_keeps_source_revision(self):
+        revision = "b" * 40 + "-off"
+        location = "git+https://example.com/library@" + revision
+        source = ("Created: 2026-01-01T00:00:00Z\n##### Package: library-sources\n"
+                  "PackageName: library-sources\nPackageVersion: " + revision +
+                  "\nPackageDownloadLocation: " + location + "\nFileName: ./lib.c\n")
+        dependency = ("##### Package: library-deps\nPackageName: library-deps\n"
+                      "PackageVersion: 4.1.1\nPackageDownloadLocation: " + location +
+                      "\nExternalRef: PACKAGE-MANAGER purl pkg:generic/library@4.1.1\n")
+        identity = {"version": "1.0.0", "target": "test", "seed": "test", "full_bin_sha256": "a" * 64}
+        documents = {("app", "zephyr.spdx"): source.encode(),
+                     ("app", "modules-deps.spdx"): dependency.encode()}
+        public, _ = release.public_spdx(documents, identity)
+        self.assertIn(("PackageVersion: " + revision).encode(), public)
+        self.assertIn(b"pkg:generic/library@4.1.1", public)
+        documents[("app", "modules-deps.spdx")] = dependency.replace(revision, "c" * 40).encode()
+        with self.assertRaisesRegex(ValueError, "multiple revisions"):
+            release.public_spdx(documents, identity)
+
+    def product(self, llext=False, dirty=True):
+        root = ArtifactTests.product(self, llext=llext, dirty=dirty)
+        shutil.rmtree(root / "mcuboot")
+        (root / "image-public.pem").unlink()
+        context = list(release.context(root))
+        context[2] = {**context[2], "CONFIG_BOOTLOADER_MCUBOOT": "n", "CONFIG_BUILD_OUTPUT_UF2": "y"}
+        self.enterContext(patch.object(release, "context", return_value=tuple(context)))
+        app = root / "meshbus/zephyr"
+        (app / ".config").write_text(
+            "CONFIG_BUILD_OUTPUT_UF2=y\nCONFIG_BUILD_OUTPUT_UF2_FAMILY_ID=0xada52840\n"
+            "CONFIG_FLASH_BASE_ADDRESS=0\nCONFIG_FLASH_LOAD_OFFSET=0x2000\n"
+            "CONFIG_FLASH_LOAD_SIZE=4096\nCONFIG_ROM_START_OFFSET=0\n")
+        (app / "runners.yaml").write_text("config:\n  bin_file: zephyr.bin\n  uf2_file: zephyr.uf2\n")
+        binary = bytes(range(256)) + b"application tail"
+        (app / "zephyr.bin").write_bytes(binary)
+        (app / "zephyr.uf2").write_bytes(uf2_bytes(binary))
+        return root
+
+    def test_application_only_archive_needs_no_bootloader_or_signing_key(self):
+        build = self.product()
+        with patch.object(release, "verify_native_signature", side_effect=AssertionError("must not sign UF2")):
+            part = release.firmware(build, self.root / "parts", True)
+        record = json.loads((part / "release-part.json").read_text())
+        self.assertEqual(record["format"], "uf2")
+        self.assertTrue(record["uf2"]["verified"])
+        self.assertEqual([i["domain"] for i in record["images"]], ["app"])
+        self.assertNotIn("signing", record)
+        self.assertNotIn("full_bin", record)
+        with tarfile.open(next(part.glob("*.tar.gz"))) as archive:
+            names = archive.getnames()
+            self.assertIn("firmware/app.uf2", names)
+            self.assertNotIn("firmware/full.bin", names)
+            self.assertNotIn("firmware/mcuboot.bin", names)
+            self.assertNotIn("firmware/image-public.pem", names)
+        art.verify_checksums(part)
+
+    def test_bad_uf2_cannot_complete_a_package(self):
+        build = self.product()
+        uf2 = build / "meshbus/zephyr/zephyr.uf2"
+        data = bytearray(uf2.read_bytes())
+        data[40] ^= 1
+        uf2.write_bytes(data)
+        with self.assertRaisesRegex(ValueError, "payload differs"):
+            release.firmware(build, self.root / "parts", True)
+        self.assertFalse(list((self.root / "parts").rglob("release-part.json")))
+
+    def test_missing_uf2_cannot_complete_a_package(self):
+        build = self.product()
+        (build / "meshbus/zephyr/zephyr.uf2").unlink()
+        with self.assertRaises(OSError):
+            release.firmware(build, self.root / "parts", True)
+        self.assertFalse(list((self.root / "parts").rglob("release-part.json")))
+
+    def test_uf2_export_mutation_cannot_complete_a_package(self):
+        build = self.product(llext=True)
+        def run(command, **kwargs):
+            if command[:2] == ["meshbus", "edk"]:
+                (build / "meshbus/zephyr/zephyr.uf2").write_bytes(b"changed by export")
+            return "test-version"
+        with patch.object(release, "cli_command", return_value=["meshbus"]), \
+                patch.object(release, "cli_identity", return_value={"sha256": "a" * 64}), \
+                patch.object(release, "run", side_effect=run):
+            with self.assertRaisesRegex(ValueError, "EDK export changed"):
+                release.firmware(build, self.root / "parts", True)
+        self.assertFalse(list((self.root / "parts").rglob("release-part.json")))
+
+    def test_uf2_production_requires_app_spdx(self):
+        build = self.product(dirty=False)
+        with self.assertRaisesRegex(ValueError, "production package requires SPDX"):
+            release.firmware(build, self.root / "parts", False)
+
+    def test_c2_cannot_bypass_signing_by_claiming_uf2(self):
+        build = self.product()
+        context = list(release.context(build))
+        context[3] = "idea_mesh_tracker_c2/nrf54l15/cpuapp"
+        with patch.object(release, "context", return_value=tuple(context)):
+            with self.assertRaisesRegex(ValueError, "C2 requires MCUboot"):
+                release.firmware(build, self.root / "parts", True)
+
+    def test_protocol_rejects_wrong_addresses_family_flags_counts_and_payload(self):
+        binary = bytes(range(256)) + b"tail"
+        original = uf2_bytes(binary)
+        self.assertTrue(release.verify_uf2(original, binary, 0x2000, 0x3000, 0xADA52840)["verified"])
+        for offset, value in [(0, 0), (8, 0), (12, 0), (16, 128), (20, 1), (24, 3),
+                              (28, 123), (40, 0), (512 + 40, 123), (508, 0)]:
+            with self.subTest(offset=offset):
+                data = bytearray(original)
+                struct.pack_into("<I", data, offset, value)
+                with self.assertRaises(ValueError):
+                    release.verify_uf2(data, binary, 0x2000, 0x3000, 0xADA52840)
+        with self.assertRaisesRegex(ValueError, "outside application partition"):
+            release.verify_uf2(original, binary, 0x2000, 0x2000 + len(binary), 0xADA52840)
+        with self.assertRaises(ValueError):
+            release.verify_uf2(original[:-1], binary, 0x2000, 0x3000, 0xADA52840)
+
+    def test_assembly_revalidates_uf2_even_with_updated_file_checksums(self):
+        build = self.product()
+        part = release.firmware(build, self.root / "parts", True)
+        args = argparse.Namespace(input=self.root / "parts", output=self.root / "assembled",
+                                  delta_package=[], manifest_public_key=None, image_public_key=None)
+        with patch.object(release, "targets", return_value=[{"id": "fixture_board", "board": "fixture_board/soc/cpu"}]):
+            release.assemble(args)
+            data = bytearray((part / "app.uf2").read_bytes())
+            data[40] ^= 1
+            (part / "app.uf2").write_bytes(data)
+            art.checksums(part)
+            args.output = self.root / "bad-assembly"
+            with self.assertRaisesRegex(ValueError, "payload differs"):
+                release.assemble(args)
+            self.assertFalse(args.output.exists())
+
+    def test_build_without_key_uses_generated_uf2_config(self):
+        (self.root / "meshbus/west.yml").write_text("manifest: {}\n")
+        (self.root / "meshbus/apps/meshbus/VERSION").write_text("VERSION_MAJOR = 1\n")
+        args = argparse.Namespace(workspace=self.root, target=["tracker_t1000_e"],
+                                  build_root=self.root / "build", output=self.root / "parts",
+                                  development=True, image_signing_key=None)
+        with patch.object(release, "run") as run, patch.object(release, "firmware") as package, \
+                patch.object(release, "config", return_value={"CONFIG_BUILD_OUTPUT_UF2": "y"}), \
+                patch.object(release, "image_private_key", side_effect=AssertionError("no key needed")), \
+                patch.object(release, "imgtool", side_effect=AssertionError("no signer needed")):
+            release.build_products(args)
+        self.assertEqual(run.call_count, 2)
+        self.assertIn("--cmake-only", run.call_args_list[0].args[0])
+        self.assertNotIn("--cmake-only", run.call_args_list[1].args[0])
+        self.assertFalse(any("SIGNATURE_KEY" in str(arg) for call in run.call_args_list for arg in call.args[0]))
+        package.assert_called_once()
+
+
 class SigningTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="native signing tests ")
@@ -437,17 +657,19 @@ class SigningTests(unittest.TestCase):
             release.verify_native_signature(self.sysbuild, self.public)
 
     def test_native_build_preserves_key_and_exports_public_pem(self):
-        args = argparse.Namespace(workspace=self.root, target=[], build_root=self.root / "build",
+        args = argparse.Namespace(workspace=self.root, target=["idea_mesh_tracker_c2"], build_root=self.root / "build",
                                   output=self.root / "parts", development=False, image_signing_key=None)
         real_run = release.run
         keys = []
 
         def run(command, **kwargs):
-            if command[:2] == ["west", "build"]:
+            if command[:2] == ["west", "build"] and "--cmake-only" in command:
                 definition = next(str(arg) for arg in command if str(arg).startswith("-DSB_CONFIG_BOOT_SIGNATURE_KEY_FILE="))
                 key = Path(definition.split("=", 1)[1].strip('"'))
                 self.assertTrue(key.read_bytes() == self.private.read_bytes())
                 keys.append(key)
+                return None
+            if command[:2] == ["west", "build"]:
                 return None
             return real_run(command, **kwargs)
 
@@ -456,6 +678,7 @@ class SigningTests(unittest.TestCase):
 
         args.image_signing_key = self.private
         with patch.object(release, "run", side_effect=run), \
+                patch.object(release, "config", return_value={"CONFIG_BOOTLOADER_MCUBOOT": "y"}), \
                 patch.object(release, "firmware", side_effect=package):
             release.build_products(args)
         self.assertEqual(keys, [self.private.resolve()])
@@ -464,7 +687,7 @@ class SigningTests(unittest.TestCase):
         self.assertEqual(public.read_bytes(), self.public.read_bytes())
 
     def test_native_build_failure_preserves_caller_key(self):
-        args = argparse.Namespace(workspace=self.root, target=[], build_root=self.root / "build",
+        args = argparse.Namespace(workspace=self.root, target=["idea_mesh_tracker_c2"], build_root=self.root / "build",
                                   output=self.root / "parts", development=True, image_signing_key=self.private)
         original = self.private.read_bytes()
         with patch.object(release, "run", side_effect=RuntimeError("build failed")):
@@ -477,6 +700,85 @@ class SigningTests(unittest.TestCase):
         self.private.chmod(0o644)
         with self.assertRaisesRegex(ValueError, "must not be group- or world-accessible"):
             release.image_private_key(self.private, self.sysbuild)
+
+
+
+class BuildContinuationTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.workspace = Path(temporary.name)
+        application = self.workspace / "meshbus/apps/meshbus"
+        application.mkdir(parents=True)
+        (self.workspace / "meshbus/west.yml").write_text("manifest: {}\n")
+        (application / "VERSION").write_text("VERSION_MAJOR = 1\n")
+        self.inventory = [{"id": name, "board": name + "/soc"} for name in ("first", "middle", "last")]
+        self.args = argparse.Namespace(release_command="build", workspace=self.workspace, target=[],
+                                       build_root=self.workspace / "build", output=self.workspace / "parts",
+                                       development=True, image_signing_key=None)
+
+    def exercise(self, failed_board=None, failed_stage=None, interrupt=False):
+        configured, packaged = [], []
+        output = io.StringIO()
+
+        def fail(board, stage):
+            if board == failed_board and stage == failed_stage:
+                if interrupt:
+                    raise KeyboardInterrupt()
+                if stage in ("configure", "build"):
+                    raise subprocess.CalledProcessError(7, ["west", "build"])
+                raise ValueError("package validation failed")
+
+        def run(command, **kwargs):
+            if "--cmake-only" in command:
+                board = command[command.index("-b") + 1].split("/")[0]
+                configured.append(board)
+                fail(board, "configure")
+            else:
+                board = Path(command[command.index("-d") + 1]).name.removesuffix("_soc")
+                fail(board, "build")
+
+        def package(directory, destination, *args, **kwargs):
+            board = directory.name.removesuffix("_soc")
+            fail(board, "package")
+            part = destination / "firmware" / board
+            part.mkdir(parents=True, exist_ok=True)
+            (part / "artifact.bin").write_bytes(board.encode())
+            packaged.append(board)
+            return part
+
+        with patch.object(release, "targets", return_value=self.inventory), \
+                patch.object(release, "run", side_effect=run), \
+                patch.object(release, "config", return_value={"CONFIG_BUILD_OUTPUT_UF2": "y"}), \
+                patch.object(release, "firmware", side_effect=package), \
+                redirect_stdout(output), redirect_stderr(output):
+            if interrupt:
+                with self.assertRaises(KeyboardInterrupt):
+                    release.execute(self.args)
+                self.assertEqual(configured, ["first"])
+                return
+            code = release.execute(self.args)
+        expected = [entry["id"] for entry in self.inventory if entry["id"] != failed_board]
+        self.assertEqual(configured, ["first", "middle", "last"])
+        self.assertEqual(packaged, expected)
+        for board in expected:
+            self.assertEqual((self.args.output / "firmware" / board / "artifact.bin").read_bytes(), board.encode())
+        self.assertEqual(code, 0 if failed_board is None else 1 if failed_stage == "package" else 7)
+        self.assertIn(f"{len(expected)} succeeded, {3 - len(expected)} failed", output.getvalue())
+        if failed_board:
+            self.assertIn(f"FAIL {failed_board}/soc [{failed_stage}]", output.getvalue())
+
+    def test_failure_at_each_position_and_stage_preserves_other_artifacts(self):
+        for board in ("first", "middle", "last"):
+            for stage in ("configure", "build", "package"):
+                with self.subTest(board=board, stage=stage):
+                    self.exercise(board, stage)
+
+    def test_all_success_returns_zero(self):
+        self.exercise()
+
+    def test_user_interrupt_stops_immediately(self):
+        self.exercise("first", "build", interrupt=True)
 
 
 class EntryTests(unittest.TestCase):
@@ -541,10 +843,11 @@ class EntryTests(unittest.TestCase):
 
     def test_matrix_identifies_one_firmware_per_device(self):
         expected = [{"id": "idea_mesh_tracker_c2",
-                     "board": "idea_mesh_tracker_c2/nrf54l15/cpuapp"}]
+                     "board": "idea_mesh_tracker_c2/nrf54l15/cpuapp"},
+                    {"id": "tracker_t1000_e", "board": "tracker_t1000_e/nrf52840"},
+                    {"id": "wio_tracker_l1", "board": "wio_tracker_l1/nrf52840"}]
         self.assertEqual(release.targets(), expected)
-        self.assertEqual(release.release_targets(), expected)
-        self.assertEqual(release.product_name(expected[0]), "idea_mesh_tracker_c2")
+        self.assertEqual(release.product_name(expected[0]), "idea_mesh_tracker_c2_nrf54l15_cpuapp")
 
     def test_client_rejects_a_cargo_target_override_instead_of_mislabeling_archive(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -615,9 +918,10 @@ class EntryTests(unittest.TestCase):
             for selector in ["idea_mesh_tracker_c2", "idea_mesh_tracker_c2/nrf54l15/cpuapp"]:
                 args.target = [selector]
                 with patch.object(release, "run") as invoked, patch.object(release, "firmware") as packaged, \
-                        patch.object(release, "imgtool", return_value=Path("imgtool.py")):
+                        patch.object(release, "imgtool", return_value=Path("imgtool.py")), \
+                        patch.object(release, "config", return_value={"CONFIG_BOOTLOADER_MCUBOOT": "y"}):
                     release.build_products(args)
-                self.assertEqual(invoked.call_count, 2)
+                self.assertEqual(invoked.call_count, 3)
                 packaged.assert_called_once()
                 command = invoked.call_args_list[0].args[0]
                 self.assertIn("--sysbuild", command)
@@ -627,7 +931,7 @@ class EntryTests(unittest.TestCase):
                 self.assertIn("-Dmcuboot_CONFIG_BUILD_OUTPUT_META=y", command)
                 directories.append(command[command.index("-d") + 1])
             self.assertEqual(directories[0], directories[1])
-            self.assertEqual(directories[0].name, "idea_mesh_tracker_c2")
+            self.assertEqual(directories[0].name, "idea_mesh_tracker_c2_nrf54l15_cpuapp")
 
     def test_native_build_requires_a_file_even_with_legacy_environment_set(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -638,7 +942,9 @@ class EntryTests(unittest.TestCase):
             copy_board_metadata(workspace)
             args = argparse.Namespace(workspace=workspace, target=[], build_root=workspace / "build",
                                       output=workspace / "parts", development=False, image_signing_key=None)
-            with patch.dict(os.environ, {"MESHBUS_IMAGE_PRIVATE_KEY": "unused legacy value"}):
+            with patch.dict(os.environ, {"MESHBUS_IMAGE_PRIVATE_KEY": "unused legacy value"}), \
+                    patch.object(release, "run"), \
+                    patch.object(release, "config", return_value={"CONFIG_BOOTLOADER_MCUBOOT": "y"}):
                 with self.assertRaisesRegex(ValueError, "requires --image-signing-key"):
                     release.build_products(args)
 
@@ -650,53 +956,107 @@ class DiscoveryTests(unittest.TestCase):
         self.workspace = Path(self.temp.name)
         self.boards = self.workspace / "meshbus/apps/meshbus/boards"
         self.boards.mkdir(parents=True)
+        (self.workspace / "zephyr").symlink_to(SCRIPTS.parent.parent / "zephyr", target_is_directory=True)
 
-    def profiles(self, products):
-        path = self.boards / "products.yml"
-        art.write_json(path, {"products": products})
-        return path
-
-    def test_discovery_tracks_device_profiles(self):
+    def test_discovery_tracks_app_profiles_and_ignores_companions(self):
+        directory = add_profile(self.workspace, "a_board")
+        add_profile(self.workspace, "b_board")
+        for suffix in [".overlay", "_mcuboot.conf", "_mcuboot.overlay"]:
+            (directory / ("a_board_soc_cpu" + suffix)).write_text("# companion\n")
+        (directory / "README.md").write_text("documentation\n")
         a = {"id": "a_board", "board": "a_board/soc/cpu"}
         b = {"id": "b_board", "board": "b_board/soc/cpu"}
-        self.profiles([b, a])
         self.assertEqual(release.targets(self.boards), [a, b])
-        self.profiles([b])
+        shutil.rmtree(directory)
         self.assertEqual(release.targets(self.boards), [b])
 
-    def test_duplicate_device_outputs_fail(self):
-        a = {"id": "sample_board", "board": "sample_board/soc/cpu"}
-        for duplicate in [a, {**a, "board": "sample_board/soc/other_cpu"}]:
-            with self.subTest(duplicate=duplicate):
-                self.profiles([a, duplicate])
-                with self.assertRaisesRegex(ValueError, "duplicate device identity"):
-                    release.targets(self.boards)
+    def test_multiple_qualifiers_have_distinct_output_names(self):
+        add_profile(self.workspace, qualifiers=("soc/cpu", "soc/other_cpu"))
+        products = release.targets(self.boards)
+        self.assertEqual([p["board"] for p in products],
+                         ["fixture_board/soc/cpu", "fixture_board/soc/other_cpu"])
+        self.assertEqual(len({release.product_name(p) for p in products}), 2)
 
-    def test_empty_invalid_and_role_qualified_metadata_fail(self):
-        for products in [[], [{"id": "sample_board", "board": "sample_board"}],
-                         [{"id": "sample_board", "board": "sample_board/../cpu"}],
-                         [{"id": "sample_board", "board": "other_board/soc/cpu"}],
-                         [{"id": "sample_board", "board": "sample_board/soc/cpu/mb_client"}],
-                         [{"id": "sample_board", "board": "sample_board/soc/cpu", "role": "chat"}]]:
-            with self.subTest(products=products):
-                self.profiles(products)
-                with self.assertRaises(ValueError):
-                    release.targets(self.boards)
-        path = self.profiles([])
-        path.write_text("products: [broken\n")
-        with self.assertRaisesRegex(ValueError, "invalid YAML"):
+    def test_vendor_mismatch_is_rejected(self):
+        directory = add_profile(self.workspace)
+        destination = self.boards / "wrong/fixture_board"
+        destination.parent.mkdir()
+        directory.rename(destination)
+        with self.assertRaisesRegex(ValueError, "vendor mismatch"):
             release.targets(self.boards)
 
-    def test_build_uses_the_selected_workspaces_device_metadata(self):
-        self.profiles([{"id": "sample_board", "board": "sample_board/soc/cpu"}])
+    def test_unknown_qualifier_and_role_qualifier_are_rejected(self):
+        directory = add_profile(self.workspace)
+        profile = directory / "fixture_board_soc_cpu.conf"
+        profile.rename(directory / "fixture_board_soc_unknown.conf")
+        with self.assertRaisesRegex(ValueError, "exactly one ordinary"):
+            release.targets(self.boards)
+        shutil.rmtree(directory)
+        add_profile(self.workspace, qualifiers=("soc/cpu/mb_client",))
+        with self.assertRaisesRegex(ValueError, "exactly one ordinary"):
+            release.targets(self.boards)
+
+    def test_normalized_qualifier_collision_is_rejected(self):
+        add_profile(self.workspace, qualifiers=("soc/cpu_variant", "soc/cpu/variant"))
+        with self.assertRaisesRegex(ValueError, "exactly one ordinary"):
+            release.targets(self.boards)
+
+    def test_output_collision_across_boards_is_rejected(self):
+        add_profile(self.workspace, name="a_b", qualifiers=("soc/cpu",))
+        add_profile(self.workspace, name="a", qualifiers=("b/soc/cpu",))
+        # Both SoCs must exist in the shared fixture hardware model.
+        art.write_json(self.workspace / "meshbus/soc/test/soc.yml",
+                       {"socs": [{"name": "soc"}, {"name": "b"}]})
+        with self.assertRaisesRegex(ValueError, "output collision"):
+            release.targets(self.boards)
+
+    def test_unknown_board_is_rejected(self):
+        add_profile(self.workspace)
+        shutil.rmtree(self.workspace / "meshbus/boards/test/fixture_board")
+        with self.assertRaisesRegex(ValueError, "unknown board"):
+            release.targets(self.boards)
+
+    def test_empty_flat_deep_and_orphan_profiles_are_rejected(self):
+        with self.assertRaisesRegex(ValueError, "no Meshbus APP profiles"):
+            release.targets(self.boards)
+        flat = self.boards / "fixture_board_soc_cpu.conf"
+        flat.write_text("")
+        with self.assertRaisesRegex(ValueError, "boards/<vendor>/<board>"):
+            release.targets(self.boards)
+        flat.unlink()
+        directory = add_profile(self.workspace)
+        deep = directory / "nested"
+        deep.mkdir()
+        extra = deep / "extra.conf"
+        extra.write_text("")
+        with self.assertRaisesRegex(ValueError, "boards/<vendor>/<board>"):
+            release.targets(self.boards)
+        extra.unlink()
+        (directory / "fixture_board_soc_other_mcuboot.overlay").write_text("")
+        with self.assertRaisesRegex(ValueError, "no matching APP profile"):
+            release.targets(self.boards)
+
+    def test_symlink_profiles_are_rejected(self):
+        directory = add_profile(self.workspace)
+        (directory / "alias.conf").symlink_to(directory / "fixture_board_soc_cpu.conf")
+        with self.assertRaisesRegex(ValueError, "symlink"):
+            release.targets(self.boards)
+
+    def test_build_uses_selected_workspace_profiles(self):
+        add_profile(self.workspace, "sample_board")
         (self.workspace / "meshbus/west.yml").write_text("manifest: {}\n")
         (self.workspace / "meshbus/apps/meshbus/VERSION").write_text("VERSION_MAJOR = 1\n")
-        args = argparse.Namespace(workspace=self.workspace, target=["sample_board"],
-                                  build_root=self.workspace / "build", output=self.workspace / "parts", development=True)
-        with patch.object(release, "run") as invoked, patch.object(release, "firmware"):
+        key = self.workspace / "test-key.pem"
+        key.write_text("test placeholder\n")
+        key.chmod(0o600)
+        args = argparse.Namespace(workspace=self.workspace, target=[],
+                                  build_root=self.workspace / "build", output=self.workspace / "parts",
+                                  development=True, image_signing_key=key)
+        with patch.object(release, "run") as invoked, patch.object(release, "firmware"), \
+                patch.object(release, "imgtool", return_value=Path("imgtool.py")), \
+                patch.object(release, "config", return_value={"CONFIG_BOOTLOADER_MCUBOOT": "y"}):
             release.build_products(args)
-        invoked.assert_called_once()
-        command = invoked.call_args.args[0]
+        command = invoked.call_args_list[0].args[0]
         self.assertEqual(command[command.index("-b") + 1], "sample_board/soc/cpu")
 
 

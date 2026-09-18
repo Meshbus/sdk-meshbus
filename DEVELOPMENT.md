@@ -47,9 +47,11 @@ only when it is outside that graph.
 
 ## Product Builds
 
-Select device targets from `apps/meshbus/boards/products.yml`, device profiles, and
-`apps/meshbus/CMakeLists.txt`. [application README](apps/meshbus/README.md) documents the current
-supported targets.
+Select device targets with `west release matrix`. APP `.conf` files under
+`apps/meshbus/boards/<vendor>/<board>/` define the product inventory; their
+full target names are validated against Zephyr board metadata. The application
+loads these profiles for ordinary `west build` as well as release builds.
+[application README](apps/meshbus/README.md) documents the layout.
 
 ```sh
 cd "$west_root"
@@ -66,11 +68,12 @@ MCUboot repository development key. For a local engineering build, append:
 -- '-DSB_CONFIG_BOOT_SIGNATURE_KEY_FILE="/absolute/path/to/development-ed25519.pem"'
 ```
 
-For release builds, use `west release build --image-signing-key /absolute/path/to/key.pem`.
+For MCUboot release builds, use `west release build --image-signing-key /absolute/path/to/key.pem`.
 This passes the caller-owned PEM path to Zephyr's native signing and exports a
 public PEM for verification. The release host or CI owns private-file storage,
 backup and cleanup; Meshbus does not accept private PEM contents through an
 environment variable. Keep the file available for builds and EDK export.
+UF2 targets use the same command without the key argument when selected alone.
 See `DISTRIBUTION.md`. Production keys are used only with reviewed code on a
 trusted release host or protected CI; native builds and signing share the same
 trust boundary.

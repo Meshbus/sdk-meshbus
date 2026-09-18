@@ -1,0 +1,101 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <zephyr/dt-bindings/adc/adc.h>
+#include <zephyr/dt-bindings/adc/nrf-saadc.h>
+#include <dt-bindings/sensor/sensor_channel.h>
+
+/ {
+	fstab: fstab {
+		compatible = "zephyr,fstab";
+		extra: extra {
+			compatible = "zephyr,fstab,littlefs";
+			automount;
+			mount-point = "/extra";
+			partition = <&lfs_partition>;
+			read-size = <16>;
+			prog-size = <16>;
+			cache-size = <128>;
+			lookahead-size = <64>;
+			block-cycles = <512>;
+		};
+	};
+
+	meshbus_telemetry: meshbus-telemetry {
+		compatible = "fobe,meshbus-telemetry";
+
+		ch0 { sensor = <&qma6100p>; channel = <SENSOR_CHAN_ACCEL_XYZ>; };
+		ch1 { sensor = <&t1000_e_temp>; channel = <SENSOR_CHAN_AMBIENT_TEMP>; };
+		ch2 { sensor = <&t1000_e_light>; channel = <SENSOR_CHAN_LIGHT>; };
+	};
+
+	t1000_e_temp: t1000-e-temp {
+		compatible = "murata,ncp15xh103";
+		io-channels = <&adc 7>;
+		power-domains = <&sensor_power>;
+		pullup-uv = <3000000>;
+		pullup-ohm = <0>;
+		pulldown-ohm = <8250>;
+		connected-positive;
+	};
+
+	t1000_e_light: t1000-e-light {
+		compatible = "zephyr,analog-light";
+		io-channels = <&adc 5>;
+		power-domains = <&sensor_power>;
+	};
+
+	chosen {
+		meshbus,indicator-light-active = &led0;
+		meshbus,indicator-buzzer = &pwm0;
+		meshbus,indicator-buzzer-power = &buzzer_power;
+		meshbus,telemetry = &meshbus_telemetry;
+		meshbus,fuel-gauge = &fuel_gauge;
+		meshbus,charger = &charger;
+		meshbus,power-button = &button0;
+		meshbus,radio = &lr1110;
+		meshbus,gnss = &gnss_nmea;
+		meshbus,input-buttons = &buttons;
+	};
+};
+
+&i2c0 {
+	qma6100p: qma6100p@12 {
+		compatible = "qst,qma6100p";
+		reg = <0x12>;
+		power-domains = <&accelerometer_power>;
+		irq-gpios = <&gpio1 2 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+		range-g = <16>;
+	};
+};
+
+&button0 {
+	zephyr,code = <INPUT_BTN_BACK>;
+};
+
+&buttons {
+	wakeup-source;
+};
+
+&adc {
+	channel@5 {
+		reg = <5>;
+		zephyr,gain = "ADC_GAIN_1_6";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>;
+		zephyr,input-positive = <NRF_SAADC_AIN5>;
+		zephyr,resolution = <12>;
+		zephyr,oversampling = <4>;
+	};
+
+	channel@7 {
+		reg = <7>;
+		zephyr,gain = "ADC_GAIN_1_6";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>;
+		zephyr,input-positive = <NRF_SAADC_AIN7>;
+		zephyr,resolution = <12>;
+		zephyr,oversampling = <4>;
+	};
+};

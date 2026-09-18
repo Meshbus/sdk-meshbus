@@ -6,7 +6,7 @@ Protobuf remains in its canonical independent repository. Firmware and CLI
 retain separate release trains even though they share one source repository.
 
 Commands below run from `west topdir`, with this repository at `meshbus/`.
-Repository-relative product metadata is `apps/meshbus/boards/products.yml`.
+Product profiles live under `apps/meshbus/boards/<vendor>/<board>/`.
 No tool requires a Git repository or LICENSE in the workspace parent.
 
 ## Build the CLI
@@ -55,35 +55,82 @@ keeps a remapping argument intact when a directory name contains spaces.
 
 ## Product matrix and complete images
 
-Firmware-owned `apps/meshbus/boards/products.yml` declares each device's `id` and ordinary
-qualified `board` target. Duplicate device identities, role qualifiers, and
-malformed metadata are rejected. `west release matrix` reports the firmware GA
-set, currently only `idea_mesh_tracker_c2/nrf54l15/cpuapp`. The old DevKit
-product role profiles have been removed; the SDK base board remains available
-for samples and tests. DevKit product support is deferred.
+Each APP `<normalized-target>.conf` under
+`apps/meshbus/boards/<vendor>/<board>/` registers a product target. The normalized
+name replaces `/` with `_`; discovery matches it against Zephyr's legal targets
+instead of guessing where underscores separate the board, SoC and CPU.
+Vendor and board names must match the hardware metadata. APP overlays are
+optional; `_mcuboot.conf` and `_mcuboot.overlay` are companions, not targets.
+Flat/deeper layouts, unknown or ambiguous targets, role qualifiers, symlinks
+and orphaned companion files are rejected.
 
-Meshbus uses Zephyr's native MCUboot build-time signing. All official board
-models share one Ed25519 Production Image Key across firmware versions; the
-DFOTA Manifest Key remains independent. Board identity and image layout still
-come from the selected target, not from the signing key.
+`west release matrix` lists all discovered targets: C2
+(`idea_mesh_tracker_c2/nrf54l15/cpuapp`), Tracker T1000-E
+(`tracker_t1000_e/nrf52840`) and Wio Tracker L1 (`wio_tracker_l1/nrf52840`).
+`west release build` selects all of them
+by default, including with `--development`. A repeated `--target` selects a
+subset; a board ID selects all of its registered qualifiers and a complete
+target selects one. There is no separate product list or GA allowlist.
+
+Each selected board is configured, built and packaged independently. A board's
+configuration, build, key-export or packaging failure does not stop the remaining
+boards. Successful parts remain under `<output>/firmware/`; the final console
+summary lists every target and the failed stage. The command returns nonzero if
+any board fails, using the first failure's exit status. Invalid shared inputs
+(such as an unknown target or invalid supplied key) fail before the loop; a user
+interrupt stops immediately. Failed packaging can leave incomplete files, so
+use `release-part.json` and its checksums to identify completed parts. Assembly
+still requires the complete product matrix and rejects incomplete releases.
+
+Discovery does not imply hardware qualification or approval to publish.
+SDK board definitions alone do not register a product; DevKit product support
+remains deferred. Discovery needs the local Zephyr checkout (`ZEPHYR_BASE` or
+the workspace's `zephyr/`) and reads board/SoC definitions there and in Meshbus.
+
+The two Seeed targets retain their UF2/SoftDevice boot paths. The packager
+selects MCUboot or UF2 from the generated application configuration. UF2 builds
+need no image signing key and package the application only; they require a
+compatible bootloader and SoftDevice already installed on the device.
+
+```sh
+west release build --workspace "$PWD" --target tracker_t1000_e \
+  --build-root build/products --output build/candidate-t1000 --development
+```
+
+Use repeated `--target` arguments to include Wio, or omit them for every discovered
+board. The default matrix includes C2 and therefore requires its signing key.
+Wio enables LTO with local ISR tables to fit its complete Desktop/LLEXT profile
+within the existing 692 KiB application partition. The application excludes
+Zephyr's generated syscall export and weak-alias bridge objects from GCC LTO
+because their address-only data declarations conflict with function definitions.
+The EDK removes host LTO flags so extensions contain relocatable machine code
+rather than GCC intermediate objects. The final ELF retains the complete LLEXT
+export table. Linker type/size warnings
+for those weak aliases remain visible and require final-symbol validation.
+
+MCUboot products use Zephyr's native build-time signing and share one Ed25519
+Production Image Key across firmware versions; the DFOTA Manifest Key remains
+independent. Board identity and image layout come from the selected target.
+UF2 payload validation does not provide cryptographic signature verification.
 
 Keep the private PEM outside the source and build trees and pass its file path:
 
 ```sh
 west release matrix
 west release build --workspace "$PWD" \
+  --target idea_mesh_tracker_c2 \
   --image-signing-key /absolute/private/meshbus-image-v1.pem \
   --build-root build/products --output build/candidate
 ```
 
 Use `--target idea_mesh_tracker_c2` or
 `--target idea_mesh_tracker_c2/nrf54l15/cpuapp` to select C2 explicitly. All
-selected official boards use the same supplied key file. There is no implicit
+selected MCUboot boards use the same supplied key file. There is no implicit
 test key or PEM-content environment-variable interface. Use `--development`
 when rehearsing with uncommitted sources or dependencies; this changes
 packaging qualification, not the signing algorithm or key source.
 
-The release entry point passes the file path through Zephyr's standard
+For MCUboot, the release entry point passes the file path through Zephyr's standard
 `SB_CONFIG_BOOT_SIGNATURE_KEY_FILE`. Zephyr embeds the public key in MCUboot
 and invokes imgtool to produce the signed APP. No custom image configuration
 script or separate Meshbus signing command is needed.
@@ -95,7 +142,7 @@ exporting the EDK, because Zephyr may invoke signing again. Never commit private
 PEM contents or include them in logs or published artifacts. In CI, provision a
 private file before invoking the command and remove it when the job finishes.
 
-Each sysbuild retains `image-public.pem`. Packaging verifies the native signed
+Each MCUboot sysbuild retains `image-public.pem`. Packaging verifies the native signed
 APP, checks that this public key matches MCUboot's generated and linked key,
 and records the key fingerprint and APP/MCUboot digests. The firmware archive
 includes the public PEM. Signature verification needs no private key. The
@@ -106,7 +153,7 @@ west release firmware --build-dir build/<sysbuild-dir> \
   --output build/candidate-repack
 ```
 
-For builds made directly with `west build`, supply
+For MCUboot builds made directly with `west build`, supply
 `--image-public-key /absolute/path/to/public.pem` when packaging. Such builds
 use the ordinary Zephyr key-file option and must enable APP/MCUboot metadata for
 release packaging. Keep the configured private PEM path available for any
@@ -121,7 +168,9 @@ flow; existing dated evidence is retained as historical evidence.
 Use separate workspaces for
 separate firmware versions; this command never checks out Git revisions or
 runs `west update`. Its build directories include the version-file digest and
-device ID. Firmware part and archive names include `<board-id>`; records store
+normalized target. Firmware part and archive names include the complete target
+with `/` replaced by `_`, so multiple qualifiers cannot overwrite one another;
+records store
 `id` and the ordinary qualified `target`. The configured MeshCore role is not
 part of the build or package identity. Every build uses sysbuild. A build can also be packaged separately:
 
@@ -135,12 +184,18 @@ For LLEXT products, packaging asks the Rust exporter to run the standard
 package is rejected without a success record. Rebuild with `west release build`
 and use a fresh output directory; do not mix an old image with a new EDK.
 
-Each product archive contains the actual bootloader and application BINs,
+MCUboot product archives contain the actual bootloader and application BINs,
 available HEX images, complete `full.bin`/`full.hex`, `flash-map.json`, notices
 and checksums. Addresses and bounds come from final build configuration;
 `full.bin` starts at its recorded address and fills intervening gaps with 0xff.
 It is not an application-slot image or a DFOTA source. No command here flashes,
 erases storage or authorizes erase-all.
+
+UF2 archives contain `app.uf2`, `app.bin`, available `app.hex`, `flash-map.json`,
+notices and checksums. They contain no bootloader, SoftDevice or `full.*` image.
+Packaging validates UF2 headers, family ID, application partition bounds and
+payload against the native HEX/BIN outputs, including sparse HEX regions.
+Assembly repeats this validation against the retained application files.
 
 Each part retains the exact application BIN separately for future delta input.
 The generated record identifies target, version, final configuration/DTS
@@ -151,7 +206,9 @@ not rewritten by local packaging.
 
 ## EDK and extension packages
 
-Only LLEXT-enabled host builds produce EDKs; currently this is C2.
+Only LLEXT-enabled host builds produce EDKs. C2 supports the current release
+packaging flow; the Wio APP profile also enables LLEXT. Build, EDK validation
+and physical application execution are separate evidence levels.
 The distributable EDK builds Desktop MBA packages. The host
 checks package structure, metadata, target, and resource limits, but does not
 require a publisher signature or allowlist.
@@ -281,21 +338,23 @@ headers or ABI-sensitive compiler flags are changed to hide these failures.
 west release assemble --input build/candidate --output build/assembled
 ```
 
-Firmware assembly requires exactly the C2 product part and rejects CLI
-parts and DevKit fixtures. C2 1.0.0 has no DFOTA package because there is no
+Firmware assembly requires exactly the discovered product set (C2 and both Seeed targets)
+and rejects CLI parts and unregistered targets. C2 1.0.0 has no DFOTA package because there is no
 previous Release Baseline. Assembly never pushes tags or creates a GitHub
 Release.
 
-When both APP and MCUboot enable `CONFIG_BUILD_OUTPUT_META`, firmware packaging
-generates and checks eight raw Zephyr SPDX 2.3 documents directly from that
-exact build. `west release build` enables both settings automatically for C2.
-A production C2 package rejects missing metadata; development packages may omit
-it. SPDX generation requires every active project in the west manifest to be
-present.
+Firmware packaging generates and checks four raw Zephyr SPDX 2.3 documents
+per packaged image: eight for MCUboot plus APP, four for UF2 APP only.
+`west release build` enables metadata automatically. Production packaging
+requires metadata for every packaged image; development packages may omit it.
+SPDX generation requires every active project in the west manifest to be
+present. A UF2 SBOM does not inventory the preinstalled bootloader or SoftDevice.
 
 The public firmware archive contains one curated `SBOM.spdx`. It lists only
 components used by the APP or MCUboot and retains the exact version, license,
-source URL and package reference reported by Zephyr where available. It omits
+source URL and package reference reported by Zephyr where available. When module
+metadata gives a release version for the same exact checkout URL, the source
+SHA remains the package version and the release references are retained. It omits
 source filenames and checksums plus private Firmware/SDK URLs and revisions;
 those two private components use the released firmware version as their public
 identity. Metadata that Zephyr reports as `NOASSERTION` is not guessed and must
@@ -308,7 +367,7 @@ for exact support traceability, but no private repository URL. If commit IDs are
 also confidential, define and test a separate public/private provenance record
 before GA rather than silently removing the only exact build identity.
 
-The eight raw documents and their `SHA256SUMS` stay under
+The raw documents and their `SHA256SUMS` stay under
 `spdx-private/<identity>/` in the sysbuild output. They include private project
 origins/revisions and a generation time, so copy them into private retention
 before cleaning the build. Their timestamp also means repackaging later is not

@@ -1,20 +1,22 @@
 # SPDX-License-Identifier: Apache-2.0
 
-set(c2_target "idea_mesh_tracker_c2/nrf54l15/cpuapp")
+include("${APP_DIR}/cmake/board_profile.cmake")
+meshbus_board_profile("${APP_DIR}" meshbus_profile)
+get_filename_component(meshbus_profile_dir "${meshbus_profile}" DIRECTORY)
 
-if("${BOARD}/${BOARD_QUALIFIERS}" STREQUAL "${c2_target}" AND
+if(SB_CONFIG_BOOTLOADER_MCUBOOT AND
    NOT SB_CONFIG_BOOT_SIGNATURE_TYPE_NONE AND
    "${SB_CONFIG_BOOT_SIGNATURE_KEY_FILE}" STREQUAL "")
   message(FATAL_ERROR
-    "C2 requires an explicit Ed25519 image key. Pass "
+    "Meshbus requires an explicit image key. Pass "
     "'-DSB_CONFIG_BOOT_SIGNATURE_KEY_FILE=\"/absolute/path/to/key.pem\"'")
 endif()
 
-zephyr_file(CONF_FILES "${APP_DIR}/boards"
+zephyr_file(CONF_FILES "${meshbus_profile_dir}"
   KCONF mcuboot_board_conf
   SUFFIX mcuboot
 )
-zephyr_file(CONF_FILES "${APP_DIR}/boards"
+zephyr_file(CONF_FILES "${meshbus_profile_dir}"
   DTS mcuboot_board_overlay
   SUFFIX mcuboot
 )

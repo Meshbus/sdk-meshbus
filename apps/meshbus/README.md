@@ -3,7 +3,8 @@
 Meshbus is a standalone Zephyr application with one firmware composition per
 device. The device profile selects services and static capacities. MeshCore
 Settings selects CHAT, REPEATER, ROOM, or SENSOR protocol behavior independently.
-Firmware 1.0.0 targets Idea Mesh Tracker C2; DevKit migration is deferred.
+Registered application targets are Idea Mesh Tracker C2, Seeed Tracker T1000-E
+and Seeed Wio Tracker L1. DevKit migration is deferred.
 Shared hardware and services belong to the shared module in this repository.
 
 ## Workspace setup
@@ -17,8 +18,52 @@ west projects, and release artifacts record their resolved SHAs and toolchain.
 ## Device firmware and MeshCore role
 
 C2 uses `idea_mesh_tracker_c2/nrf54l15/cpuapp`, with device configuration and
-application/MCUboot overlays under `apps/meshbus/boards/`. Its SDK board owns the physical
-peripherals. `apps/meshbus/boards/products.yml` owns the release device identity.
+application/MCUboot overlays under
+`apps/meshbus/boards/fobe/idea_mesh_tracker_c2/`. Its SDK board owns the physical
+peripherals. APP profiles are the sole product target inventory:
+
+```text
+boards/<vendor>/<board>/
+  <normalized-target>.conf
+  <normalized-target>.overlay
+  <normalized-target>_mcuboot.conf
+  <normalized-target>_mcuboot.overlay
+```
+
+Only the APP `.conf` registers a target; overlays and MCUboot fragments are
+optional companions. Keep the full target in each filename, with `/` replaced
+by `_`. Multiple qualifiers for one board may coexist. The scanner resolves
+these names through Zephyr's board/SoC metadata and validates the vendor.
+Do not place flat profiles or further nested configuration files here.
+
+`ZephyrAppConfig.cmake` loads the selected APP profile after Zephyr resolves the
+board and before Kconfig/devicetree processing. `sysbuild.cmake` uses the same
+scanner to locate MCUboot companions. Both ordinary `west build` and
+`west release build` therefore use this layout, retaining the shared `prj.conf`.
+Use fresh build directories after moving profiles from the former flat layout.
+`west release matrix` reports all registered targets; publication still requires
+the separate qualification gates in `DISTRIBUTION.md`.
+
+The Seeed profiles live under `boards/seeed/tracker_t1000_e/` and
+`boards/seeed/wio_tracker_l1/`, for `tracker_t1000_e/nrf52840` and
+`wio_tracker_l1/nrf52840`. They preserve the supplied UF2/SoftDevice boot layout
+and do not enable MCUboot. Wio's overlay includes its adjacent
+`wio_tracker_l1_partitions.dtsi` (692 KiB application, 128 KiB settings and
+2 MiB external `/extra`). T1000-E keeps the supplied sensor-only profile with
+MeshCore and messaging disabled pending sizing and radio validation.
+Wio keeps Desktop/LLEXT and the MeshCore client profile. The optional source
+performance-log fragment is not part of the default product profile.
+
+`west release build --target tracker_t1000_e` and `--target wio_tracker_l1`
+select native UF2 packaging without an image signing key. Supply the usual
+`--workspace`, `--build-root`, `--output` and, for dirty sources, `--development`
+arguments described in `DISTRIBUTION.md`. UF2 packages contain only the APP and
+preserve the existing bootloader/SoftDevice layout. Wio uses LTO and local ISR
+tables to retain its full feature set within the 692 KiB application partition.
+The application CMake keeps Zephyr's syscall export/weak-alias bridge objects
+outside GCC LTO; final-symbol checks cover their linker type/size warnings.
+EDK compiler flags exclude LTO so MBA extensions contain machine code.
+Hardware release qualification is separate.
 
 ```sh
 west build -p always --sysbuild \

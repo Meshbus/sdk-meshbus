@@ -1,4 +1,0 @@
-# SPDX-License-Identifier: Apache-2.0
-products:
-  - id: idea_mesh_tracker_c2
-    board: idea_mesh_tracker_c2/nrf54l15/cpuapp

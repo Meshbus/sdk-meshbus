@@ -29,7 +29,10 @@ int main(void)
 		LOG_ERR("Unable to keep UART MCUmgr transport active");
 	}
 #endif
-	LOG_INF("MESHBUS_READY active_role=%u",
-		(unsigned int)mbs_meshcore_active_role_get());
+#if defined(CONFIG_MBS_MESHCORE)
+	LOG_INF("MESHBUS_READY active_role=%u", (unsigned int)mbs_meshcore_active_role_get());
+#else
+	LOG_INF("MESHBUS_READY");
+#endif
 	return 0;
 }

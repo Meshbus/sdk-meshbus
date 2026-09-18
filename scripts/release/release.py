@@ -5,12 +5,14 @@ West and the standalone CI entry point share this parser and implementation.
 EDK/DFOTA format operations are delegated to an existing Rust meshbus CLI.
 """
 import argparse
+import io
 import json
 import os
 from pathlib import Path
 import re
 import shlex
 import shutil
+import struct
 import subprocess
 import sys
 import tempfile
@@ -21,14 +23,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import artifacts as art
 from meshbus_cli import cli_command
+from board_profiles import discover
 
 CLIENTS = {
     "aarch64-apple-darwin", "x86_64-apple-darwin",
     "aarch64-pc-windows-msvc", "x86_64-pc-windows-msvc",
     "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu",
-}
-GA_FIRMWARE_TARGETS = {
-    "idea_mesh_tracker_c2/nrf54l15/cpuapp",
 }
 MAX_IMAGE = 16 * 1024 * 1024
 MAX_HOST_TOOL = 256 * 1024 * 1024
@@ -36,42 +36,14 @@ SPDX_DOCUMENTS = {"app.spdx", "build.spdx", "modules-deps.spdx", "zephyr.spdx"}
 
 
 def targets(boards=None):
-    """Read firmware-owned device profiles, independent of MeshCore roles."""
+    """APP profiles are the sole product inventory; Zephyr validates identities."""
     boards = Path(boards) if boards is not None else Path(__file__).resolve().parents[2] / "apps/meshbus/boards"
-    path = boards / "products.yml"
-    metadata = yaml_file(path)
-    art.require(isinstance(metadata, dict) and isinstance(metadata.get("products"), list),
-                f"invalid device profile metadata: {path}")
-    result, ids, targets_seen = [], set(), set()
-    for product in metadata["products"]:
-        art.require(isinstance(product, dict) and set(product) == {"id", "board"},
-                    f"device profile requires id and board: {path}")
-        name, target = product["id"], product["board"]
-        art.require(isinstance(name, str) and re.fullmatch(r"[a-z0-9_]+", name)
-                    and isinstance(target, str)
-                    and re.fullmatch(r"[a-z0-9_]+(?:/[a-z0-9_]+)+", target)
-                    and target.split("/")[0] == name
-                    and not any(q.startswith("mb_") for q in target.split("/")[1:]),
-                    f"invalid ordinary device target: {path}")
-        art.require(name not in ids and target not in targets_seen,
-                    f"duplicate device identity: {name}")
-        ids.add(name)
-        targets_seen.add(target)
-        result.append(dict(product))
-    art.require(result, f"no Meshbus device profiles found under {boards}")
-    return sorted(result, key=lambda product: product["board"])
-
-
-def release_targets(boards=None):
-    """Return the explicit firmware GA product set; other variants are fixtures."""
-    selected = [target for target in targets(boards) if target["board"] in GA_FIRMWARE_TARGETS]
-    art.require({target["board"] for target in selected} == GA_FIRMWARE_TARGETS,
-                "firmware GA target is missing from board metadata")
-    return selected
+    return [{"id": profile["id"], "board": profile["board"]} for profile in discover(boards)]
 
 
 def product_name(product):
-    return product["id"]
+    # Include qualifiers so two APP profiles for one board cannot overwrite each other.
+    return product["board"].replace("/", "_")
 
 
 def run(command, *, cwd=None, capture=False, env=None):
@@ -249,12 +221,13 @@ def public_spdx(raw_documents, identity):
             if "PackageName" in fields:
                 yield fields
 
-    def merge(entry, fields, include_licenses=True):
+    def merge(entry, fields, include_licenses=True, include_versions=True):
         if include_licenses:
             entry["declared"].update(fields.get("PackageLicenseDeclared", []))
             entry["licenses"].update(fields.get("PackageLicenseConcluded", []))
         entry["suppliers"].update(fields.get("PackageSupplier", []))
-        entry["versions"].update(fields.get("PackageVersion", []))
+        if include_versions:
+            entry["versions"].update(fields.get("PackageVersion", []))
         entry["locations"].update(value for value in fields.get("PackageDownloadLocation", [])
                                   if value != "NOASSERTION")
         entry["external_refs"].update(fields.get("ExternalRef", []))
@@ -292,7 +265,15 @@ def public_spdx(raw_documents, identity):
             component = package.removesuffix("-deps")
             public_name = "meshbus-sdk" if component == "meshbus" else component
             if public_name in components:
-                merge(components[public_name], fields, include_licenses=False)
+                entry = components[public_name]
+                locations = set(fields.get("PackageDownloadLocation", []))
+                # Module metadata may report a release version while the source
+                # inventory reports the checkout SHA for the exact same URL.
+                same_checkout = (len(locations) == 1 and locations == entry["locations"]
+                                 and any(re.search(r"@[0-9a-f]{40}(?:-off)?(?:-dirty)?$", location)
+                                         and location.rsplit("@", 1)[1] in entry["versions"]
+                                         for location in locations))
+                merge(entry, fields, include_licenses=False, include_versions=not same_checkout)
 
     for entry in components.values():
         if entry["private"]:
@@ -329,7 +310,7 @@ def public_spdx(raw_documents, identity):
         "FilesAnalyzed: false", f"PackageChecksum: SHA256: {identity['full_bin_sha256']}",
         "PackageLicenseConcluded: NOASSERTION", "PackageLicenseDeclared: NOASSERTION",
         "PackageCopyrightText: NOASSERTION", "PrimaryPackagePurpose: FIRMWARE",
-        f"PackageComment: <text>C2 target {target}; private firmware source location and revision omitted.</text>",
+        f"PackageComment: <text>Firmware target {target}; private firmware source location and revision omitted.</text>",
     ]
     for name in sorted(components):
         entry = components[name]
@@ -363,14 +344,14 @@ def public_spdx(raw_documents, identity):
     return data, sorted(components)
 
 
-def generate_spdx(build, sysbuild, output, identity, source_root, required):
-    domains = {"app": build, "mcuboot": sysbuild / "mcuboot"}
+def generate_spdx(build, sysbuild, output, identity, source_root, required, domains=None):
+    domains = domains if domains is not None else {"app": build, "mcuboot": sysbuild / "mcuboot"}
     enabled = {name: config(path / "zephyr/.config").get("CONFIG_BUILD_OUTPUT_META") == "y"
                for name, path in domains.items()}
     art.require(not any(enabled.values()) or all(enabled.values()),
-                "APP and MCUboot must enable CONFIG_BUILD_OUTPUT_META together")
+                "all packaged images must enable CONFIG_BUILD_OUTPUT_META together")
     if not all(enabled.values()):
-        art.require(not required, "production C2 package requires APP and MCUboot SPDX metadata")
+        art.require(not required, "production package requires SPDX metadata for all packaged images")
         return {"status": "not-generated"}
 
     seed = json_digest(identity)
@@ -462,21 +443,82 @@ def image_private_key(key_file, build_root):
     return private_key
 
 
+def image_format(conf):
+    if conf.get("CONFIG_BOOTLOADER_MCUBOOT") == "y":
+        return "mcuboot"
+    art.require(conf.get("CONFIG_BUILD_OUTPUT_UF2") == "y", "unsupported firmware image format")
+    return "uf2"
+
+
+def verify_uf2(data, binary, address, partition_end, family_id, hex_data=None):
+    """Validate native UF2 against BIN, or sparse HEX plus its BIN projection."""
+    art.require(binary and data and len(data) % 512 == 0, "invalid UF2 file length")
+    hex_image = None
+    block_addresses = list(range(address, address + len(binary), 256))
+    if hex_data is not None:
+        from intelhex import IntelHex, IntelHexError
+        try:
+            hex_image = IntelHex(io.StringIO(hex_data.decode("ascii")))
+        except (UnicodeError, IntelHexError) as error:
+            raise ValueError("invalid application HEX") from error
+        segments = hex_image.segments()
+        art.require(segments and all(address <= start < end <= address + len(binary) for start, end in segments),
+                    "HEX writes outside application image")
+        hex_image.padding = 255
+        art.require(hex_image.tobinarray(start=address, size=len(binary)).tobytes() == binary,
+                    "HEX payload differs from application BIN")
+        block_addresses = sorted({block for start, end in segments
+                                  for block in range(start & ~255, (end + 255) & ~255, 256)})
+        # Zephyr's HEX-to-UF2 converter initializes holes inside each emitted
+        # block to zero; objcopy's BIN projection uses 0xff for those same holes.
+        hex_image.padding = 0
+    count = len(block_addresses)
+    art.require(len(data) == count * 512, "UF2 block count differs from application")
+    art.require(address >= 0 and all(address <= block and block + 256 <= partition_end
+                                    for block in block_addresses) and partition_end <= 0x100000000,
+                "UF2 writes outside application partition")
+    seen = set()
+    for offset in range(0, len(data), 512):
+        block = data[offset:offset + 512]
+        magic0, magic1, flags, target, size, number, total, family = struct.unpack_from("<8I", block)
+        art.require((magic0, magic1, struct.unpack_from("<I", block, 508)[0]) ==
+                    (0x0A324655, 0x9E5D5157, 0x0AB16F30), "invalid UF2 magic")
+        art.require(flags == 0x2000 and family == family_id and family != 0,
+                    "UF2 flags or family ID differ from configured target")
+        art.require(size == 256 and total == count and number < count and number not in seen,
+                    "invalid or duplicate UF2 block")
+        art.require(target == block_addresses[number], "UF2 address differs from application")
+        expected = (hex_image.tobinarray(start=target, size=256).tobytes() if hex_image is not None
+                    else binary[number * 256:(number + 1) * 256].ljust(256, b"\0"))
+        art.require(block[32:288] == expected, "UF2 payload differs from application")
+        art.require(not any(block[288:508]), "unexpected UF2 extension data")
+        seen.add(number)
+    result = {"file": "app.uf2", "sha256": art.digest(data), "size": len(data),
+              "address": address, "family_id": family_id, "verified": True}
+    if hex_data is not None:
+        result["hex_sha256"] = art.digest(hex_data)
+    return result
+
+
 def firmware(build_dir, output, development, image_public_key=None, app_sdk=None):
     build, info, conf, target, version, source_root, source = context(build_dir)
     product = next((t for t in targets(source_root / "apps/meshbus/boards") if t["board"] == target), None)
     art.require(product, "not a qualified product target")
-    release_target = target in GA_FIRMWARE_TARGETS
     clean = all(not p["dirty"] for p in [source["firmware"], *source["projects"].values()])
     art.require(development or clean, "candidate requires clean committed source; use --development")
     art.require(development or not source["off_manifest"],
                 "candidate checkouts differ from the resolved manifest: " +
                 ", ".join(source["off_manifest"]))
-    art.require(development or release_target, "qualification fixtures require --development")
     sysbuild = build.parent
-    art.require((sysbuild / "domains.yaml").is_file() and
-                (sysbuild / "mcuboot/zephyr/.config").is_file(), "product requires full sysbuild and MCUboot output")
-    if release_target:
+    format_name = image_format(conf)
+    mcuboot = format_name == "mcuboot"
+    art.require((sysbuild / "domains.yaml").is_file(), "product requires sysbuild output")
+    if mcuboot:
+        art.require((sysbuild / "mcuboot/zephyr/.config").is_file(), "product requires MCUboot output")
+    else:
+        art.require(image_public_key is None, "UF2 application does not use an MCUboot public key")
+    if product["id"] == "idea_mesh_tracker_c2":
+        art.require(mcuboot, "C2 requires MCUboot image signing")
         boot_conf = config(sysbuild / "mcuboot/zephyr/.config")
         art.require(conf.get("CONFIG_MCUBOOT_SIGNATURE_KEY_FILE"),
                     "application signing key configuration is missing")
@@ -489,7 +531,8 @@ def firmware(build_dir, output, development, image_public_key=None, app_sdk=None
                     boot_conf.get("CONFIG_BT") != "y",
                     "C2 MCUboot recovery must be UART-only")
     public_key = Path(image_public_key) if image_public_key else sysbuild / "image-public.pem"
-    signing = verify_native_signature(build, public_key) if release_target or image_public_key else None
+    signing = verify_native_signature(build, public_key) if mcuboot else None
+    domains = {"mcuboot": sysbuild / "mcuboot", "app": build} if mcuboot else {"app": build}
     llext = conf.get("CONFIG_MBS_LLEXT") == "y"
     # Fail before writing a partial product if its required EDK tool is absent.
     edk_command = cli_command(require_explicit=not development) if llext else None
@@ -499,10 +542,11 @@ def firmware(build_dir, output, development, image_public_key=None, app_sdk=None
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary)
         segments, images, inputs = [], [], {}
+        uf2 = None
         if signing:
             inputs[public_key] = art.digest(art.read(public_key))
             shutil.copyfile(public_key, root / "image-public.pem")
-        for domain, directory in [("mcuboot", sysbuild / "mcuboot"), ("app", build)]:
+        for domain, directory in domains.items():
             settings = config(directory / "zephyr/.config")
             number = lambda key: int(settings[key], 0)
             runner = yaml_file(directory / "zephyr/runners.yaml")["config"]
@@ -510,8 +554,8 @@ def firmware(build_dir, output, development, image_public_key=None, app_sdk=None
             selected_path = directory / "zephyr" / name
             signed_image = "signed" in name
             data = art.read(selected_path, MAX_IMAGE)
-            if release_target and domain == "app":
-                art.require(name.endswith(".signed.bin"), "C2 package requires the signed application image")
+            if mcuboot and domain == "app":
+                art.require(name.endswith(".signed.bin"), "product package requires the signed application image")
             for path in (selected_path, directory / "zephyr/.config",
                          directory / "zephyr/zephyr.dts", directory / "zephyr/runners.yaml"):
                 inputs[path] = art.digest(art.read(path))
@@ -520,11 +564,21 @@ def firmware(build_dir, output, development, image_public_key=None, app_sdk=None
             size = number("CONFIG_FLASH_LOAD_SIZE")
             art.require(base >= 0 and size > 0 and address >= base and data and
                         address + len(data) <= base + size, f"{domain} binary exceeds partition")
+            if not mcuboot:
+                art.require(not signed_image and runner.get("uf2_file"), "UF2 build requires BIN and UF2 outputs")
+                uf2_path = directory / "zephyr" / runner["uf2_file"]
+                uf2_data = art.read(uf2_path, MAX_IMAGE * 2)
+                hex_data = art.read(directory / "zephyr" / runner["hex_file"]) if runner.get("hex_file") else None
+                uf2 = verify_uf2(uf2_data, data, address, base + size,
+                                 int(settings["CONFIG_BUILD_OUTPUT_UF2_FAMILY_ID"], 0), hex_data)
+                inputs[uf2_path] = art.digest(uf2_data)
+                (root / "app.uf2").write_bytes(uf2_data)
             filename = f"{domain}.bin"
             (root / filename).write_bytes(data)
             if runner.get("hex_file"):
                 path = directory / "zephyr" / runner["hex_file"]
                 if path.is_file():
+                    inputs[path] = art.digest(art.read(path))
                     shutil.copyfile(path, root / f"{domain}.hex")
             images.append({"domain": domain, "file": filename, "address": address,
                            "size": len(data), "sha256": art.digest(data),
@@ -533,21 +587,24 @@ def firmware(build_dir, output, development, image_public_key=None, app_sdk=None
                            "devicetree_sha256": art.digest(art.read(directory / "zephyr/zephyr.dts"))})
             segments.append((address, data))
         segments.sort()
-        art.require(segments[0][0] + len(segments[0][1]) <= segments[1][0], "overlapping boot/application images")
+        art.require(all(left[0] + len(left[1]) <= right[0] for left, right in zip(segments, segments[1:])),
+                    "overlapping boot/application images")
         first = segments[0][0]
         span = segments[-1][0] + len(segments[-1][1]) - first
         art.require(span <= MAX_IMAGE, "full binary span exceeds bound")
         full = bytearray(b"\xff" * span)
         for address, data in segments:
             full[address - first:address - first + len(data)] = data
-        (root / "full.bin").write_bytes(full)
-        (root / "full.hex").write_text(full_hex(segments), encoding="ascii", newline="\n")
+        if mcuboot:
+            (root / "full.bin").write_bytes(full)
+            (root / "full.hex").write_text(full_hex(segments), encoding="ascii", newline="\n")
         sbom = generate_spdx(
             build, sysbuild, root,
             {"full_bin_sha256": art.digest(full), "images": images, "provenance": source,
              "target": target, "version": version},
-            source_root, release_target and not development)
+            source_root, not development, domains=domains)
         record = {"schema": 1, "kind": "firmware", "id": product["id"], "version": version,
+                  "format": format_name,
                   "target": target, "publishable": False, "engineering": development,
                   "capabilities": {"firmware_endpoint": conf.get("CONFIG_MBS_FIRMWARE") == "y", "llext": llext},
                   "provenance": source,
@@ -555,9 +612,13 @@ def firmware(build_dir, output, development, image_public_key=None, app_sdk=None
                             "toolchain": info["cmake"]["toolchain"]["name"],
                             "compiler_version": run([cache(build / "CMakeCache.txt", "CMAKE_C_COMPILER"), "-dumpfullversion"], capture=True),
                             "west_version": run(["west", "--version"], capture=True)},
-                  "images": images, "full_bin": {"file": "full.bin", "address": first, "fill": 255},
+                  "images": images,
                   "sbom": sbom,
                   "validation": {"build": "passed", "hardware": "not-run", "production_release": "not-qualified"}}
+        if mcuboot:
+            record["full_bin"] = {"file": "full.bin", "address": first, "fill": 255}
+        if uf2:
+            record["uf2"] = uf2
         if edk_tool:
             record["edk_tool"] = edk_tool
         if signing:
@@ -565,12 +626,20 @@ def firmware(build_dir, output, development, image_public_key=None, app_sdk=None
         art.write_json(root / "flash-map.json", record)
         shutil.copyfile(source_root / "LICENSE", root / "LICENSE.txt")
         (root / "NOTICE.txt").write_text(
-            "Meshbus engineering firmware candidate. Not production-qualified. full.bin starts at the address in "
+            ("Meshbus engineering firmware candidate. Not production-qualified. full.bin starts at the address in "
             "flash-map.json; it is not an application-slot image or a DFOTA source. Preserve storage; do not infer "
-            "erase-all authorization. Component SPDX licenses apply.\n", encoding="utf-8")
+            "erase-all authorization. Component SPDX licenses apply.\n") if mcuboot else
+            ("Meshbus UF2 application candidate. Not production-qualified. Install app.uf2 using the existing "
+             "compatible UF2 bootloader and SoftDevice. This archive contains only the application; it does not "
+             "include or replace the bootloader, SoftDevice or settings. UF2 payload verification is not a "
+             "cryptographic signature. Component SPDX licenses apply.\n"), encoding="utf-8")
         art.checksums(root)
         art.pack(root, part / f"meshbus-{normalize(version)}-{product_name(product)}-firmware.tar.gz", "firmware")
         shutil.copyfile(root / "app.bin", part / "app.bin")
+        if uf2:
+            shutil.copyfile(root / "app.uf2", part / "app.uf2")
+            if (root / "app.hex").is_file():
+                shutil.copyfile(root / "app.hex", part / "app.hex")
     if edk_command:
         run([*edk_command, "edk", "-d", build, "-o", part, *(["--development"] if development else [])])
         art.require(all(art.digest(art.read(path)) == sha for path, sha in inputs.items()),
@@ -602,32 +671,50 @@ def build_products(args):
                     for requested in args.target), "unknown target")
     selected_targets = [target for target in all_targets
                         if not args.target or target["id"] in args.target or target["board"] in args.target]
-    if not args.target:
-        selected_targets = release_targets(application / "boards")
-    art.require(args.development or all(target["board"] in GA_FIRMWARE_TARGETS for target in selected_targets),
-                "qualification fixtures require --development")
-    release_selected = any(target["board"] in GA_FIRMWARE_TARGETS for target in selected_targets)
     image_key_arg = getattr(args, "image_signing_key", None)
-    needs_key = release_selected or image_key_arg
     version = art.digest(art.read(application / "VERSION"))[:12]
-    image_key = image_private_key(image_key_arg, args.build_root.resolve()) if needs_key else None
+    image_key = image_private_key(image_key_arg, args.build_root.resolve()) if image_key_arg else None
+    results, failures = [], []
     for target in selected_targets:
         directory = args.build_root.resolve() / version / product_name(target)
-        command = ["west", "build", "-p", "always", "--sysbuild", "-b", target["board"],
-                   application, "-d", directory]
-        definitions = []
-        if image_key:
-            definitions.append(f'-DSB_CONFIG_BOOT_SIGNATURE_KEY_FILE="{image_key}"')
-        if target["board"] in GA_FIRMWARE_TARGETS:
-            definitions += ["-DCONFIG_BUILD_OUTPUT_META=y", "-Dmcuboot_CONFIG_BUILD_OUTPUT_META=y"]
-        if definitions:
-            command += ["--", *definitions]
-        run(command, cwd=workspace)
-        if image_key:
+        stage = "configure"
+        print(f"west release: building {target['board']}", flush=True)
+        try:
+            command = ["west", "build", "-p", "always", "--sysbuild", "-b", target["board"],
+                       application, "-d", directory]
+            definitions = ["-DCONFIG_BUILD_OUTPUT_META=y", "-Dmcuboot_CONFIG_BUILD_OUTPUT_META=y"]
+            if image_key:
+                definitions.append(f'-DSB_CONFIG_BOOT_SIGNATURE_KEY_FILE="{image_key}"')
+            run([*command, "--cmake-only", "--", *definitions], cwd=workspace)
+            mcuboot = image_format(config(app_build(directory) / "zephyr/.config")) == "mcuboot"
+            if mcuboot:
+                art.require(image_key, "MCUboot build requires --image-signing-key")
+            # Configuration selects the image format; build the same configured tree.
+            stage = "build"
+            run(["west", "build", "-d", directory], cwd=workspace)
             directory.mkdir(parents=True, exist_ok=True)
-            run([sys.executable, imgtool(), "getpub", "-k", image_key,
-                 "-e", "pem", "-o", directory / "image-public.pem"])
-        firmware(directory, args.output, args.development, app_sdk=getattr(args, "app_sdk", None))
+            if mcuboot:
+                stage = "public-key export"
+                run([sys.executable, imgtool(), "getpub", "-k", image_key,
+                     "-e", "pem", "-o", directory / "image-public.pem"])
+            stage = "package"
+            firmware(directory, args.output, args.development, app_sdk=getattr(args, "app_sdk", None))
+        except (subprocess.CalledProcessError, OSError, ValueError, RuntimeError, KeyError, StopIteration) as error:
+            detail = (f"external tool exited with {error.returncode}"
+                      if isinstance(error, subprocess.CalledProcessError) else str(error))
+            results.append(f"FAIL {target['board']} [{stage}]: {detail}")
+            failures.append(error)
+            print(f"west release: {results[-1]}", file=sys.stderr, flush=True)
+        else:
+            results.append(f"PASS {target['board']}")
+    print(f"west release: {len(results) - len(failures)} succeeded, {len(failures)} failed", flush=True)
+    for result in results:
+        print(f"  {result}", flush=True)
+    print(f"Product output: {args.output.resolve()}", flush=True)
+    if failures:
+        # Preserve the existing error/exit-code contract, after every target
+        # has had a chance to produce its independent release part.
+        raise failures[0]
 
 
 def client(args):
@@ -699,6 +786,7 @@ def assemble(args):
     source, output = args.input.resolve(strict=True), args.output.resolve()
     art.require(not output.is_relative_to(source), "assembly output must be outside input tree")
     files = art.files(source)
+    inventory = {target["board"]: target for target in targets()}
     products, records, versions, product_paths = set(), [], set(), {}
     edk_command, edk_tool = None, None
     for path in (p for p in files if p.name == "release-part.json"):
@@ -708,12 +796,22 @@ def assemble(args):
         art.require(record.get("schema") == 1 and record.get("publishable") is False, "invalid candidate record")
         if record["kind"] == "firmware":
             identity = record["target"]
-            expected = next((t for t in release_targets() if t["board"] == identity), None)
+            expected = inventory.get(identity)
             art.require(expected and expected["id"] == record["id"] and "role" not in record,
                         "product device identity differs from matrix")
             image = next(i for i in record["images"] if i["domain"] == "app")
             art.require(art.digest(art.read(part / "app.bin", MAX_IMAGE)) == image["sha256"],
                         "retained application differs from product image")
+            if record.get("format") == "uf2":
+                art.require("signing" not in record and "full_bin" not in record and
+                            [i["domain"] for i in record["images"]] == ["app"],
+                            "UF2 part must contain an application only")
+                uf2 = record["uf2"]
+                verified = verify_uf2(art.read(part / "app.uf2", MAX_IMAGE * 2),
+                                      art.read(part / "app.bin", MAX_IMAGE), image["address"],
+                                      image["partition_address"] + image["partition_size"], uf2["family_id"],
+                                      art.read(part / "app.hex") if "hex_sha256" in uf2 else None)
+                art.require(verified == uf2, "retained UF2 differs from product metadata")
             firmware_archives = list(part.glob("*-firmware.tar.gz"))
             art.require(len(firmware_archives) == 1, "product must have exactly one firmware archive")
             if record["capabilities"]["llext"]:
@@ -736,7 +834,7 @@ def assemble(args):
         else:
             raise ValueError("unknown release part")
         records.append(record)
-    art.require(products == {t["board"] for t in release_targets()}, "release is missing required firmware targets")
+    art.require(products == set(inventory), "release is missing required firmware targets")
     art.require(len(versions) == 1, "mixed firmware versions")
     for path in files:
         if path.name.endswith((".tar.gz", ".tar.xz", ".zip")):
@@ -787,7 +885,7 @@ def add_arguments(parser):
                        help="Device ID or one ordinary fully qualified board target; repeatable")
     build.add_argument("--build-root", type=Path, required=True)
     build.add_argument("--image-signing-key", type=Path,
-                       help="Ed25519 private PEM file passed to Zephyr native build signing")
+                       help="Ed25519 private PEM for native MCUboot signing; not required for UF2")
     fw = sub.add_parser("firmware", help="Package an existing sysbuild without rebuilding firmware")
     fw.add_argument("--build-dir", type=Path, required=True)
     fw.add_argument("--image-public-key", type=Path,
@@ -802,7 +900,7 @@ def add_arguments(parser):
     cli.add_argument("--output", type=Path, required=True)
     cli.add_argument("--target", choices=sorted(CLIENTS), help="Native Cargo target (no cross compilation)")
     cli.add_argument("--cargo-target-dir", type=Path)
-    assembly = sub.add_parser("assemble", help="Verify and aggregate the firmware GA product set")
+    assembly = sub.add_parser("assemble", help="Verify and aggregate all discovered firmware targets")
     assembly.add_argument("--input", type=Path, required=True)
     assembly.add_argument("--output", type=Path, required=True)
     assembly.add_argument("--delta-package", type=Path, action="append", default=[])
@@ -814,7 +912,7 @@ def add_arguments(parser):
 def execute(args):
     try:
         if args.release_command == "matrix":
-            print(json.dumps({"include": release_targets()}, indent=2))
+            print(json.dumps({"include": targets()}, indent=2))
         elif args.release_command == "build":
             build_products(args)
         elif args.release_command == "firmware":

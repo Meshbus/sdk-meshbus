@@ -1,0 +1,134 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/battery/battery.h>
+#include <zephyr/dt-bindings/i2c/i2c.h>
+#include <dt-bindings/sensor/sensor_channel.h>
+
+#include "wio_tracker_l1_partitions.dtsi"
+
+/ {
+	fstab: fstab {
+		compatible = "zephyr,fstab";
+		extra: extra {
+			compatible = "zephyr,fstab,littlefs";
+			automount;
+			mount-point = "/extra";
+			partition = <&extra_partition>;
+			read-size = <16>;
+			prog-size = <16>;
+			cache-size = <128>;
+			lookahead-size = <64>;
+			block-cycles = <512>;
+		};
+	};
+
+	meshbus_telemetry: meshbus-telemetry {
+		compatible = "fobe,meshbus-telemetry";
+
+		ch0 { sensor = <&vbatt>; channel = <SENSOR_CHAN_VOLTAGE>; };
+	};
+
+	fuel_gauge: fuel_gauge {
+		compatible = "zephyr,fuel-gauge-composite";
+		source-primary = <&vbatt>;
+		device-chemistry = "lithium-ion-polymer";
+		ocv-capacity-table-0 = <BATTERY_OCV_CURVE_LITHIUM_ION_POLYMER_DEFAULT>;
+		charge-full-design-microamp-hours = <2000000>;
+	};
+
+	charger: charger {
+		compatible = "zephyr,charger-composite";
+		source-primary = <&vbatt>;
+		nordic,vbus-detect;
+		constant-charge-voltage-max-microvolt = <4200000>;
+	};
+
+	aliases {
+		fuel-gauge0 = &fuel_gauge;
+	};
+
+	chosen {
+		meshbus,indicator-light-active = &led0;
+		meshbus,indicator-buzzer = &pwm0;
+		meshbus,telemetry = &meshbus_telemetry;
+		meshbus,fuel-gauge = &fuel_gauge;
+		meshbus,charger = &charger;
+		meshbus,power-button = &button0;
+		meshbus,radio = &lora;
+		meshbus,gnss = &l76k;
+		meshbus,input-buttons = &{/buttons};
+	};
+};
+
+&button0 {
+	zephyr,code = <INPUT_BTN_BACK>;
+};
+
+&{/trackball} {
+	status = "disabled";
+};
+
+&{/buttons} {
+	wakeup-source;
+
+	trackball_up {
+		gpios = <&gpio1 4 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+		label = "Trackball Up";
+		zephyr,code = <INPUT_KEY_UP>;
+	};
+
+	trackball_down {
+		gpios = <&gpio0 12 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+		label = "Trackball Down";
+		zephyr,code = <INPUT_KEY_DOWN>;
+	};
+
+	trackball_left {
+		gpios = <&gpio0 11 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+		label = "Trackball Left";
+		zephyr,code = <INPUT_KEY_LEFT>;
+	};
+
+	trackball_right {
+		gpios = <&gpio1 3 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+		label = "Trackball Right";
+		zephyr,code = <INPUT_KEY_RIGHT>;
+	};
+
+	trackball_press {
+		gpios = <&gpio1 5 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+		label = "Trackball Press";
+		zephyr,code = <INPUT_BTN_SELECT>;
+	};
+};
+
+&gnss {
+	status = "disabled";
+};
+
+&vbatt {
+	power-on-sample-delay-us = <10000>;
+};
+
+&uicr {
+	/delete-property/ gpio-as-nreset;
+};
+
+&i2c0 {
+	clock-frequency = <I2C_BITRATE_FAST>;
+};
+
+&gpio1 {
+	/delete-node/ gnss_standby;
+};
+
+&uart0 {
+	l76k: l76k {
+		compatible = "quectel,l76k";
+		status = "okay";
+		wakeup-gpios = <&gpio1 9 GPIO_ACTIVE_HIGH>;
+	};
+};
