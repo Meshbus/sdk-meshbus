@@ -72,6 +72,18 @@ by default, including with `--development`. A repeated `--target` selects a
 subset; a board ID selects all of its registered qualifiers and a complete
 target selects one. There is no separate product list or GA allowlist.
 
+`west release build --development` adds `apps/meshbus/prj.dev.conf`; builds
+without that flag (including beta and release candidates) add `prj.prod.conf`.
+Both use Zephyr's image-specific `meshbus_EXTRA_CONF_FILE`: `prj.conf` is merged
+first, the board profile next, and the selected optimization fragment last.
+Development uses size optimization and preserves board-required settings, so
+Wio still enables LTO. Production enables size optimization, local ISR tables
+and LTO. These fragments apply only to the Meshbus APP, not MCUboot.
+Build trees are isolated under
+`<build-root>/<VERSION-file-digest>/<dev|prod>/<normalized-target>/`.
+Use separate `--output` directories for development and production artifacts;
+packaging refuses an already populated product destination.
+
 Each selected board is configured, built and packaged independently. A board's
 configuration, build, key-export or packaging failure does not stop the remaining
 boards. Successful parts remain under `<output>/firmware/`; the final console
@@ -127,8 +139,10 @@ Use `--target idea_mesh_tracker_c2` or
 `--target idea_mesh_tracker_c2/nrf54l15/cpuapp` to select C2 explicitly. All
 selected MCUboot boards use the same supplied key file. There is no implicit
 test key or PEM-content environment-variable interface. Use `--development`
-when rehearsing with uncommitted sources or dependencies; this changes
-packaging qualification, not the signing algorithm or key source.
+when rehearsing with uncommitted sources or dependencies; for `build` it also
+selects the development optimization fragment. Signing and key requirements
+remain the same. `west release firmware --development` only changes packaging
+qualification of an existing build; it does not reconfigure its optimizations.
 
 For MCUboot, the release entry point passes the file path through Zephyr's standard
 `SB_CONFIG_BOOT_SIGNATURE_KEY_FILE`. Zephyr embeds the public key in MCUboot

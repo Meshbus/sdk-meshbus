@@ -65,6 +65,14 @@ outside GCC LTO; final-symbol checks cover their linker type/size warnings.
 EDK compiler flags exclude LTO so MBA extensions contain machine code.
 Hardware release qualification is separate.
 
+Release builds add `prj.prod.conf` (size optimization, local ISR tables and LTO)
+after `prj.conf` and the board profile. `west release build --development` uses
+`prj.dev.conf`, retaining board-required LTO while otherwise using size
+optimization. The fragments use the native `meshbus_EXTRA_CONF_FILE` sysbuild
+argument and affect only the APP. Dev/prod build trees are separate; use separate
+artifact output directories too. Plain `west build` retains board defaults
+unless one of these fragments is explicitly selected.
+
 ```sh
 west build -p always --sysbuild \
   -b idea_mesh_tracker_c2/nrf54l15/cpuapp \

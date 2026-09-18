@@ -777,6 +777,29 @@ class BuildContinuationTests(unittest.TestCase):
     def test_all_success_returns_zero(self):
         self.exercise()
 
+    def test_build_profiles_use_app_fragments_and_separate_directories(self):
+        directories = []
+        for development, profile in ((True, "dev"), (False, "prod")):
+            with self.subTest(profile=profile):
+                self.args.development = development
+                with patch.object(release, "targets", return_value=self.inventory[:1]), \
+                        patch.object(release, "run") as invoked, \
+                        patch.object(release, "config", return_value={"CONFIG_BUILD_OUTPUT_UF2": "y"}), \
+                        patch.object(release, "firmware") as packaged, redirect_stdout(io.StringIO()):
+                    release.build_products(self.args)
+                configure, build = [call.args[0] for call in invoked.call_args_list]
+                fragment = self.workspace.resolve() / f"meshbus/apps/meshbus/prj.{profile}.conf"
+                self.assertIn(f"-Dmeshbus_EXTRA_CONF_FILE={fragment}", configure)
+                self.assertFalse(any(str(arg).startswith(("-DCONF_FILE=", "-DEXTRA_CONF_FILE=",
+                                                         "-Dmcuboot_EXTRA_CONF_FILE=")) for arg in configure))
+                directory = configure[configure.index("-d") + 1]
+                self.assertEqual(directory.parent.name, profile)
+                self.assertEqual(directory.name, "first_soc")
+                self.assertEqual(build, ["west", "build", "-d", directory])
+                packaged.assert_called_once_with(directory, self.args.output, development, app_sdk=None)
+                directories.append(directory)
+        self.assertNotEqual(*directories)
+
     def test_user_interrupt_stops_immediately(self):
         self.exercise("first", "build", interrupt=True)
 

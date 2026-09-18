@@ -53,6 +53,14 @@ full target names are validated against Zephyr board metadata. The application
 loads these profiles for ordinary `west build` as well as release builds.
 [application README](apps/meshbus/README.md) documents the layout.
 
+`west release build --development` applies `apps/meshbus/prj.dev.conf` after
+the board profile; omitting the flag applies `prj.prod.conf` with LTO and local
+ISR tables. Dev and prod have separate build directories. Development preserves
+board-required optimizations, including Wio's LTO. Ordinary `west build` keeps
+the board defaults; to select a fragment explicitly with sysbuild, append
+`-Dmeshbus_EXTRA_CONF_FILE=prj.dev.conf` or
+`-Dmeshbus_EXTRA_CONF_FILE=prj.prod.conf` after `--`.
+
 ```sh
 cd "$west_root"
 board_target='<qualified-board-target>'

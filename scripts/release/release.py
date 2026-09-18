@@ -666,6 +666,7 @@ def build_products(args):
     workspace = args.workspace.resolve(strict=True)
     art.require((workspace / "meshbus/west.yml").is_file(), "workspace must contain meshbus/west.yml")
     application = workspace / "meshbus/apps/meshbus"
+    profile = "dev" if args.development else "prod"
     all_targets = targets(application / "boards")
     art.require(all(any(t["id"] == requested or t["board"] == requested for t in all_targets)
                     for requested in args.target), "unknown target")
@@ -676,13 +677,14 @@ def build_products(args):
     image_key = image_private_key(image_key_arg, args.build_root.resolve()) if image_key_arg else None
     results, failures = [], []
     for target in selected_targets:
-        directory = args.build_root.resolve() / version / product_name(target)
+        directory = args.build_root.resolve() / version / profile / product_name(target)
         stage = "configure"
-        print(f"west release: building {target['board']}", flush=True)
+        print(f"west release: building {target['board']} ({profile})", flush=True)
         try:
             command = ["west", "build", "-p", "always", "--sysbuild", "-b", target["board"],
                        application, "-d", directory]
-            definitions = ["-DCONFIG_BUILD_OUTPUT_META=y", "-Dmcuboot_CONFIG_BUILD_OUTPUT_META=y"]
+            definitions = ["-DCONFIG_BUILD_OUTPUT_META=y", "-Dmcuboot_CONFIG_BUILD_OUTPUT_META=y",
+                           f"-Dmeshbus_EXTRA_CONF_FILE={application / f'prj.{profile}.conf'}"]
             if image_key:
                 definitions.append(f'-DSB_CONFIG_BOOT_SIGNATURE_KEY_FILE="{image_key}"')
             run([*command, "--cmake-only", "--", *definitions], cwd=workspace)
@@ -892,7 +894,9 @@ def add_arguments(parser):
                     help="Verification public PEM; defaults to <sysbuild>/image-public.pem")
     for command in (build, fw):
         command.add_argument("--output", type=Path, required=True)
-        command.add_argument("--development", action="store_true")
+        command.add_argument("--development", action="store_true",
+                             help="allow engineering packages from dirty/off-manifest sources"
+                             + (" and build with prj.dev.conf instead of prj.prod.conf" if command is build else ""))
         command.add_argument("--app-sdk", type=Path,
                              help="Local sdk-arduboy directory included in the generated app release source")
     cli = sub.add_parser("cli", help="Explicitly build and archive the native Rust CLI")
