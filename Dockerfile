@@ -102,7 +102,7 @@ RUN case "${TARGETARCH}" in \
     && rm "/tmp/${sdk_archive}" \
     && read -r -a toolchains <<< "${ZEPHYR_SDK_TOOLCHAINS}" \
     && test "${#toolchains[@]}" -gt 0 \
-    && "${ZEPHYR_SDK_INSTALL_DIR}/setup.sh" -l -h -c \
+    && "${ZEPHYR_SDK_INSTALL_DIR}/setup.sh" -h -c \
         -t "${toolchains[@]}" \
     && "${ZEPHYR_SDK_INSTALL_DIR}/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc" \
         --version | head -1 \
