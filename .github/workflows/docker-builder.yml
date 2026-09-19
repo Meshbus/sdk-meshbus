@@ -45,6 +45,12 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
 
+      - name: Reclaim BuildKit cache before runtime validation
+        run: |
+          docker buildx prune --all --force
+          docker system df
+          df -h /
+
       - name: Verify source-free image
         env:
           BUILDER_IMAGE: meshbus-builder-base:${{ github.sha }}
