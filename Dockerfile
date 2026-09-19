@@ -6,6 +6,8 @@
 #
 # Build the tool image:
 #   docker build -t meshbus-builder-base .
+# Published main-branch images are available from:
+#   ghcr.io/meshbus/sdk-meshbus-builder@sha256:<digest>
 #
 # Run it with the triggering sdk-meshbus checkout mounted read-only. Private
 # west projects still need a short-lived credential while `west update` runs:

@@ -21,6 +21,10 @@ on:
 
 permissions:
   contents: read
+  packages: write
+
+env:
+  REGISTRY_IMAGE: ghcr.io/meshbus/sdk-meshbus-builder
 
 jobs:
   build:
@@ -40,7 +44,10 @@ jobs:
           context: .
           load: true
           push: false
-          tags: meshbus-builder-base:${{ github.sha }}
+          tags: |
+            meshbus-builder-base:${{ github.sha }}
+            ${{ env.REGISTRY_IMAGE }}:${{ github.sha }}
+            ${{ env.REGISTRY_IMAGE }}:main
           labels: |
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
@@ -142,3 +149,34 @@ jobs:
       - name: Remove runtime credential
         if: always()
         run: rm -f "${RUNNER_TEMP}/meshbus-builder.netrc"
+
+      - name: Log in to GitHub Container Registry
+        if: >-
+          success() && github.event_name == 'push' &&
+          github.ref == 'refs/heads/main'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish tested builder image
+        if: >-
+          success() && github.event_name == 'push' &&
+          github.ref == 'refs/heads/main'
+        env:
+          SHA_IMAGE: ${{ env.REGISTRY_IMAGE }}:${{ github.sha }}
+          MAIN_IMAGE: ${{ env.REGISTRY_IMAGE }}:main
+        run: |
+          docker push "${SHA_IMAGE}"
+          docker push "${MAIN_IMAGE}"
+          image_digest="$(
+            docker buildx imagetools inspect "${SHA_IMAGE}" |
+              awk '$1 == "Digest:" { print $2; exit }'
+          )"
+          case "${image_digest}" in
+            sha256:*) ;;
+            *) echo "unable to resolve published image digest" >&2; exit 1 ;;
+          esac
+          printf 'Published `%s@%s`\n' \
+            "${REGISTRY_IMAGE}" "${image_digest}" >> "${GITHUB_STEP_SUMMARY}"
