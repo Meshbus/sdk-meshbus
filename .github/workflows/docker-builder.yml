@@ -2,6 +2,9 @@ name: Docker builder
 
 on:
   workflow_dispatch:
+  schedule:
+    # Mondays at 10:17 Asia/Shanghai (02:17 UTC).
+    - cron: '17 2 * * 1'
   pull_request:
     paths:
       - .dockerignore
@@ -44,10 +47,7 @@ jobs:
           context: .
           load: true
           push: false
-          tags: |
-            meshbus-builder-base:${{ github.sha }}
-            ${{ env.REGISTRY_IMAGE }}:${{ github.sha }}
-            ${{ env.REGISTRY_IMAGE }}:main
+          tags: meshbus-builder-base:${{ github.sha }}
           labels: |
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
@@ -152,8 +152,8 @@ jobs:
 
       - name: Log in to GitHub Container Registry
         if: >-
-          success() && github.event_name == 'push' &&
-          github.ref == 'refs/heads/main'
+          success() && github.ref == 'refs/heads/main' &&
+          (github.event_name == 'push' || github.event_name == 'schedule')
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -162,21 +162,28 @@ jobs:
 
       - name: Publish tested builder image
         if: >-
-          success() && github.event_name == 'push' &&
-          github.ref == 'refs/heads/main'
-        env:
-          SHA_IMAGE: ${{ env.REGISTRY_IMAGE }}:${{ github.sha }}
-          MAIN_IMAGE: ${{ env.REGISTRY_IMAGE }}:main
+          success() && github.ref == 'refs/heads/main' &&
+          (github.event_name == 'push' || github.event_name == 'schedule')
         run: |
-          docker push "${SHA_IMAGE}"
-          docker push "${MAIN_IMAGE}"
+          local_image="meshbus-builder-base:${GITHUB_SHA}"
+          if [[ "${GITHUB_EVENT_NAME}" == "schedule" ]]; then
+            immutable_image="${REGISTRY_IMAGE}:weekly-${GITHUB_RUN_ID}"
+          else
+            immutable_image="${REGISTRY_IMAGE}:${GITHUB_SHA}"
+          fi
+          main_image="${REGISTRY_IMAGE}:main"
+          docker tag "${local_image}" "${immutable_image}"
+          docker tag "${local_image}" "${main_image}"
+          docker push "${immutable_image}"
+          docker push "${main_image}"
           image_digest="$(
-            docker buildx imagetools inspect "${SHA_IMAGE}" |
+            docker buildx imagetools inspect "${immutable_image}" |
               awk '$1 == "Digest:" { print $2; exit }'
           )"
           case "${image_digest}" in
             sha256:*) ;;
             *) echo "unable to resolve published image digest" >&2; exit 1 ;;
           esac
-          printf 'Published `%s@%s`\n' \
-            "${REGISTRY_IMAGE}" "${image_digest}" >> "${GITHUB_STEP_SUMMARY}"
+          printf 'Published `%s` as `%s@%s`\n' \
+            "${immutable_image}" "${REGISTRY_IMAGE}" "${image_digest}" \
+            >> "${GITHUB_STEP_SUMMARY}"
