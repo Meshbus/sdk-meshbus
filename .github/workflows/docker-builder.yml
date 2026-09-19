@@ -1,0 +1,138 @@
+name: Docker builder
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .dockerignore
+      - Dockerfile
+      - west.yml
+      - scripts/requirements.txt
+      - .github/workflows/docker-builder.yml
+  push:
+    branches:
+      - main
+    paths:
+      - .dockerignore
+      - Dockerfile
+      - west.yml
+      - scripts/requirements.txt
+      - .github/workflows/docker-builder.yml
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out sdk-meshbus
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build source-free tool image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          push: false
+          tags: meshbus-builder-base:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+      - name: Verify source-free image
+        env:
+          BUILDER_IMAGE: meshbus-builder-base:${{ github.sha }}
+        run: |
+          docker run --rm "${BUILDER_IMAGE}" bash -o pipefail -euc '
+            test ! -e /root/.netrc
+            test ! -e /workspace/.west
+            test ! -e /workspace/meshbus
+            test ! -e /workspace/zephyr
+            ccache --version | head -1
+            rustc --version
+            west --version
+            /opt/zephyr-sdk/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc \
+              --version | head -1
+          '
+
+      - name: Create private dependency token
+        if: >-
+          github.actor != 'dependabot[bot]' &&
+          (github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository)
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.MESHBUS_CI_APP_CLIENT_ID }}
+          private-key: ${{ secrets.MESHBUS_CI_APP_PRIVATE_KEY }}
+          owner: Meshbus
+          repositories: |
+            meshbus-protobufs
+            sdk-arduboy
+            sdk-detools
+            sdk-heatshrink
+          permission-contents: read
+
+      - name: Cache runtime downloads and compiler objects
+        if: steps.app-token.outcome == 'success'
+        uses: actions/cache@v6
+        with:
+          path: |
+            .cache/ccache
+            .cache/pip
+          key: meshbus-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Dockerfile', 'west.yml', 'scripts/requirements.txt') }}
+          restore-keys: |
+            meshbus-builder-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Prepare runtime credential and caches
+        if: steps.app-token.outcome == 'success'
+        env:
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          install -d -m 0700 .cache/ccache .cache/pip
+          umask 077
+          printf 'machine github.com login x-access-token password %s\n' \
+            "${APP_TOKEN}" > "${RUNNER_TEMP}/meshbus-builder.netrc"
+
+      - name: Mount sdk-meshbus and build Zephyr smoke firmware
+        if: steps.app-token.outcome == 'success'
+        env:
+          BUILDER_IMAGE: meshbus-builder-base:${{ github.sha }}
+        run: |
+          docker run --rm \
+            --mount type=bind,src="${GITHUB_WORKSPACE}",dst=/workspace/meshbus,readonly \
+            --mount type=bind,src="${RUNNER_TEMP}/meshbus-builder.netrc",dst=/root/.netrc,readonly \
+            --mount type=bind,src="${GITHUB_WORKSPACE}/.cache/ccache",dst=/cache/ccache \
+            --mount type=bind,src="${GITHUB_WORKSPACE}/.cache/pip",dst=/cache/pip \
+            "${BUILDER_IMAGE}" bash -o pipefail -euc '
+              if touch /workspace/meshbus/.docker-readonly-probe 2>/dev/null; then
+                rm -f /workspace/meshbus/.docker-readonly-probe
+                echo "sdk-meshbus mount is writable" >&2
+                exit 1
+              fi
+              west init -l meshbus
+              west update --narrow -o=--depth=1
+              west zephyr-export
+              west packages pip --install -- --cache-dir /cache/pip
+              python3 -m pip install --cache-dir /cache/pip \
+                -r meshbus/scripts/requirements.txt
+              west manifest --freeze --active-only \
+                > /tmp/active-manifest.yml
+              ccache --zero-stats
+              west build -p always -b qemu_cortex_m3 \
+                zephyr/samples/hello_world -d /tmp/hello-world
+              test -f /tmp/hello-world/zephyr/zephyr.elf
+              grep -Eq "/usr/local/bin/ccache|ccache .*arm-zephyr-eabi" \
+                /tmp/hello-world/build.ninja
+              ccache --show-stats
+            '
+
+      - name: Remove runtime credential
+        if: always()
+        run: rm -f "${RUNNER_TEMP}/meshbus-builder.netrc"
