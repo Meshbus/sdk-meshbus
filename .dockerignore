@@ -1,0 +1,12 @@
+.git
+.scratch
+.west
+build
+build-*
+twister-out*
+target
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.cache
+**/*.pyc
