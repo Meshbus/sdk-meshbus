@@ -24,9 +24,6 @@
 #endif
 #include <input/input.h>
 #endif
-#if IS_ENABLED(CONFIG_MBS_INDICATOR_MESSAGE_FEEDBACK)
-#include <message/message.h>
-#endif
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -35,6 +32,8 @@
 #include "indicator_buzzer.h"
 #include "indicator_buzzer_tone.h"
 #include "indicator_light.h"
+#include "indicator_feedback.h"
+#include "indicator_audio.h"
 
 LOG_MODULE_REGISTER(mbs_indicator, CONFIG_MBS_INDICATOR_LOG_LEVEL);
 
@@ -49,10 +48,6 @@ static void indicator_buzzer_play_listener_cb(const struct zbus_channel *chan);
 #if IS_ENABLED(CONFIG_MBS_INDICATOR_INPUT_FEEDBACK)
 static void indicator_input_action_listener_cb(const struct zbus_channel *chan);
 static void indicator_input_feedback_work_handler(struct k_work *work);
-#endif
-#if IS_ENABLED(CONFIG_MBS_INDICATOR_MESSAGE_FEEDBACK)
-static void indicator_message_response_listener_cb(const struct zbus_channel *chan);
-static void indicator_message_feedback_work_handler(struct k_work *work);
 #endif
 
 ZBUS_CHAN_DEFINE(mbs_indicator_light_play_chan,
@@ -72,11 +67,6 @@ ZBUS_LISTENER_DEFINE(mbs_indicator_input_action_listener,
 		     indicator_input_action_listener_cb);
 ZBUS_CHAN_ADD_OBS(mbs_input_action_chan, mbs_indicator_input_action_listener, 2);
 #endif
-#if IS_ENABLED(CONFIG_MBS_INDICATOR_MESSAGE_FEEDBACK)
-ZBUS_LISTENER_DEFINE(mbs_indicator_message_response_listener,
-		     indicator_message_response_listener_cb);
-ZBUS_CHAN_ADD_OBS(mbs_message_response_chan, mbs_indicator_message_response_listener, 2);
-#endif
 
 /* -------------------------------------------------------------------------- */
 /* Defaults And State                                                         */
@@ -90,6 +80,8 @@ ZBUS_CHAN_ADD_OBS(mbs_message_response_chan, mbs_indicator_message_response_list
 			.buzzer_enabled = true,                                                            \
 			.has_light_feedback = true,                                                        \
 			.light_feedback = {                                                                \
+				.message_enabled = true,                                                    \
+				.system_enabled = true,                                                     \
 				.heartbeat_enabled =                                                       \
 					CONFIG_MBS_INDICATOR_DEFAULT_LIGHT_HEARTBEAT,                  \
 			},                                                                                 \
@@ -99,6 +91,7 @@ ZBUS_CHAN_ADD_OBS(mbs_message_response_chan, mbs_indicator_message_response_list
 				CONFIG_MBS_INDICATOR_DEFAULT_BUZZER_DIRECT_MESSAGE,            \
 			.channel_message_enabled =                                                 \
 				CONFIG_MBS_INDICATOR_DEFAULT_BUZZER_CHANNEL_MESSAGE,           \
+			.input_enabled = true, \
 			.system_enabled = CONFIG_MBS_INDICATOR_DEFAULT_BUZZER_SYSTEM,          \
 		},                                                                                 \
 	}
@@ -118,22 +111,10 @@ static const struct indicator_buzzer_melody zbus_buzzer_melody = {
 	.notes = &zbus_buzzer_note,
 	.length = 1,
 };
-#if IS_ENABLED(CONFIG_MBS_INDICATOR_MESSAGE_FEEDBACK)
-static struct k_spinlock message_feedback_lock;
-static bool message_feedback_work_active;
-static bool message_feedback_pending;
-static bool message_feedback_direct_pending;
-#endif
 #if IS_ENABLED(CONFIG_MBS_INDICATOR_INPUT_FEEDBACK)
 static struct k_spinlock input_feedback_lock;
 static const struct indicator_buzzer_melody *input_feedback_pending_melody;
 K_WORK_DEFINE(input_feedback_work, indicator_input_feedback_work_handler);
-#endif
-#if IS_ENABLED(CONFIG_MBS_INDICATOR_BUZZER)
-static struct k_work_delayable startup_buzzer_work;
-#endif
-#if IS_ENABLED(CONFIG_MBS_INDICATOR_MESSAGE_FEEDBACK)
-K_WORK_DEFINE(message_feedback_work, indicator_message_feedback_work_handler);
 #endif
 
 MBS_SETTINGS_BLOB_SCHEMA_DEFINE(indicator_settings_schema, MBS_INDICATOR_SETTINGS_SUBTREE,
@@ -276,6 +257,8 @@ static bool indicator_buzzer_source_allowed(enum indicator_buzzer_source source)
 	}
 
 	switch (source) {
+	case INDICATOR_SOURCE_INPUT:
+		return feedback.input_enabled;
 	case INDICATOR_SOURCE_SYSTEM:
 		return feedback.system_enabled;
 	case INDICATOR_SOURCE_DIRECT_MSG:
@@ -308,14 +291,17 @@ static bool indicator_buzzer_feedback_equal(const mbs_indicator_config *lhs,
 		       rhs->buzzer_feedback.direct_message_enabled &&
 	       lhs->buzzer_feedback.channel_message_enabled ==
 		       rhs->buzzer_feedback.channel_message_enabled &&
-	       lhs->buzzer_feedback.system_enabled == rhs->buzzer_feedback.system_enabled;
+	       lhs->buzzer_feedback.system_enabled == rhs->buzzer_feedback.system_enabled &&
+	       lhs->buzzer_feedback.input_enabled == rhs->buzzer_feedback.input_enabled;
 }
 
 static bool indicator_light_feedback_equal(const mbs_indicator_config *lhs,
 					   const mbs_indicator_config *rhs)
 {
 	return lhs->has_light_feedback == rhs->has_light_feedback &&
-	       lhs->light_feedback.heartbeat_enabled == rhs->light_feedback.heartbeat_enabled;
+	       lhs->light_feedback.heartbeat_enabled == rhs->light_feedback.heartbeat_enabled &&
+	       lhs->light_feedback.message_enabled == rhs->light_feedback.message_enabled &&
+	       lhs->light_feedback.system_enabled == rhs->light_feedback.system_enabled;
 }
 
 #if IS_ENABLED(CONFIG_MBS_INDICATOR_INPUT_FEEDBACK)
@@ -388,7 +374,7 @@ static bool indicator_buzzer_play_validator(const void *msg, size_t msg_size)
 	}
 
 	return event->source >= INDICATOR_SOURCE_SYSTEM &&
-	       event->source <= INDICATOR_SOURCE_CHANNEL_MSG;
+	       event->source <= INDICATOR_SOURCE_INPUT;
 }
 
 static void indicator_light_play_listener_cb(const struct zbus_channel *chan)
@@ -464,7 +450,7 @@ static void indicator_input_feedback_work_handler(struct k_work *work)
 		return;
 	}
 
-	rc = mbs_indicator_buzzer_play(INDICATOR_SOURCE_SYSTEM, melody);
+	rc = mbs_indicator_buzzer_play(INDICATOR_SOURCE_INPUT, melody);
 	if (rc != 0 && rc != -EACCES) {
 		LOG_DBG("Indicator input feedback skipped: %d", rc);
 	}
@@ -520,112 +506,7 @@ static void indicator_input_action_listener_cb(const struct zbus_channel *chan)
 }
 #endif
 
-#if IS_ENABLED(CONFIG_MBS_INDICATOR_MESSAGE_FEEDBACK)
-static bool indicator_message_response_source(
-	const struct mbs_message_response_event *event,
-	enum indicator_buzzer_source *source)
-{
-	if (event == NULL || source == NULL) {
-		return false;
-	}
 
-	switch (event->type) {
-	case meshbus_MessageContent_MessageType_RECEIVE_NODE:
-		*source = INDICATOR_SOURCE_DIRECT_MSG;
-		return true;
-	case meshbus_MessageContent_MessageType_RECEIVE_CHANNEL:
-		*source = INDICATOR_SOURCE_CHANNEL_MSG;
-		return true;
-	default:
-		return false;
-	}
-}
-
-static void indicator_message_response_listener_cb(const struct zbus_channel *chan)
-{
-	const struct mbs_message_response_event *event;
-	enum indicator_buzzer_source source;
-	k_spinlock_key_t key;
-	bool submit_work = false;
-	int rc;
-
-	if (chan != &mbs_message_response_chan) {
-		return;
-	}
-
-	event = zbus_chan_const_msg(chan);
-	if (!indicator_message_response_source(event, &source)) {
-		return;
-	}
-
-	key = k_spin_lock(&message_feedback_lock);
-	message_feedback_pending = true;
-	if (source == INDICATOR_SOURCE_DIRECT_MSG) {
-		message_feedback_direct_pending = true;
-	}
-	if (!message_feedback_work_active) {
-		message_feedback_work_active = true;
-		submit_work = true;
-	}
-	k_spin_unlock(&message_feedback_lock, key);
-
-	if (!submit_work) {
-		return;
-	}
-
-	rc = k_work_submit(&message_feedback_work);
-	if (rc < 0 && rc != -EBUSY) {
-		key = k_spin_lock(&message_feedback_lock);
-		message_feedback_work_active = false;
-		k_spin_unlock(&message_feedback_lock, key);
-		LOG_WRN("Schedule indicator message feedback failed: rc=%d", rc);
-	}
-}
-
-static void indicator_message_feedback_work_handler(struct k_work *work)
-{
-	ARG_UNUSED(work);
-
-	for (;;) {
-		enum indicator_buzzer_source source;
-		k_spinlock_key_t key;
-		int rc;
-
-		key = k_spin_lock(&message_feedback_lock);
-		if (!message_feedback_pending) {
-			message_feedback_work_active = false;
-			k_spin_unlock(&message_feedback_lock, key);
-			return;
-		}
-
-		source = message_feedback_direct_pending ? INDICATOR_SOURCE_DIRECT_MSG :
-							   INDICATOR_SOURCE_CHANNEL_MSG;
-		message_feedback_pending = false;
-		message_feedback_direct_pending = false;
-		k_spin_unlock(&message_feedback_lock, key);
-
-		rc = mbs_indicator_buzzer_play(source, &indicator_buzzer_message_feedback_tone);
-		if (rc != 0 && rc != -EACCES) {
-			LOG_DBG("Indicator message feedback skipped: rc=%d", rc);
-		}
-	}
-}
-#endif
-
-#if IS_ENABLED(CONFIG_MBS_INDICATOR_BUZZER)
-static void startup_buzzer_work_handler(struct k_work *work)
-{
-	int rc;
-
-	ARG_UNUSED(work);
-
-	rc = mbs_indicator_buzzer_play(INDICATOR_SOURCE_SYSTEM,
-					   &indicator_buzzer_startup_tone);
-	if (rc != 0 && rc != -EACCES) {
-		LOG_DBG("Indicator startup feedback skipped: %d", rc);
-	}
-}
-#endif
 
 static int indicator_config_validate(const mbs_indicator_config *cfg)
 {
@@ -698,6 +579,10 @@ static int settings_handler_apply(const mbs_indicator_config *cfg, bool persiste
 		indicator_light_power_apply(true);
 	}
 
+	mbs_indicator_feedback_configure(cfg->light_enabled,
+					 cfg->light_feedback.message_enabled,
+					 cfg->light_feedback.system_enabled);
+
 	/* Apply light configuration (may touch hardware). */
 	indicator_light_apply_cfg(cfg);
 
@@ -721,6 +606,7 @@ static int settings_handler_apply(const mbs_indicator_config *cfg, bool persiste
 	memcpy(&indicator_cfg, cfg, sizeof(mbs_indicator_config));
 	settings_initial_apply = true;
 	k_mutex_unlock(&settings_mutex);
+	mbs_indicator_audio_configure(cfg);
 
 	if (persistence) {
 		k_work_reschedule(&settings_persistence_work,
@@ -813,11 +699,13 @@ int mbs_indicator_light_color(uint8_t r, uint8_t g, uint8_t b)
 
 int mbs_indicator_light_play(uint32_t on_duration_ms, uint32_t off_duration_ms, uint8_t count)
 {
+	mbs_indicator_feedback_cancel();
 	return indicator_light_play(on_duration_ms, off_duration_ms, count);
 }
 
 int mbs_indicator_light_stop(void)
 {
+	mbs_indicator_feedback_cancel();
 	indicator_light_stop();
 	return 0;
 }
@@ -829,6 +717,9 @@ int mbs_indicator_buzzer_play(enum indicator_buzzer_source source,
 		return -EINVAL;
 	}
 
+	if (source == INDICATOR_SOURCE_INPUT && mbs_indicator_audio_busy()) {
+		return -EBUSY;
+	}
 	if (!indicator_buzzer_source_allowed(source)) {
 		LOG_DBG("Buzzer request filtered: source=%d", source);
 		return -EACCES;
@@ -896,6 +787,7 @@ void mbs_indicator_buzzer_stop_owned(uint32_t token)
 
 void mbs_indicator_buzzer_stop(void)
 {
+	mbs_indicator_audio_cancel();
 	if (!indicator_buzzer_available()) {
 		return;
 	}
@@ -925,7 +817,7 @@ static void mbs_power_indicator_cb(enum mbs_power_action event, void *user_data)
 	}
 
 #if IS_ENABLED(CONFIG_MBS_INDICATOR_BUZZER)
-	(void)k_work_cancel_delayable(&startup_buzzer_work);
+	mbs_indicator_audio_configure(NULL);
 #endif
 
 	if (indicator_buzzer_source_allowed(INDICATOR_SOURCE_SYSTEM)) {
@@ -936,6 +828,8 @@ static void mbs_power_indicator_cb(enum mbs_power_action event, void *user_data)
 	(void)k_work_cancel_delayable(&settings_persistence_work);
 
 	indicator_buzzer_stop();
+	mbs_indicator_feedback_configure(false, false, false);
+	indicator_light_set_enabled(false);
 	indicator_light_stop();
 
 	indicator_buzzer_power_apply(false);
@@ -963,9 +857,6 @@ static int mbs_indicator_init(void)
 
 	/* Initialize work items */
 	k_work_init_delayable(&settings_persistence_work, settings_persistence_work_handler);
-#if IS_ENABLED(CONFIG_MBS_INDICATOR_BUZZER)
-	k_work_init_delayable(&startup_buzzer_work, startup_buzzer_work_handler);
-#endif
 
 	/* Load settings */
 	rc = settings_load_subtree(MBS_INDICATOR_SETTINGS_SUBTREE);
@@ -979,9 +870,6 @@ static int mbs_indicator_init(void)
 		}
 	}
 
-#if IS_ENABLED(CONFIG_MBS_INDICATOR_BUZZER)
-	(void)k_work_schedule(&startup_buzzer_work, K_MSEC(200));
-#endif
 
 	return 0;
 }

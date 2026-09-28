@@ -1,0 +1,15 @@
+#include <zephyr/dt-bindings/gpio/gpio.h>
+/ {
+    chosen { meshbus,indicator-light-active = &test_led; };
+    test_gpio: gpio-emulator {
+        compatible = "zephyr,gpio-emul";
+        gpio-controller;
+        #gpio-cells = <2>;
+        ngpios = <2>;
+        status = "okay";
+    };
+    leds {
+        compatible = "gpio-leds";
+        test_led: led { gpios = <&test_gpio 0 GPIO_ACTIVE_HIGH>; };
+    };
+};

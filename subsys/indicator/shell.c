@@ -17,7 +17,7 @@
 #define INDICATOR_HELP_CONFIG_SET                                                               \
 	SHELL_HELP("Set configuration",                                                               \
 		   "<light_enabled> <buzzer_enabled> <light_heartbeat> <buzzer_dm> "                \
-		   "<buzzer_channel> <buzzer_system>")
+		   "<buzzer_channel> <buzzer_system> <light_message> <light_system> <buzzer_input>")
 #define INDICATOR_HELP_CONFIG_RESET SHELL_HELP("Reset configuration to defaults", NULL)
 #define INDICATOR_HELP_LIGHT        SHELL_HELP("Light indicator control", NULL)
 #define INDICATOR_HELP_LIGHT_PLAY   SHELL_HELP("Play light pattern", "<on_ms> <off_ms> <count>")
@@ -47,11 +47,14 @@ static int cmd_indicator_config_get(const struct shell *sh, size_t argc, char **
 	shell_print(sh, "  buzzer_enabled: %s", cfg.buzzer_enabled ? "yes" : "no");
 	shell_print(sh, "  light_heartbeat: %s",
 		    cfg.light_feedback.heartbeat_enabled ? "yes" : "no");
+	shell_print(sh, "  light_message: %s", cfg.light_feedback.message_enabled ? "yes" : "no");
+	shell_print(sh, "  light_system: %s", cfg.light_feedback.system_enabled ? "yes" : "no");
 	shell_print(sh, "  buzzer_direct_message: %s",
 		    cfg.buzzer_feedback.direct_message_enabled ? "yes" : "no");
 	shell_print(sh, "  buzzer_channel_message: %s",
 		    cfg.buzzer_feedback.channel_message_enabled ? "yes" : "no");
 	shell_print(sh, "  buzzer_system: %s", cfg.buzzer_feedback.system_enabled ? "yes" : "no");
+	shell_print(sh, "  buzzer_input_enabled: %s", cfg.buzzer_feedback.input_enabled ? "yes" : "no");
 
 	return 0;
 }
@@ -77,6 +80,9 @@ static int cmd_indicator_config_set(const struct shell *sh, size_t argc, char **
 	ret |= mbs_shell_parse_bool_arg(argv[4], &cfg.buzzer_feedback.direct_message_enabled);
 	ret |= mbs_shell_parse_bool_arg(argv[5], &cfg.buzzer_feedback.channel_message_enabled);
 	ret |= mbs_shell_parse_bool_arg(argv[6], &cfg.buzzer_feedback.system_enabled);
+	ret |= mbs_shell_parse_bool_arg(argv[7], &cfg.light_feedback.message_enabled);
+	ret |= mbs_shell_parse_bool_arg(argv[8], &cfg.light_feedback.system_enabled);
+	ret |= mbs_shell_parse_bool_arg(argv[9], &cfg.buzzer_feedback.input_enabled);
 	if (ret != 0) {
 		mbs_shell_invalid(sh);
 		return -EINVAL;
@@ -250,7 +256,7 @@ static int cmd_indicator_buzzer_stop(const struct shell *sh, size_t argc, char *
 SHELL_STATIC_SUBCMD_SET_CREATE(
 	mbs_indicator_config_subcmds,
 	SHELL_CMD_ARG(get, NULL, INDICATOR_HELP_CONFIG_GET, cmd_indicator_config_get, 1, 0),
-	SHELL_CMD_ARG(set, NULL, INDICATOR_HELP_CONFIG_SET, cmd_indicator_config_set, 7, 0),
+	SHELL_CMD_ARG(set, NULL, INDICATOR_HELP_CONFIG_SET, cmd_indicator_config_set, 10, 0),
 	SHELL_CMD_ARG(reset, NULL, INDICATOR_HELP_CONFIG_RESET, cmd_indicator_config_reset, 1, 0),
 	SHELL_SUBCMD_SET_END);
 

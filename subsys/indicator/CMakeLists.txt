@@ -10,6 +10,8 @@ if(CONFIG_MBS_INDICATOR)
 		${CMAKE_CURRENT_SOURCE_DIR}/../shell
 	)
 	zephyr_library_sources(
+		indicator_audio.c
+		indicator_feedback.c
 		indicator.c
 		indicator_buzzer.c
 		indicator_light.c

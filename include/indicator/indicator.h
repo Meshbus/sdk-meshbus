@@ -48,9 +48,10 @@ typedef meshbus_IndicatorConfig_BuzzerFeedback mbs_indicator_buzzer_feedback;
  * Used for filtering based on the buzzer feedback configuration.
  */
 enum indicator_buzzer_source {
-	INDICATOR_SOURCE_SYSTEM = 0,   /**< System tones (button press, startup) */
+	INDICATOR_SOURCE_SYSTEM = 0,   /**< System tones and outgoing message results */
 	INDICATOR_SOURCE_DIRECT_MSG,   /**< Direct message alerts */
 	INDICATOR_SOURCE_CHANNEL_MSG,  /**< Channel message alerts */
+	INDICATOR_SOURCE_INPUT,        /**< Key and encoder sounds */
 };
 
 /**
@@ -62,6 +63,35 @@ struct indicator_buzzer_note {
 	uint16_t freq_hz;     /**< Frequency in Hz (0 = silence/rest) */
 	uint16_t duration_ms; /**< Duration in milliseconds */
 };
+
+/** Semantic light and sound feedback. Repeated events merge within one second. */
+enum mbs_indicator_feedback {
+	MBS_INDICATOR_FEEDBACK_ACCEPTED,
+	MBS_INDICATOR_FEEDBACK_RECEIVED,
+	MBS_INDICATOR_FEEDBACK_ACK,
+	MBS_INDICATOR_FEEDBACK_UNCONFIRMED,
+	MBS_INDICATOR_FEEDBACK_MESSAGE_FAILED,
+	MBS_INDICATOR_FEEDBACK_SYSTEM_SUCCESS,
+	MBS_INDICATOR_FEEDBACK_SYSTEM_FAILED,
+	MBS_INDICATOR_FEEDBACK_RECEIVED_CHANNEL,
+	MBS_INDICATOR_FEEDBACK_STARTUP,
+	MBS_INDICATOR_FEEDBACK_LOW_BATTERY,
+	MBS_INDICATOR_FEEDBACK_FAULT,
+	MBS_INDICATOR_FEEDBACK_COUNT,
+};
+
+/** Queue bounded, asynchronous light and sound feedback; safe from ZBus listeners.
+ * Disabled categories are discarded. Pending events expire after three seconds.
+ * Higher priority events preempt without resuming the interrupted pattern.
+ * LOW_BATTERY and FAULT are state-owned and cannot be submitted directly
+ * (-EINVAL); power/radio events and startup status drive those indications.
+ */
+int mbs_indicator_feedback_submit(enum mbs_indicator_feedback event);
+
+/** Product startup result, called after all application initializers complete.
+ * ready must describe the required services, not optional peripherals.
+ */
+void mbs_indicator_startup_complete(bool ready);
 
 /**
  * @brief Check if LED driver is available.

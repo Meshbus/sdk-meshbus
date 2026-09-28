@@ -15,10 +15,13 @@ static void system_indicator_default_config(mbs_indicator_config *cfg)
 	cfg->buzzer_enabled = true;
 	cfg->has_light_feedback = true;
 	cfg->light_feedback.heartbeat_enabled = true;
+	cfg->light_feedback.message_enabled = true;
+	cfg->light_feedback.system_enabled = true;
 	cfg->has_buzzer_feedback = true;
 	cfg->buzzer_feedback.direct_message_enabled = true;
 	cfg->buzzer_feedback.channel_message_enabled = true;
 	cfg->buzzer_feedback.system_enabled = true;
+	cfg->buzzer_feedback.input_enabled = true;
 }
 
 static void system_indicator_sanitize_config(mbs_indicator_config *cfg)
@@ -30,12 +33,15 @@ static void system_indicator_sanitize_config(mbs_indicator_config *cfg)
 	if (!cfg->has_light_feedback) {
 		cfg->has_light_feedback = true;
 		cfg->light_feedback.heartbeat_enabled = true;
+		cfg->light_feedback.message_enabled = true;
+		cfg->light_feedback.system_enabled = true;
 	}
 	if (!cfg->has_buzzer_feedback) {
 		cfg->has_buzzer_feedback = true;
 		cfg->buzzer_feedback.direct_message_enabled = true;
 		cfg->buzzer_feedback.channel_message_enabled = true;
 		cfg->buzzer_feedback.system_enabled = true;
+		cfg->buzzer_feedback.input_enabled = true;
 	}
 }
 
@@ -120,6 +126,12 @@ void system_indicator_form_changed(struct zui_form *form, uint32_t id,
 		app->indicator_editing.has_light_feedback = true;
 		app->indicator_editing.light_feedback.heartbeat_enabled = value;
 		break;
+	case SYSTEM_INDICATOR_FORM_LIGHT_MESSAGES:
+		app->indicator_editing.light_feedback.message_enabled = value;
+		break;
+	case SYSTEM_INDICATOR_FORM_LIGHT_SYSTEM:
+		app->indicator_editing.light_feedback.system_enabled = value;
+		break;
 	case SYSTEM_INDICATOR_FORM_BUZZER:
 		app->indicator_editing.buzzer_enabled = value;
 		break;
@@ -130,6 +142,9 @@ void system_indicator_form_changed(struct zui_form *form, uint32_t id,
 	case SYSTEM_INDICATOR_FORM_CHANNEL:
 		app->indicator_editing.has_buzzer_feedback = true;
 		app->indicator_editing.buzzer_feedback.channel_message_enabled = value;
+		break;
+	case SYSTEM_INDICATOR_FORM_INPUT:
+		app->indicator_editing.buzzer_feedback.input_enabled = value;
 		break;
 	case SYSTEM_INDICATOR_FORM_SYSTEM:
 		app->indicator_editing.has_buzzer_feedback = true;
@@ -155,6 +170,12 @@ static void system_indicator_apply(struct system_app *app)
 	app->indicator_editing.light_feedback.heartbeat_enabled =
 		system_bool_from_idx(zui_form_option(app->indicator_form,
 						     SYSTEM_INDICATOR_FORM_HEARTBEAT));
+	app->indicator_editing.light_feedback.message_enabled =
+		system_bool_from_idx(zui_form_option(app->indicator_form,
+			SYSTEM_INDICATOR_FORM_LIGHT_MESSAGES));
+	app->indicator_editing.light_feedback.system_enabled =
+		system_bool_from_idx(zui_form_option(app->indicator_form,
+			SYSTEM_INDICATOR_FORM_LIGHT_SYSTEM));
 	app->indicator_editing.buzzer_enabled =
 		system_bool_from_idx(zui_form_option(app->indicator_form,
 						     SYSTEM_INDICATOR_FORM_BUZZER));
@@ -168,6 +189,11 @@ static void system_indicator_apply(struct system_app *app)
 	app->indicator_editing.buzzer_feedback.system_enabled =
 		system_bool_from_idx(zui_form_option(app->indicator_form,
 						     SYSTEM_INDICATOR_FORM_SYSTEM));
+
+	app->indicator_editing.buzzer_feedback.input_enabled =
+		system_bool_from_idx(zui_form_option(app->indicator_form, SYSTEM_INDICATOR_FORM_INPUT));
+
+
 
 	rc = mbs_indicator_config_set(&app->indicator_editing);
 	if (rc == 0) {
@@ -281,6 +307,12 @@ void system_open_indicator_form(struct system_app *app)
 	system_indicator_form_add(app, SYSTEM_INDICATOR_FORM_HEARTBEAT,
 				  DESKTOP_TEXT_INDICATOR_HEARTBEAT,
 				  app->indicator_editing.light_feedback.heartbeat_enabled);
+	system_indicator_form_add(app, SYSTEM_INDICATOR_FORM_LIGHT_MESSAGES,
+		DESKTOP_TEXT_INDICATOR_LIGHT_MESSAGES,
+		app->indicator_editing.light_feedback.message_enabled);
+	system_indicator_form_add(app, SYSTEM_INDICATOR_FORM_LIGHT_SYSTEM,
+		DESKTOP_TEXT_INDICATOR_LIGHT_SYSTEM,
+		app->indicator_editing.light_feedback.system_enabled);
 	system_indicator_form_add(app, SYSTEM_INDICATOR_FORM_BUZZER,
 				  DESKTOP_TEXT_INDICATOR_BUZZER,
 				  app->indicator_editing.buzzer_enabled);
@@ -292,6 +324,8 @@ void system_open_indicator_form(struct system_app *app)
 	system_indicator_form_add(app, SYSTEM_INDICATOR_FORM_SYSTEM,
 				  DESKTOP_TEXT_INDICATOR_SYSTEM,
 				  app->indicator_editing.buzzer_feedback.system_enabled);
+	system_indicator_form_add(app, SYSTEM_INDICATOR_FORM_INPUT,
+		DESKTOP_TEXT_INDICATOR_INPUT, app->indicator_editing.buzzer_feedback.input_enabled);
 	system_indicator_form_add_action(app, SYSTEM_INDICATOR_FORM_APPLY,
 					 DESKTOP_TEXT_COMMON_ACTION_APPLY);
 	system_indicator_form_add_action(app, SYSTEM_INDICATOR_FORM_RESET,

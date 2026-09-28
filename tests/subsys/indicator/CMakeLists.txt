@@ -14,6 +14,7 @@ target_sources(app PRIVATE src/test_api.c)
 target_link_libraries(zephyr_interface INTERFACE
 	"-Wl,--wrap=indicator_buzzer_is_ready"
 	"-Wl,--wrap=indicator_buzzer_play"
+	"-Wl,--wrap=indicator_buzzer_play_owned"
 	"-Wl,--wrap=indicator_buzzer_play_rtttl"
 )
 endif()

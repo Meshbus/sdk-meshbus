@@ -214,11 +214,16 @@ static void light_work_handler(struct k_work *work)
 
 	k_mutex_lock(&light_mutex, K_FOREVER);
 
+	if (!light_state.enabled) {
+		k_mutex_unlock(&light_mutex);
+		return;
+	}
+
 	if (!light_state.play.active) {
 		/* Check for idle heartbeat */
 		uint32_t idle_total =
 			light_state.idle_on_duration_ms + light_state.idle_off_duration_ms;
-		if (light_state.idle_enabled && idle_total > 0) {
+		if (light_state.enabled && light_state.idle_enabled && idle_total > 0) {
 			uint32_t now = k_uptime_get_32();
 			uint32_t elapsed = now - light_state.last_idle_time;
 
@@ -278,7 +283,7 @@ static void light_work_handler(struct k_work *work)
 		/* Start idle timer if enabled */
 		uint32_t idle_total =
 			light_state.idle_on_duration_ms + light_state.idle_off_duration_ms;
-		if (light_state.idle_enabled && idle_total > 0) {
+		if (light_state.enabled && light_state.idle_enabled && idle_total > 0) {
 			light_state.last_idle_time = k_uptime_get_32();
 			k_mutex_unlock(&light_mutex);
 			k_work_reschedule(&light_work, K_MSEC(idle_total));
@@ -419,11 +424,11 @@ int indicator_light_play(uint32_t on_duration_ms, uint32_t off_duration_ms, uint
 		return -ENODEV;
 	}
 
+	k_mutex_lock(&light_mutex, K_FOREVER);
 	if (!light_state.enabled) {
+		k_mutex_unlock(&light_mutex);
 		return -ENOTSUP;
 	}
-
-	k_mutex_lock(&light_mutex, K_FOREVER);
 
 	/* Setup state - replaces any current request */
 	light_state.play.on_duration_ms = on_duration_ms;
@@ -449,7 +454,7 @@ void indicator_light_stop(void)
 
 	/* Start idle timer if enabled */
 	uint32_t idle_total = light_state.idle_on_duration_ms + light_state.idle_off_duration_ms;
-	if (light_state.idle_enabled && idle_total > 0) {
+	if (light_state.enabled && light_state.idle_enabled && idle_total > 0) {
 		light_state.last_idle_time = k_uptime_get_32();
 		k_work_reschedule(&light_work, K_MSEC(idle_total));
 	}
@@ -473,7 +478,7 @@ int mbs_indicator_light_init(void)
 		/* Start idle heartbeat if enabled */
 		uint32_t idle_total =
 			light_state.idle_on_duration_ms + light_state.idle_off_duration_ms;
-		if (light_state.idle_enabled && idle_total > 0) {
+		if (light_state.enabled && light_state.idle_enabled && idle_total > 0) {
 			light_state.last_idle_time = k_uptime_get_32();
 			k_work_reschedule(&light_work, K_MSEC(idle_total));
 		}

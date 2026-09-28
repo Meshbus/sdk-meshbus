@@ -60,6 +60,13 @@ int __wrap_indicator_buzzer_play(const struct indicator_buzzer_melody *melody)
 	return 0;
 }
 
+int __wrap_indicator_buzzer_play_owned(const struct indicator_buzzer_melody *melody,
+				       uint32_t *token)
+{
+	*token = 1;
+	return __wrap_indicator_buzzer_play(melody);
+}
+
 int __wrap_indicator_buzzer_play_rtttl(const char *rtttl_string)
 {
 	return (rtttl_string == NULL || *rtttl_string == '\0') ? -EINVAL : 0;
@@ -95,6 +102,7 @@ static mbs_indicator_config valid_indicator_config(void)
 	cfg.buzzer_feedback.direct_message_enabled = true;
 	cfg.buzzer_feedback.channel_message_enabled = true;
 	cfg.buzzer_feedback.system_enabled = true;
+	cfg.buzzer_feedback.input_enabled = true;
 	return cfg;
 }
 
@@ -109,6 +117,10 @@ static void *indicator_suite_setup(void)
 static void indicator_before(void *fixture)
 {
 	ARG_UNUSED(fixture);
+	mbs_indicator_config cfg = valid_indicator_config();
+	cfg.buzzer_enabled = false;
+	zassert_ok(mbs_indicator_config_set(&cfg));
+	k_msleep(20);
 	zassert_ok(mbs_indicator_config_reset());
 	indicator_test_buzzer_capture_reset();
 }
@@ -256,7 +268,7 @@ ZTEST(mbs_indicator_contract, test_rtttl_protobuf_accepts_480_characters_only)
 		      "481-character RTTTL should exceed the schema capacity");
 }
 
-ZTEST(mbs_indicator_contract, test_message_feedback_uses_same_melody_with_source_policy)
+ZTEST(mbs_indicator_contract, test_message_feedback_distinguishes_melody_with_source_policy)
 {
 	struct indicator_buzzer_test_capture direct_capture;
 	struct indicator_buzzer_test_capture channel_capture;
@@ -273,7 +285,8 @@ ZTEST(mbs_indicator_contract, test_message_feedback_uses_same_melody_with_source
 	zassert_ok(rc, "channel message response publish failed: %d", rc);
 	rc = indicator_test_buzzer_wait_count(1U, &channel_capture);
 	zassert_ok(rc, "channel message feedback missing: %d", rc);
-	zassert_equal(channel_capture.last_melody_len, direct_capture.last_melody_len);
+	zassert_equal(channel_capture.last_melody_len, 1U);
+	zassert_equal(direct_capture.last_melody_len, 3U);
 	zassert_equal(channel_capture.last_first_freq_hz, direct_capture.last_first_freq_hz);
 	zassert_equal(channel_capture.last_first_duration_ms,
 		      direct_capture.last_first_duration_ms);
@@ -342,6 +355,32 @@ ZTEST(mbs_indicator_contract, test_input_feedback_classifies_t9_dot_and_star)
 	zassert_equal(capture.last_first_duration_ms, 45U);
 	zassert_equal(capture.last_last_freq_hz, 1000U);
 	zassert_equal(capture.last_last_duration_ms, 45U);
+}
+
+ZTEST(mbs_indicator_contract, test_system_preference_filters_all_send_result_sounds)
+{
+	mbs_indicator_config cfg;
+	zassert_ok(mbs_indicator_config_get(&cfg));
+	cfg.buzzer_feedback.system_enabled = false;
+	zassert_ok(mbs_indicator_config_set(&cfg));
+	struct mbs_message_send_result_event event = {.ack_token = 42};
+	const enum mbs_message_send_result outcomes[] = {
+		MBS_MESSAGE_SEND_ACCEPTED, MBS_MESSAGE_SEND_CONFIRMED,
+		MBS_MESSAGE_SEND_UNCONFIRMED, MBS_MESSAGE_SEND_FAILED,
+	};
+	struct indicator_buzzer_test_capture capture;
+	for (size_t i = 0; i < ARRAY_SIZE(outcomes); i++) {
+		event.result = outcomes[i];
+		zassert_ok(zbus_chan_pub(&mbs_message_send_result_chan, &event, K_MSEC(50)));
+	}
+	k_msleep(100);
+	indicator_test_buzzer_capture_get(&capture);
+	zassert_equal(capture.play_count, 0);
+	cfg.buzzer_feedback.system_enabled = true;
+	zassert_ok(mbs_indicator_config_set(&cfg));
+	zassert_ok(zbus_chan_pub(&mbs_message_send_result_chan, &event, K_MSEC(50)));
+	zassert_ok(indicator_test_buzzer_wait_count(1U, &capture));
+	zassert_equal(capture.last_melody_len, 5);
 }
 
 ZTEST_SUITE(mbs_indicator_contract, NULL, indicator_suite_setup, indicator_before, NULL, NULL);

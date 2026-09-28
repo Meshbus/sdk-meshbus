@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+tests:
+  subsys.meshbus.indicator.audio:
+    tags: [meshbus, indicator, contract, ztest]
+    harness: ztest
+    platform_allow: [qemu_x86]
+    integration_platforms: [qemu_x86]
+    timeout: 45

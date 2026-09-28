@@ -8,7 +8,7 @@ menuconfig MBS_INDICATOR
 	  Enable the Meshbus indicator subsystem which provides:
 	  - Light indicator control (GPIO/PWM/LED strip)
 	  - Buzzer audio feedback (PWM)
-	  - Simple request model (new requests replace current)
+	  - Bounded semantic feedback with priority, coalescing and expiry
 	  - Configuration persistence via Settings
 
 if MBS_INDICATOR
@@ -48,7 +48,7 @@ config MBS_INDICATOR_INPUT_FEEDBACK
 	default y
 	depends on MBS_INPUT && MBS_INDICATOR_BUZZER
 	help
-	  Play short system tones when Meshbus input publishes short-press or
+	  Play independently configurable key tones when Meshbus input publishes short-press or
 	  long-press actions. Encoder scroll actions use the short-press tone.
 	  Raw press/release actions are ignored.
 
