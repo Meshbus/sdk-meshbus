@@ -65,6 +65,70 @@ ZBUS_CHAN_DEFINE(mbs_radio_state_chan, struct mbs_radio_state_event,
 ZBUS_ASYNC_LISTENER_DEFINE(radio_publish_listener, radio_publish_work_handler);
 ZBUS_ASYNC_LISTENER_DEFINE(radio_cw_request_listener, radio_cw_request_work_handler);
 
+ZBUS_CHAN_DEFINE(mbs_radio_health_chan, struct mbs_radio_health_event,
+	NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
+static struct k_spinlock radio_health_lock;
+static struct mbs_radio_health_event radio_health;
+static uint8_t radio_health_tx_failures;
+static int64_t radio_health_failure_times[3];
+static uint8_t radio_health_failure_next;
+static void radio_health_work_handler(struct k_work *work);
+K_WORK_DEFINE(radio_health_work, radio_health_work_handler);
+int mbs_radio_health_get(struct mbs_radio_health_event *health)
+{
+	if (!health) {
+		return -EINVAL;
+	}
+	k_spinlock_key_t key = k_spin_lock(&radio_health_lock);
+	*health = radio_health;
+	k_spin_unlock(&radio_health_lock, key);
+	return 0;
+}
+static void radio_health_work_handler(struct k_work *work)
+{
+	ARG_UNUSED(work);
+	struct mbs_radio_health_event event;
+	(void)mbs_radio_health_get(&event);
+	(void)zbus_chan_pub(&mbs_radio_health_chan, &event, K_MSEC(20));
+}
+static void radio_health_rx(int status)
+{
+	/* EBUSY is not proof that the receive driver recovered. */
+	if (status == -EBUSY) {
+		return;
+	}
+	k_spinlock_key_t key = k_spin_lock(&radio_health_lock);
+	radio_health.rx_failed = status != 0;
+	k_spin_unlock(&radio_health_lock, key);
+	(void)k_work_submit(&radio_health_work);
+}
+static void radio_health_tx(int status)
+{
+	if (status == -EINVAL || status == -EBUSY || status == -EACCES ||
+	    status == -ECANCELED) {
+		return;
+	}
+	int64_t now = k_uptime_get();
+	k_spinlock_key_t key = k_spin_lock(&radio_health_lock);
+	if (status == 0) {
+		radio_health_tx_failures = 0;
+		radio_health_failure_next = 0;
+		radio_health.tx_failed = false;
+	} else {
+		radio_health_failure_times[radio_health_failure_next] = now;
+		radio_health_failure_next = (radio_health_failure_next + 1U) % 3U;
+		if (radio_health_tx_failures < 3) {
+			radio_health_tx_failures++;
+		}
+		if (radio_health_tx_failures == 3 &&
+		    now - radio_health_failure_times[radio_health_failure_next] <= 60000) {
+			radio_health.tx_failed = true;
+		}
+	}
+	k_spin_unlock(&radio_health_lock, key);
+	(void)k_work_submit(&radio_health_work);
+}
+
 /* -------------------------------------------------------------------------- */
 /* Statistics                                                                 */
 /* -------------------------------------------------------------------------- */
@@ -491,6 +555,7 @@ static int radio_start_receive(const mbs_radio_config *cfg)
 		rc = lora_recv_async(lora_dev, radio_receive_callback, NULL);
 	}
 
+	radio_health_rx(rc);
 	if (rc == -EBUSY) {
 		radio_receive_mode_set(mode);
 		radio_state_set(MBS_RADIO_STATE_RECEIVE);
@@ -616,6 +681,9 @@ static int radio_send(const uint8_t *data, uint16_t len)
 	k_poll_signal_reset(&radio_tx_done);
 
 	int rc = lora_send_async(lora_dev, radio_tx_buffer, len, &radio_tx_done);
+	if (rc != 0) {
+		radio_health_tx(rc);
+	}
 
 #ifdef CONFIG_MBS_RADIO_STATS
 	if (rc == 0) {
@@ -908,6 +976,16 @@ static int settings_handler_apply(const mbs_radio_config *cfg, bool persistence,
 
 	k_mutex_unlock(&settings_mutex);
 	k_mutex_unlock(&radio_apply_mutex);
+	/* Successful modem reinitialization restores TX capability independently
+	 * of RX health. A disabled radio starts a new failure window on enable.
+	 */
+	if (need_modem_apply || !cfg->enabled) {
+		radio_health_tx(0);
+	}
+	k_spinlock_key_t health_key = k_spin_lock(&radio_health_lock);
+	radio_health.ready = radio_device_ready();
+	k_spin_unlock(&radio_health_lock, health_key);
+	(void)k_work_submit(&radio_health_work);
 
 	if (persistence) {
 		k_work_reschedule(&settings_persistence_work,
@@ -998,6 +1076,7 @@ static void radio_noise_floor_work_handler(struct k_work *work)
 
 static void radio_publish_finalize(int status)
 {
+	radio_health_tx(status);
 	struct mbs_radio_tx_done_event done_event = {
 		.status = status,
 	};
@@ -1134,6 +1213,7 @@ static void radio_receive_callback(const struct device *dev, uint8_t *data, uint
 #endif
 	}
 
+	radio_health_rx(0);
 	LOG_DBG("RX Packet (len: %u, rssi: %d, snr: %d)", size, rssi, snr);
 	LOG_HEXDUMP_DBG(event.data, event.len, "Packet dump");
 }
@@ -1653,6 +1733,10 @@ static int mbs_radio_init(void)
 		}
 	}
 
+	k_spinlock_key_t key = k_spin_lock(&radio_health_lock);
+	radio_health.ready = radio_device_ready();
+	k_spin_unlock(&radio_health_lock, key);
+	(void)k_work_submit(&radio_health_work);
 	radio_state_publish_snapshot();
 	return 0;
 }

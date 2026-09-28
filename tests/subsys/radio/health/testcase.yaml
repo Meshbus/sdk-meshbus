@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+tests:
+  subsys.meshbus.radio.health:
+    tags: [meshbus, radio, contract, ztest]
+    harness: ztest
+    platform_allow: [qemu_x86]
+    integration_platforms: [qemu_x86]

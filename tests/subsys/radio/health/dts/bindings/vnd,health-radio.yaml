@@ -1,0 +1,5 @@
+# SPDX-FileCopyrightText: 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+description: Test-owned LoRa driver for service health contracts
+compatible: "vnd,health-radio"
+include: base.yaml

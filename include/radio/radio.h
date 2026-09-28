@@ -127,6 +127,18 @@ struct mbs_radio_tx_done_event {
 	int status;
 };
 
+/** Cached service health. Driver failures are distinct from policy rejection.
+ * tx_failures counts consecutive actual driver failures in a 60-second window.
+ * A successful TX only clears TX health; RX success must be independently proven.
+ */
+struct mbs_radio_health_event {
+	bool ready;
+	bool rx_failed;
+	bool tx_failed;
+};
+ZBUS_CHAN_DECLARE(mbs_radio_health_chan);
+int mbs_radio_health_get(struct mbs_radio_health_event *health);
+
 /**
  * @brief Continuous-wave transmit request.
  *
