@@ -1,0 +1,25 @@
+tests:
+  subsys.meshbus.desktop.integration:
+    tags:
+      - meshbus
+      - desktop
+      - integration
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86
+  subsys.meshbus.desktop.integration.shuffled:
+    tags:
+      - meshbus
+      - desktop
+      - integration
+      - shuffle
+    harness: ztest
+    extra_configs:
+      - CONFIG_ZTEST_SHUFFLE=y
+      - CONFIG_TIMER_RANDOM_INITIAL_STATE=610839776
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86

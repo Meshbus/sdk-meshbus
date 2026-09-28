@@ -1,0 +1,21 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+mainmenu "Modulino LED Matrix exerciser"
+
+config SAMPLE_MATRIX_SCENE_MS
+	int "Static scene duration in milliseconds"
+	range 100 10000
+	default 1500
+
+config SAMPLE_MATRIX_SCROLL_MS
+	int "Scrolling text column interval in milliseconds"
+	range 10 500
+	default 80
+
+config SAMPLE_MATRIX_REFRESH_MS
+	int "Unpaced refresh duration per pixel format in milliseconds"
+	range 1000 10000
+	default 3000
+
+source "Kconfig.zephyr"

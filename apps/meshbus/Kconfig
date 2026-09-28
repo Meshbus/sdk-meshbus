@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+mainmenu "Meshbus firmware application"
+
+source "Kconfig.zephyr"
+
+config MESHBUS_UART_MCUMGR_LOGGING
+	bool "Require safe UART MCUmgr and logging coexistence"
+	depends on UART_MCUMGR
+	depends on MCUMGR_TRANSPORT_UART
+	depends on !UART_MCUMGR_RAW_PROTOCOL
+	depends on LOG_BACKEND_UART
+	depends on LOG_MODE_DEFERRED
+	depends on LOG_PROCESS_THREAD
+	depends on LOG_PRINTK
+	depends on !PRINTK_SYNC
+	depends on !LOG_BACKEND_UART_ASYNC
+	depends on !LOG_BACKEND_UART_OUTPUT_DICTIONARY
+	depends on !MCUMGR_TRANSPORT_UART_ASYNC
+	depends on !MBS_NOTIFY_TRANSPORT_SERIAL
+	depends on PM_DEVICE_RUNTIME
+	depends on LOG_PROCESS_THREAD_CUSTOM_PRIORITY
+	depends on MCUMGR_TRANSPORT_WORKQUEUE_THREAD_PRIO < LOG_PROCESS_THREAD_PRIORITY
+	help
+	  Keep the shared console UART runtime-active so Base64 SMP frames remain
+	  observable after deferred logging becomes idle.

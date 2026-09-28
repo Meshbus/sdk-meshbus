@@ -1,0 +1,316 @@
+/*
+ * SPDX-FileCopyrightText: FoBE Studio
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+#include <nordic/nrf52840_qiaa.dtsi>
+#include <zephyr/dt-bindings/adc/adc.h>
+#include <zephyr/dt-bindings/adc/nrf-saadc.h>
+#include <zephyr/dt-bindings/battery/battery.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/lora/lr11xx.h>
+#include "tracker_t1000_e-pinctrl.dtsi"
+
+/ {
+	model = "Seeed SenseCAP Card Tracker T1000-E";
+	compatible = "seeed,tracker-t1000-e";
+
+	chosen {
+		zephyr,sram = &sram0;
+		zephyr,flash = &flash0;
+		zephyr,code-partition = &slot0_partition;
+		zephyr,ieee802154 = &ieee802154;
+	};
+
+	zephyr,user {
+		io-channels = <&adc 0>;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led0: led_0 {
+			gpios = <&gpio0 24 GPIO_ACTIVE_HIGH>;
+			label = "Green LED";
+		};
+	};
+
+	buttons: buttons {
+		compatible = "gpio-keys";
+		zephyr,suspend-action = "none";
+
+		button0: user_button {
+			gpios = <&gpio0 6 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+			label = "User Button";
+			zephyr,code = <INPUT_BTN_BACK>;
+		};
+	};
+
+	peripheral_power: peripheral_power {
+		compatible = "power-domain-gpio";
+		#power-domain-cells = <0>;
+		enable-gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
+		startup-delay-us = <10000>;
+	};
+
+	accelerometer_power: accelerometer_power {
+		compatible = "power-domain-gpio";
+		#power-domain-cells = <0>;
+		enable-gpios = <&gpio1 7 GPIO_ACTIVE_HIGH>;
+		startup-delay-us = <10000>;
+	};
+
+	sensor_power: sensor_power {
+		compatible = "power-domain-gpio";
+		#power-domain-cells = <0>;
+		enable-gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
+		startup-delay-us = <10000>;
+	};
+
+	buzzer_power: buzzer_power {
+		compatible = "power-domain-gpio";
+		#power-domain-cells = <0>;
+		enable-gpios = <&gpio1 5 GPIO_ACTIVE_HIGH>;
+		startup-delay-us = <1000>;
+	};
+
+	gnss_power: gnss_power {
+		compatible = "power-domain-gpio";
+		#power-domain-cells = <0>;
+		enable-gpios = <&gpio1 11 GPIO_ACTIVE_HIGH>;
+		startup-delay-us = <10000>;
+	};
+
+	vbatt: vbatt {
+		status = "okay";
+		compatible = "voltage-divider";
+		io-channels = <&adc 0>;
+		power-domains = <&peripheral_power>;
+		output-ohms = <1000000>;
+		full-ohms = <2000000>;
+	};
+
+	fuel_gauge: fuel_gauge {
+		compatible = "zephyr,fuel-gauge-composite";
+		source-primary = <&vbatt>;
+		device-chemistry = "lithium-ion-polymer";
+		ocv-capacity-table-0 = <BATTERY_OCV_CURVE_LITHIUM_ION_POLYMER_DEFAULT>;
+		charge-full-design-microamp-hours = <700000>;
+	};
+
+	charger: charger {
+		compatible = "zephyr,charger-composite";
+		source-primary = <&fuel_gauge>;
+		charging-gpios = <&gpio1 3 GPIO_ACTIVE_LOW>;
+		online-gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;
+		constant-charge-voltage-max-microvolt = <4200000>;
+	};
+
+	aliases {
+		mcuboot-led0 = &led0;
+		mcuboot-button0 = &button0;
+		led0 = &led0;
+		button0 = &button0;
+		watchdog0 = &wdt0;
+		lora0 = &lr1110;
+	};
+};
+
+&reg0 {
+	status = "okay";
+};
+
+&reg1 {
+	regulator-initial-mode = <NRF5X_REG_MODE_DCDC>;
+};
+
+&adc {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	channel@0 {
+		reg = <0>;
+		zephyr,gain = "ADC_GAIN_1_6";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>;
+		zephyr,input-positive = <NRF_SAADC_AIN0>;
+		zephyr,resolution = <12>;
+		zephyr,oversampling = <4>;
+	};
+
+};
+
+&uart0 {
+	compatible = "nordic,nrf-uarte";
+	status = "okay";
+	current-speed = <115200>;
+	pinctrl-0 = <&uart0_default>;
+	pinctrl-1 = <&uart0_sleep>;
+	pinctrl-names = "default", "sleep";
+
+	gnss_nmea: gnss-nmea-generic {
+		status = "okay";
+		compatible = "gnss-nmea-generic";
+		power-domains = <&gnss_power>;
+	};
+};
+
+&uart1 {
+	compatible = "nordic,nrf-uarte";
+	status = "disabled";
+	current-speed = <115200>;
+	pinctrl-0 = <&uart1_default>;
+	pinctrl-1 = <&uart1_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&i2c0 {
+	compatible = "nordic,nrf-twim";
+	status = "okay";
+	pinctrl-0 = <&i2c0_default>;
+	pinctrl-1 = <&i2c0_sleep>;
+	pinctrl-names = "default", "sleep";
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+};
+
+&pwm0 {
+	status = "okay";
+	pinctrl-0 = <&pwm0_default>;
+	pinctrl-1 = <&pwm0_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&spi2 {
+	status = "okay";
+	pinctrl-0 = <&spi2_default>;
+	pinctrl-1 = <&spi2_sleep>;
+	pinctrl-names = "default", "sleep";
+	cs-gpios = <&gpio0 12 GPIO_ACTIVE_LOW>;
+
+	lr1110: lr1110@0 {
+		compatible = "semtech,lr1110";
+		status = "okay";
+		reg = <0>;
+		reset-gpios = <&gpio1 10 GPIO_ACTIVE_LOW>;
+		busy-gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>;
+		irq-gpios = <&gpio1 1 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+		spi-max-frequency = <DT_FREQ_M(8)>;
+		rfsw-enable = <(LR11XX_RFSW0_HIGH | LR11XX_RFSW1_HIGH |
+				 LR11XX_RFSW2_HIGH | LR11XX_RFSW3_HIGH)>;
+		rfsw-standby = <0>;
+		rfsw-rx = <(LR11XX_RFSW0_HIGH | LR11XX_RFSW3_HIGH)>;
+		rfsw-tx = <(LR11XX_RFSW0_HIGH | LR11XX_RFSW1_HIGH |
+			     LR11XX_RFSW3_HIGH)>;
+		rfsw-tx-hp = <(LR11XX_RFSW1_HIGH | LR11XX_RFSW3_HIGH)>;
+		rfsw-tx-hf = <0>;
+		rfsw-gnss = <LR11XX_RFSW2_HIGH>;
+		rfsw-wifi = <0>;
+		rx-boosted;
+		skip-rssi-calibration;
+		legacy-lora-public-network;
+		tcxo-voltage = <1600>;
+		tcxo-power-startup-delay-ms = <5>;
+		pa-select = <LR11XX_PA_SEL_HP>;
+		pa-reg-supply = <LR11XX_PA_REG_SUPPLY_VBAT>;
+		pa-duty-cycle = <4>;
+		pa-hp-sel = <7>;
+	};
+};
+
+&uicr {
+	nfct-pins-as-gpios;
+};
+
+&ieee802154 {
+	status = "okay";
+};
+
+&gpiote {
+	status = "okay";
+};
+
+&gpio0 {
+	status = "okay";
+
+	gnss_vrtc_en {
+		gpio-hog;
+		output-high;
+		gpios = <8 GPIO_ACTIVE_HIGH>;
+	};
+
+	gnss_rtc_int {
+		gpio-hog;
+		output-low;
+		gpios = <15 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+&gpio1 {
+	status = "okay";
+
+	gnss_sleep_int {
+		gpio-hog;
+		output-high;
+		gpios = <12 GPIO_ACTIVE_HIGH>;
+	};
+
+	gnss_reset {
+		gpio-hog;
+		output-low;
+		gpios = <15 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+&flash0 {
+	/*
+	 * Flash layout for the Adafruit nRF52 UF2 bootloader with
+	 * SoftDevice s140 v7.
+	 *
+	 * 0x00000000 SoftDevice s140 v7    (156 kB)
+	 * 0x00027000 Application partition (788 kB)
+	 * 0x000ec000 Storage partition     (16 kB)
+	 * 0x000f0000 LittleFS partition    (16 kB)
+	 * 0x000f4000 UF2 boot partition    (48 kB)
+	 */
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		reserved_partition_0: partition@0 {
+			label = "SoftDevice";
+			read-only;
+			reg = <0x00000000 0x00027000>;
+		};
+
+		slot0_partition: partition@27000 {
+			label = "Application";
+			reg = <0x00027000 0x000c5000>;
+		};
+
+		storage_partition: partition@ec000 {
+			label = "storage";
+			reg = <0x000ec000 0x00004000>;
+		};
+
+		lfs_partition: partition@f0000 {
+			label = "lfs_storage";
+			reg = <0x000f0000 0x00004000>;
+		};
+
+		boot_partition: partition@f4000 {
+			label = "UF2";
+			read-only;
+			reg = <0x000f4000 0x0000c000>;
+		};
+	};
+};
+
+zephyr_udc0: &usbd {
+	compatible = "nordic,nrf-usbd";
+	status = "okay";
+};
+
+#include <../boards/common/usb/cdc_acm_serial.dtsi>

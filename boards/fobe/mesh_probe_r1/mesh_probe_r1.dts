@@ -1,0 +1,13 @@
+/*
+ * Copyright (c) 2025 Chiho Sin
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+#include "mesh_probe_r1_common.dtsi"
+
+/ {
+	model = "Mesh Probe R1";
+	compatible = "fobe,mesh_probe_r1";
+};

@@ -1,0 +1,34 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+/ {
+	test_gpio: gpio {
+		compatible = "zephyr,gpio-emul";
+		ngpios = <3>;
+		rising-edge;
+		status = "okay";
+		#gpio-cells = <2>;
+		gpio-controller;
+	};
+
+	test_uart: uart-emul {
+		compatible = "zephyr,uart-emul";
+		current-speed = <9600>;
+		rx-fifo-size = <512>;
+		tx-fifo-size = <512>;
+		status = "okay";
+
+		l76k: gnss {
+			compatible = "quectel,l76k";
+			pps-gpios = <&test_gpio 0 GPIO_ACTIVE_HIGH>;
+			reset-gpios = <&test_gpio 1 GPIO_ACTIVE_LOW>;
+			wakeup-gpios = <&test_gpio 2 GPIO_ACTIVE_HIGH>;
+			status = "okay";
+		};
+	};
+};

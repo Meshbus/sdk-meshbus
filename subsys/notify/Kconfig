@@ -1,0 +1,34 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig MBS_NOTIFY
+	bool "Meshbus notify subsystem"
+	depends on ZBUS
+	default n
+	help
+	  Enable Meshbus notify subsystem.
+
+if MBS_NOTIFY
+module = MBS_NOTIFY
+module-str = mbs_notify
+module-help = Sets log level for Meshbus notify service
+source "subsys/logging/Kconfig.template.log_config"
+
+config MBS_NOTIFY_SHELL
+	bool "Notify shell commands"
+	depends on MBS_SHELL
+	default y
+	help
+	  Enable shell commands for publishing notify messages.
+
+config MBS_NOTIFY_TRANSPORT_SERIAL
+	bool "Publish MBN1 Notify frames over the MCUmgr UART"
+	depends on MCUMGR_TRANSPORT_UART
+	default n
+	help
+	  Publish Notify payloads as MBN1 sideband frames on the UART selected
+	  by zephyr,uart-mcumgr. Leave this disabled when UART MCUmgr shares the
+	  UART with console logging: this transport writes synchronously and
+	  cannot safely interleave with SMP responses.
+
+endif # MBS_NOTIFY

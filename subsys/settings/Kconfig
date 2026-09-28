@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+config MBS_SETTINGS_PERSISTENCE_DELAY
+    int "Meshbus settings persistence delay (ms)"
+    default 500
+    help
+      Time in milliseconds to wait after a settings change before
+      persisting to non-volatile storage. This helps to reduce
+      write cycles by batching multiple changes. If delay is set to 0,
+      settings will be persisted immediately after each change.

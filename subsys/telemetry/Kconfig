@@ -1,0 +1,62 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig MBS_TELEMETRY
+	bool "Meshbus Telemetry Management Layer"
+	depends on SENSOR
+	default n
+	help
+	  Enable the Meshbus telemetry management layer which provides:
+	  - Periodic collection from devicetree-bound sensor channels
+	  - ZBus event publishing for aggregated sensor data
+	  - Sampling-policy persistence via Settings
+	  - Telemetry statistics via Zephyr Stats
+
+if MBS_TELEMETRY
+
+module = MBS_TELEMETRY
+module-str = mbs_telemetry
+module-dep = MBS
+module-help = Sets log level for Meshbus Telemetry module
+source "subsys/logging/Kconfig.template.log_config"
+
+config MBS_TELEMETRY_DEFAULT_ENABLED
+	bool "Default telemetry enabled"
+	default y
+	help
+	  Default runtime enable state for telemetry.
+	  This is the initial value before settings storage is loaded.
+
+config MBS_TELEMETRY_MIN_SAMPLE_INTERVAL
+	int "Minimum sample interval in milliseconds"
+	default 5000
+	range 1 $(UINT32_MAX)
+	help
+	  Minimum allowed interval between telemetry samples.
+	  Used for validation when applying runtime configuration.
+
+config MBS_TELEMETRY_DEFAULT_SAMPLE_INTERVAL
+	int "Default sample interval in milliseconds"
+	default 30000
+	range MBS_TELEMETRY_MIN_SAMPLE_INTERVAL $(UINT32_MAX)
+	help
+	  Default interval between telemetry updates in milliseconds.
+	  Can be changed at runtime via configuration API (and validated against
+	  MBS_TELEMETRY_MIN_SAMPLE_INTERVAL).
+
+config MBS_TELEMETRY_SHELL
+	bool "Meshbus Telemetry shell commands"
+	depends on MBS_SHELL
+	default y
+	help
+	  Enable shell commands for Meshbus Telemetry subsystem.
+	  Provides commands for telemetry configuration and diagnostics.
+
+config MBS_TELEMETRY_STATS
+	bool "Meshbus Telemetry statistics"
+	depends on MBS_STATS
+	default y
+	help
+	  Enable statistics for Meshbus Telemetry subsystem.
+
+endif # MBS_TELEMETRY

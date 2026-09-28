@@ -1,0 +1,180 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+config MBS_DESKTOP
+	bool "Meshbus desktop UI"
+	depends on MBS_INPUT
+	depends on DISPLAY
+	depends on U8G2
+	depends on ZUI
+	select THREAD_STACK_INFO
+	select DYNAMIC_THREAD
+	select DYNAMIC_THREAD_ALLOC
+	select ZUI_COMMON_ICONS
+	help
+	  Enable the Meshbus desktop UI module.
+	  This builds the new ZUI host/router based desktop runtime and built-in
+	  apps as a reusable library for Meshbus-based projects.
+	  Built-in UI text is provided in English.
+
+if MBS_DESKTOP
+
+module = MBS_DESKTOP
+module-str = mbs_desktop
+module-dep = MBS
+source "subsys/logging/Kconfig.template.log_config"
+
+config MBS_DESKTOP_BOOT_LOGO_DURATION_MS
+	int "Desktop boot logo duration (ms)"
+	default 1000
+	range 0 5000
+	help
+	  Show the centered monochrome Meshbus logo once when the Desktop thread
+	  starts, before entering the dashboard. Only the Desktop thread waits;
+	  other firmware services continue running. Navigation queued during the
+	  logo is discarded before entering the desktop.
+
+	  Set to 0 to disable the logo and its delay. Displays smaller than the
+	  84x56 logo, unavailable displays, and a suspended UI skip the delay.
+	  The logo follows the display's configured output inversion.
+
+config MBS_DESKTOP_THREAD_STACK_SIZE
+	int "Desktop UI thread stack size"
+	default 6144
+	range 2048 16384
+	help
+	  Stack size (in bytes) of the desktop UI thread.
+
+	  Desktop performs host/router dispatch, widget drawing, and app screen
+	  callbacks on this thread, so complex detail screens need extra headroom.
+
+config ZUI_INPUT_QUEUE_SIZE
+	default 32
+
+config ZUI_ROUTER_MAX_SCREENS
+	default 18
+
+config ZUI_HEAP_SIZE
+	default 24576
+
+config MBS_DESKTOP_LAUNCHER
+	bool "Desktop launcher and external app runtime"
+	depends on MBS_LLEXT
+	select MBS_FS
+	help
+	  Enable the Desktop Launcher view. The Launcher opens a file picker rooted
+	  at /extra/apps, probes selected .mba packages for metadata, and runs one
+	  foreground external app session at a time.
+
+config MBS_DESKTOP_PACKAGES
+	bool "Registered MBA package installation and recovery"
+	depends on MBS_DESKTOP_LAUNCHER && FILE_SYSTEM
+	select JSON_LIBRARY
+	select PSA_CRYPTO
+	select PSA_WANT_ALG_SHA_256
+	help
+	  Register immutable MBA file sets and block launch during installation.
+	  Versioned installs retain one previous version for explicit rollback.
+
+config MBS_DESKTOP_LAUNCHER_MAX_APPS
+	int "Maximum cached external Desktop app icons"
+	depends on MBS_DESKTOP_LAUNCHER
+	default 8
+	range 1 8
+	help
+	  Maximum number of valid .mba app icon payloads cached by one Launcher
+	  directory load. Extra valid apps still appear with the default LLEXT icon.
+
+config MBS_DESKTOP_APP_SHARED_STACK_SIZE
+	int "Desktop shared app thread stack size"
+	default 4096
+	range 1024 16384
+	help
+	  Stack size (in bytes) of the single runtime stack shared by desktop app
+	  threads (built-in apps and optional external apps).
+
+	  The stack is allocated once during desktop init and reused by each app.
+
+config MBS_DESKTOP_DEVICE_NAME
+	string "Desktop device name"
+	default "Meshbus Device"
+	help
+	  Device name shown in the dashboard Info widget and the System app
+	  Identity page. Keep this string short to avoid clipping on small
+	  displays.
+
+config MBS_DESKTOP_MANUFACTURER_NAME
+	string "Desktop device manufacturer name"
+	default "Unknown"
+	help
+	  Manufacturer shown on the System app Identity page. This identity is
+	  independent of optional transports such as Bluetooth and its Device
+	  Information Service.
+
+config MBS_DESKTOP_MODEL_NAME
+	string "Desktop device model name"
+	default "Unknown"
+	help
+	  Product model shown on the System app Identity page. Keep this identity
+	  independent of optional services and devicetree display descriptions.
+
+config MBS_DESKTOP_MESSAGE_CACHE_COUNT
+	int "Desktop message cache entries"
+	depends on MBS_MESSAGE
+	default MBS_MESSAGE_MAX_STORE_COUNT
+	range 1 MBS_MESSAGE_MAX_STORE_COUNT
+	help
+	  Maximum number of recent received messages kept by Desktop UI caches.
+
+	  This is intentionally separate from MBS_MESSAGE_MAX_STORE_COUNT:
+	  the Meshbus message service can keep a larger backend queue while the
+	  small-screen Desktop UI only mirrors the newest entries needed for
+	  dashboard and inbox rendering.
+
+config MBS_DESKTOP_PERF_LOG
+	bool "Log Desktop frame timing statistics"
+	depends on LOG
+	default n
+	help
+	  Log low-rate timing statistics for the Desktop UI loop, including host
+	  poll, draw, and display present costs. This is intended for hardware
+	  frame-rate diagnosis and is disabled by default.
+
+config MBS_DESKTOP_PERF_LOG_INTERVAL_MS
+	int "Desktop timing log interval (ms)"
+	depends on MBS_DESKTOP_PERF_LOG
+	default 1000
+	range 250 60000
+	help
+	  Interval used when printing aggregated Desktop timing statistics.
+
+config MBS_DESKTOP_RADIO_NOISE_ANALYZER_DBM_MIN
+	int "Radio noise analyzer graph min dBm"
+	default -125
+	range -160 -20
+	help
+	  Minimum dBm value used for Y-axis mapping in the radio noise analyzer
+	  RSSI bar graph.
+
+	  Samples below this value are clamped to the bottom of the graph.
+
+config MBS_DESKTOP_RADIO_NOISE_ANALYZER_DBM_MAX
+	int "Radio noise analyzer graph max dBm"
+	default -40
+	range -160 -20
+	help
+	  Maximum dBm value used for Y-axis mapping in the radio noise analyzer
+	  RSSI bar graph.
+
+	  Samples above this value are clamped to the top of the graph.
+
+config MBS_DESKTOP_SHELL
+	bool "Meshbus Desktop shell commands"
+	depends on MBS_SHELL
+	default y
+	help
+	  Enable shell commands for Meshbus Desktop service.
+	  Provides `meshbus desktop meta <path>` to read one desktop app metadata
+	  from a `.llext` file path.
+
+endif # MBS_DESKTOP

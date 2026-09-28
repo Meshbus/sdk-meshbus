@@ -1,0 +1,13 @@
+/*
+ * Copyright (c) 2025 FoBE Projects
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * No overlay needed for mesh_probe_r1 - the charger node is already
+ * defined in the board's common dtsi file with:
+ *   - source-primary = <&vbatt>
+ *   - charging-gpios = <&gpio1 12 GPIO_ACTIVE_LOW>
+ *   - constant-charge-voltage-max-microvolt = <4150000>
+ */

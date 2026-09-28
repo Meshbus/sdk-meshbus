@@ -1,0 +1,67 @@
+# Copyright (c) 2025 FoBE Projects
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  Texas Instruments TCA8418 keyboard matrix scan controller.
+
+  This is a child device of the TCA8418 MFD (ti,tca8418) and provides
+  keyboard matrix scanning functionality for up to 80 keys (8x10 matrix).
+
+  Key events are reported as INPUT_ABS_X (column), INPUT_ABS_Y (row), and
+  INPUT_BTN_TOUCH (press/release). Use an input-keymap child node to map
+  row/column positions to specific key codes.
+
+  Example configuration:
+
+    #include <zephyr/dt-bindings/input/input-event-codes.h>
+    #include <zephyr/dt-bindings/input/keymap.h>
+
+    &i2c0 {
+        tca8418: tca8418@34 {
+            compatible = "ti,tca8418";
+            reg = <0x34>;
+            int-gpios = <&gpio0 5 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+
+            tca8418_kbd: kbd {
+                compatible = "ti,tca8418-kbd";
+                row-size = <4>;
+                col-size = <4>;
+
+                keymap {
+                    compatible = "input-keymap";
+                    keymap = <
+                        MATRIX_KEY(0, 0, INPUT_KEY_1)
+                        MATRIX_KEY(0, 1, INPUT_KEY_2)
+                        MATRIX_KEY(0, 2, INPUT_KEY_3)
+                        MATRIX_KEY(0, 3, INPUT_KEY_A)
+                    >;
+                    row-size = <4>;
+                    col-size = <4>;
+                };
+            };
+        };
+    };
+
+compatible: "ti,tca8418-kbd"
+
+properties:
+  row-size:
+    type: int
+    required: true
+    description: |
+      Number of rows used in the keypad matrix (1-8).
+      Configures ROW0 to ROW(row-size-1) pins for keypad scanning.
+
+  col-size:
+    type: int
+    required: true
+    description: |
+      Number of columns used in the keypad matrix (1-10).
+      Configures COL0 to COL(col-size-1) pins for keypad scanning.
+
+  poll-interval-ms:
+    type: int
+    default: 10
+    description: |
+      Polling interval in milliseconds when using polling mode
+      as a fallback. Default is 10ms.

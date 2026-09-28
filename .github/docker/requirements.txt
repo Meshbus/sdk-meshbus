@@ -1,0 +1,45 @@
+# SPDX-FileCopyrightText: 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+# Tool environment input, independent of the source manifest. Install the
+# checked-in requirements.lock; retain python-freeze.txt in the image as evidence.
+west==1.5.0
+reuse==6.2.0
+ruff==0.14.2
+pytest==9.0.3
+pyelftools
+PyYAML
+pykwalify
+jsonschema
+canopen
+packaging
+patool
+psutil
+pylink-square
+pyserial
+requests
+semver
+tqdm
+spdx-python-model
+anytree
+intelhex
+colorama
+ply
+gcovr
+coverage
+junitparser
+python-dotenv
+pyocd
+tabulate
+natsort
+cbor
+cbor2
+python-can
+spdx-tools
+spdx3-validate
+numpy
+Pillow
+protobuf
+grpcio-tools
+cryptography
+imgtool
+esptool==5.3.0

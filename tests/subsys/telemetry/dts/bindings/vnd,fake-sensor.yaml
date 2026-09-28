@@ -1,0 +1,5 @@
+description: Meshbus telemetry test fake sensor
+
+compatible: "vnd,fake-sensor"
+
+include: base.yaml

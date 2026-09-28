@@ -1,0 +1,20 @@
+/*
+ * SPDX-FileCopyrightText: FoBE Studio
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	chosen {
+		meshbus,fuel-gauge = &fuel_gauge;
+		meshbus,charger = &charger;
+		meshbus,power-button = &button0;
+	};
+};
+
+&button0 {
+	zephyr,code = <INPUT_BTN_BACK>;
+};
+
+&buttons {
+	wakeup-source;
+};

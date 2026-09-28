@@ -1,0 +1,14 @@
+# Copyright (c) 2025 FoBE Projects
+# SPDX-License-Identifier: Apache-2.0
+
+config MFD_TCA8418
+	bool "TI TCA8418 I2C keypad/GPIO multi-function device driver"
+	default y
+	depends on MFD
+	depends on DT_HAS_TI_TCA8418_ENABLED
+	select I2C
+	help
+	  Enable the TI TCA8418 multi-function device driver.
+	  This device provides keypad matrix scanning and GPIO expansion
+	  functionality via I2C bus. Child devices (keyboard, GPIO) should
+	  be defined under the MFD parent node.

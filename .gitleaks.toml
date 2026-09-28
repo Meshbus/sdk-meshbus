@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Verified SHA-256 of the keypad-disabled test configuration, not a credential"
+condition = "AND"
+paths = ['''^\.github/license-policy\.toml$''']
+regexTarget = "match"
+regexes = ['''^prj_keypad_disabled\.conf" = "38c9b3cff203629342a589e586fb949831dc00f35cf0e5cca535e6166ea7a7ad"$''']

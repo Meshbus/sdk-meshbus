@@ -1,0 +1,795 @@
+/* SPDX-FileCopyrightText: FoBE Studio */
+/* SPDX-License-Identifier: Apache-2.0 */
+
+#include "text/desktop_text.h"
+
+const char DESKTOP_TEXT_APP_BUILD_WARNING_TITLE[] = "App compatibility";
+const char DESKTOP_TEXT_APP_BUILD_WARNING[] =
+	"Built for different firmware. May malfunction.";
+
+const char DESKTOP_TEXT_COMMON_OFF[] = "Off";
+const char DESKTOP_TEXT_COMMON_ON[] = "On";
+const char DESKTOP_TEXT_COMMON_NO[] = "No";
+const char DESKTOP_TEXT_COMMON_YES[] = "Yes";
+const char *const DESKTOP_TEXT_COMMON_BOOL_VALUES[2] = {
+	DESKTOP_TEXT_COMMON_OFF,
+	DESKTOP_TEXT_COMMON_ON,
+};
+const char *const DESKTOP_TEXT_COMMON_NO_YES_VALUES[2] = {
+	DESKTOP_TEXT_COMMON_NO,
+	DESKTOP_TEXT_COMMON_YES,
+};
+const char DESKTOP_TEXT_COMMON_SETTINGS_APPLIED[] = "Settings applied";
+const char DESKTOP_TEXT_COMMON_SETTINGS_RESET[] = "Settings reset";
+const char DESKTOP_TEXT_COMMON_SETTINGS_INVALID[] = "Settings invalid";
+const char DESKTOP_TEXT_COMMON_ACTION_APPLY[] = "> Apply";
+const char DESKTOP_TEXT_COMMON_ACTION_RESET[] = "> Reset";
+const char DESKTOP_TEXT_COMMON_BUTTON_CLEAR[] = "Clear";
+const char DESKTOP_TEXT_COMMON_BUTTON_START[] = "Start";
+const char DESKTOP_TEXT_COMMON_BUTTON_STOP[] = "Stop";
+const char DESKTOP_TEXT_COMMON_NO_DATA[] = "(no data)";
+const char DESKTOP_TEXT_COMMON_NONE[] = "<none>";
+const char DESKTOP_TEXT_COMMON_UNKNOWN[] = "--";
+const char DESKTOP_TEXT_COMMON_OK[] = "OK";
+const char DESKTOP_TEXT_COMMON_RESET[] = "Reset";
+const char DESKTOP_TEXT_COMMON_APPLY[] = "Apply";
+const char DESKTOP_TEXT_COMMON_CANCEL[] = "Cancel";
+const char DESKTOP_TEXT_COMMON_REFRESH[] = "Refresh";
+const char DESKTOP_TEXT_COMMON_MENU_SETTINGS[] = "Settings";
+const char DESKTOP_TEXT_COMMON_MENU_STATS[] = "Stats";
+const char DESKTOP_TEXT_COMMON_BUTTON_REPLY[] = "Reply";
+const char DESKTOP_TEXT_COMMON_EMPTY[] = "";
+const char DESKTOP_TEXT_COMMON_ROUTE[] = ">";
+const char DESKTOP_TEXT_COMMON_NOT_AVAILABLE[] = "n/a";
+const char DESKTOP_TEXT_COMMON_UNKNOWN_WORD[] = "unknown";
+const char DESKTOP_TEXT_COMMON_YES_LOWER[] = "yes";
+const char DESKTOP_TEXT_COMMON_NO_LOWER[] = "no";
+const char DESKTOP_TEXT_COMMON_RESET_CONFIRM_TEXT[] = "Reset settings to defaults?";
+
+const char DESKTOP_TEXT_BLUETOOTH_TITLE[] = "Bluetooth";
+const char DESKTOP_TEXT_CLOCK_TITLE[] = "Clock";
+const char DESKTOP_TEXT_DISPLAY_TITLE[] = "Display";
+const char DESKTOP_TEXT_GNSS_TITLE[] = "GNSS";
+const char DESKTOP_TEXT_RADIO_TITLE[] = "Radio";
+const char DESKTOP_TEXT_LAUNCHER_TITLE[] = "Launcher";
+const char DESKTOP_TEXT_MESHCORE_TITLE[] = "MeshCore";
+const char DESKTOP_TEXT_MESSAGES_TITLE[] = "Messages";
+const char DESKTOP_TEXT_NODES_TITLE[] = "Nodes";
+const char DESKTOP_TEXT_POWER_TITLE[] = "Power";
+const char DESKTOP_TEXT_SYSTEM_TITLE[] = "System";
+const char DESKTOP_TEXT_TELEMETRY_TITLE[] = "Telemetry";
+
+const char DESKTOP_TEXT_BLUETOOTH_SETTINGS_ENABLED[] = "Enabled";
+const char DESKTOP_TEXT_BLUETOOTH_SETTINGS_MESHCORE_COMPANION[] = "MeshCore NUS";
+const char DESKTOP_TEXT_BLUETOOTH_SETTINGS_PASSKEY_MODE[] = "Passkey Mode";
+const char DESKTOP_TEXT_BLUETOOTH_SETTINGS_FIXED_PASSKEY[] = "Fixed Passkey";
+const char *const DESKTOP_TEXT_BLUETOOTH_PASSKEY_MODE_VALUES[DESKTOP_TEXT_BLUETOOTH_PASSKEY_MODE_COUNT] = {
+	"Random",
+	"Fixed",
+};
+
+const char DESKTOP_TEXT_NOTIFY_BLUETOOTH_PAIRING_HEADER[] = "Device Pairing";
+const char DESKTOP_TEXT_NOTIFY_BLUETOOTH_CONNECTED[] = "Connected";
+const char DESKTOP_TEXT_NOTIFY_BLUETOOTH_DISCONNECTED[] = "Disconnected";
+const char DESKTOP_TEXT_NOTIFY_BLUETOOTH_PAIRING_CODE_FORMAT[] = "Code: %06u";
+
+const char DESKTOP_TEXT_CLOCK_SETTINGS_FORMAT[] = "Format";
+const char DESKTOP_TEXT_CLOCK_SETTINGS_UTC_OFFSET[] = "UTC Offset";
+const char DESKTOP_TEXT_CLOCK_UTC_OFFSET_FORMAT[] = "%c%02d:%02d";
+const char *const DESKTOP_TEXT_CLOCK_FORMAT_VALUES[DESKTOP_TEXT_CLOCK_FORMAT_COUNT] = {
+	"12h",
+	"24h",
+};
+
+const char DESKTOP_TEXT_DISPLAY_SETTINGS_BRIGHTNESS[] = "Brightness";
+const char DESKTOP_TEXT_DISPLAY_SETTINGS_SLEEP_TIMEOUT[] = "Sleep Timeout";
+const char DESKTOP_TEXT_DISPLAY_SETTINGS_INVERT[] = "Invert";
+const char DESKTOP_TEXT_DISPLAY_NEVER[] = "Never";
+
+const char DESKTOP_TEXT_GNSS_STATUS[] = "Status";
+const char DESKTOP_TEXT_GNSS_STATUS_TITLE[] = "GNSS Status";
+const char DESKTOP_TEXT_GNSS_SATELLITES[] = "Satellites";
+const char DESKTOP_TEXT_GNSS_ACQUISITION[] = "Acquisition";
+const char DESKTOP_TEXT_GNSS_ACTION_RELOAD[] = "> Reload";
+const char DESKTOP_TEXT_GNSS_NO_SATELLITES_PAREN[] = "(No satellites)";
+const char DESKTOP_TEXT_GNSS_STATUS_LOADING[] = "Loading GNSS status...";
+const char DESKTOP_TEXT_GNSS_SATELLITE[] = "Satellite";
+const char DESKTOP_TEXT_GNSS_NO_SATELLITE_SELECTED[] = "No satellite selected.";
+const char DESKTOP_TEXT_GNSS_SATELLITE_DETAIL_FORMAT[] =
+	"SNR:       %u\n"
+	"EL:        %u\n"
+	"AZ:        %u\n"
+	"Tracked:   %s\n"
+	"Corrected: %s";
+const char DESKTOP_TEXT_GNSS_STATUS_DETAIL_FORMAT[] =
+	"Device:\n"
+	"  Enabled:    %s\n"
+	"  State:      %s\n"
+	"  Fix_status: %s\n"
+	"  Quality:    %s\n"
+	"  HDOP:       %s\n"
+	"  Tracked:    %s\n"
+	"  Visible:    %s\n"
+	"Position:\n"
+	"  Latitude:   %s\n"
+	"  Longitude:  %s\n"
+	"  Altitude:   %s\n"
+	"  Speed:      %s\n"
+	"  Bearing:    %s\n"
+	"UTC:\n"
+	"  %s";
+const char DESKTOP_TEXT_GNSS_NOT_AVAILABLE[] = "n/a";
+const char DESKTOP_TEXT_GNSS_UNIT_DEG[] = "deg";
+const char DESKTOP_TEXT_GNSS_UNIT_M[] = "m";
+const char DESKTOP_TEXT_GNSS_UNIT_MPS[] = "m/s";
+const char DESKTOP_TEXT_GNSS_STATE_SLEEP[] = "sleep";
+const char DESKTOP_TEXT_GNSS_STATE_ACQUIRING[] = "acquiring";
+const char DESKTOP_TEXT_GNSS_STATE_TRACK[] = "track";
+const char DESKTOP_TEXT_GNSS_STATE_ERROR[] = "error";
+const char DESKTOP_TEXT_GNSS_FIX_NO_FIX[] = "no_fix";
+const char DESKTOP_TEXT_GNSS_FIX_GNSS_FIX[] = "gnss_fix";
+const char DESKTOP_TEXT_GNSS_FIX_DGNSS_FIX[] = "dgnss_fix";
+const char DESKTOP_TEXT_GNSS_FIX_ESTIMATED_FIX[] = "estimated_fix";
+const char DESKTOP_TEXT_GNSS_QUALITY_INVALID[] = "invalid";
+const char DESKTOP_TEXT_GNSS_QUALITY_GNSS_SPS[] = "gnss_sps";
+const char DESKTOP_TEXT_GNSS_QUALITY_DGNSS[] = "dgnss";
+const char DESKTOP_TEXT_GNSS_QUALITY_GNSS_PPS[] = "gnss_pps";
+const char DESKTOP_TEXT_GNSS_QUALITY_RTK[] = "rtk";
+const char DESKTOP_TEXT_GNSS_QUALITY_FLOAT_RTK[] = "float_rtk";
+const char DESKTOP_TEXT_GNSS_QUALITY_ESTIMATED[] = "estimated";
+const char DESKTOP_TEXT_GNSS_SYSTEM_GPS_SHORT[] = "GPS";
+const char DESKTOP_TEXT_GNSS_SYSTEM_GLONASS_SHORT[] = "GLO";
+const char DESKTOP_TEXT_GNSS_SYSTEM_GALILEO_SHORT[] = "GAL";
+const char DESKTOP_TEXT_GNSS_SYSTEM_BEIDOU_SHORT[] = "BDS";
+const char DESKTOP_TEXT_GNSS_SYSTEM_QZSS_SHORT[] = "QZS";
+const char DESKTOP_TEXT_GNSS_SYSTEM_IRNSS_SHORT[] = "IRN";
+const char DESKTOP_TEXT_GNSS_SYSTEM_SBAS_SHORT[] = "SBS";
+const char DESKTOP_TEXT_GNSS_SYSTEM_IMES_SHORT[] = "IMS";
+const char DESKTOP_TEXT_GNSS_SYSTEM_UNKNOWN_SHORT[] = "UNK";
+const char DESKTOP_TEXT_GNSS_SYSTEM_GPS_FULL[] = "GPS";
+const char DESKTOP_TEXT_GNSS_SYSTEM_GLONASS_FULL[] = "GLONASS";
+const char DESKTOP_TEXT_GNSS_SYSTEM_GALILEO_FULL[] = "GALILEO";
+const char DESKTOP_TEXT_GNSS_SYSTEM_BEIDOU_FULL[] = "BEIDOU";
+const char DESKTOP_TEXT_GNSS_SYSTEM_QZSS_FULL[] = "QZSS";
+const char DESKTOP_TEXT_GNSS_SYSTEM_IRNSS_FULL[] = "IRNSS";
+const char DESKTOP_TEXT_GNSS_SYSTEM_SBAS_FULL[] = "SBAS";
+const char DESKTOP_TEXT_GNSS_SYSTEM_IMES_FULL[] = "IMES";
+const char DESKTOP_TEXT_GNSS_SYSTEM_UNKNOWN_FULL[] = "UNK";
+const char DESKTOP_TEXT_GNSS_COMPASS_NORTH[] = "N";
+const char DESKTOP_TEXT_GNSS_COMPASS_EAST[] = "E";
+const char DESKTOP_TEXT_GNSS_COMPASS_SOUTH[] = "S";
+const char DESKTOP_TEXT_GNSS_COMPASS_WEST[] = "W";
+const char DESKTOP_TEXT_GNSS_TRACKED[] = "TRACKED";
+const char DESKTOP_TEXT_GNSS_VISIBLE[] = "VISIBLE";
+const char DESKTOP_TEXT_GNSS_SETTINGS_ENABLED[] = "Enabled";
+const char DESKTOP_TEXT_GNSS_SETTINGS_UPDATE_INTERVAL[] = "Update Interval";
+const char DESKTOP_TEXT_GNSS_SETTINGS_MIN_ACTIVE[] = "Min Active";
+const char DESKTOP_TEXT_GNSS_SETTINGS_NAV_MODE[] = "Nav Mode";
+const char DESKTOP_TEXT_GNSS_SETTINGS_FIX_RATE[] = "Fix Rate";
+const char DESKTOP_TEXT_GNSS_SETTINGS_SYSTEM[] = "System";
+const char DESKTOP_TEXT_GNSS_SETTINGS_GPS[] = "GPS";
+const char DESKTOP_TEXT_GNSS_SETTINGS_GLONASS[] = "GLONASS";
+const char DESKTOP_TEXT_GNSS_SETTINGS_GALILEO[] = "Galileo";
+const char DESKTOP_TEXT_GNSS_SETTINGS_BEIDOU[] = "BeiDou";
+const char DESKTOP_TEXT_GNSS_SETTINGS_QZSS[] = "QZSS";
+const char DESKTOP_TEXT_GNSS_SETTINGS_IRNSS[] = "IRNSS";
+const char DESKTOP_TEXT_GNSS_SETTINGS_SBAS[] = "SBAS";
+const char DESKTOP_TEXT_GNSS_SETTINGS_IMES[] = "IMES";
+const char DESKTOP_TEXT_GNSS_SETTINGS_TIME_SYNC[] = "Time Sync";
+const char DESKTOP_TEXT_GNSS_SETTINGS_ELECTRONIC_COMPASS[] = "Electronic Compass";
+const char *const DESKTOP_TEXT_GNSS_NAV_MODE_VALUES[DESKTOP_TEXT_GNSS_NAV_MODE_COUNT] = {
+	"Zero",
+	"Low",
+	"Balanced",
+	"High",
+};
+const char *const DESKTOP_TEXT_GNSS_FIX_RATE_VALUES[DESKTOP_TEXT_GNSS_FIX_RATE_COUNT] = {
+	"1Hz",
+	"2Hz",
+	"4Hz",
+	"5Hz",
+	"10Hz",
+};
+const char *const DESKTOP_TEXT_GNSS_SYSTEM_MODE_VALUES[DESKTOP_TEXT_GNSS_SYSTEM_MODE_COUNT] = {
+	"All",
+	"Custom",
+};
+const char DESKTOP_TEXT_GNSS_HEADER_UPDATE_INTERVAL_MS[] = "Update Interval (ms)";
+const char DESKTOP_TEXT_GNSS_HEADER_MIN_ACTIVE_MS[] = "Min Active (ms)";
+
+const char DESKTOP_TEXT_GNSS_ACQUISITION_NOW[] = "Acquisition now";
+const char DESKTOP_TEXT_GNSS_ACQUISITION_PROCESSING[] = "Acquisition processing";
+const char DESKTOP_TEXT_GNSS_FAILED[] = "GNSS failed";
+const char DESKTOP_TEXT_GNSS_SATELLITES_RELOAD[] = "Satellites reload";
+const char DESKTOP_TEXT_GNSS_NO_SATELLITES[] = "No satellites";
+const char DESKTOP_TEXT_GNSS_RELOAD_FAILED[] = "Reload failed";
+
+const char DESKTOP_TEXT_LAUNCHER_START_FAILED_FORMAT[] = "Start failed (%d)";
+const char DESKTOP_TEXT_LAUNCHER_CLEANUP_FAILED_FORMAT[] = "Could not close app (%d)";
+const char DESKTOP_TEXT_LAUNCHER_ACTION_DELETE[] = "Delete";
+const char DESKTOP_TEXT_LAUNCHER_ACTION_PROPERTIES[] = "Properties";
+const char DESKTOP_TEXT_LAUNCHER_DELETE_TITLE[] = "Delete app?";
+const char DESKTOP_TEXT_LAUNCHER_DELETED[] = "Deleted";
+const char DESKTOP_TEXT_LAUNCHER_DELETE_FAILED_FORMAT[] = "Delete failed (%d)";
+const char DESKTOP_TEXT_LAUNCHER_PROPERTIES_FAILED_FORMAT[] = "Properties failed (%d)";
+
+const char DESKTOP_TEXT_MESHCORE_ADVERT[] = "Advert";
+const char DESKTOP_TEXT_MESHCORE_ADVERT_SELECT_TEXT[] = "Advert via flooding?";
+const char DESKTOP_TEXT_MESHCORE_ADVERT_BUTTON_FLOOD[] = "Flood";
+const char DESKTOP_TEXT_MESHCORE_ADVERT_BUTTON_ZEROHOP[] = "ZeroHop";
+const char DESKTOP_TEXT_MESHCORE_LOCAL_ADVERT_QUEUED[] = "Zero Hop advert queued.";
+const char DESKTOP_TEXT_MESHCORE_FLOOD_ADVERT_QUEUED[] = "Flood advert queued.";
+const char DESKTOP_TEXT_MESHCORE_MENU_RADIO_PRESET[] = "Radio Preset";
+const char DESKTOP_TEXT_MESHCORE_MENU_CHANNELS[] = "Channels";
+const char DESKTOP_TEXT_MESHCORE_CHANNELS_TITLE[] = "Channels";
+const char DESKTOP_TEXT_MESHCORE_CHANNELS_EMPTY[] = "(No channels)";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_NAME[] = "Name";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_ROLE[] = "Role";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_PUBLIC_KEY[] = "Public Key";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_MULTI_ACKS[] = "Multi ACKs";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_ADVERT_POSITION[] = "Advert Position";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_PATH_HASH_SIZE[] = "Path Hash Size";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_CLIENT_REPEAT[] = "Client Repeat";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_ADD_CONTACT_OVERWRITE[] = "Evict Oldest";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_ADD_CONTACT_CHAT[] = "AutoAdd Chat";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_ADD_CONTACT_REPEATER[] = "AutoAdd Repeater";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_ADD_CONTACT_ROOM[] = "AutoAdd Room";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_ADD_CONTACT_SENSOR[] = "AutoAdd Sensor";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_ADD_CONTACT_HOPS_LIMIT[] = "Hops Limit";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_CONTACT_ADD_POLICY[] = "Add Policy";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_CONTACT_ADD_POLICY_TITLE[] = "Contact Add Policy";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_FORWARDING[] = "Forwarding";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_FORWARDING_TITLE[] = "Forwarding";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_TELEMETRY_MODE[] = "Telemetry";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_TELEMETRY_MODE_TITLE[] = "TelemetryMode";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_TELEMETRY_MODE_BASE[] = "Base";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_TELEMETRY_MODE_LOCAT[] = "Location";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_TELEMETRY_MODE_ENVIRONMENT[] = "Environment";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_TX_DELAY_FACTOR[] = "TX Delay";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_DIRECT_TX_DELAY_FACTOR[] = "Direct Delay";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_DISABLE_FWD[] = "Disable Fwd";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_LOOP_DETECT[] = "Loop Detect";
+const char *const DESKTOP_TEXT_MESHCORE_LOOP_DETECT_VALUES
+	[DESKTOP_TEXT_MESHCORE_LOOP_DETECT_COUNT] = {
+	DESKTOP_TEXT_COMMON_OFF,
+	"Minimal",
+	"Moderate",
+	"Strict",
+};
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_FLOOD_MAX[] = "Flood Max";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_ADVERT_INTERVAL[] = "Advert Interval";
+const char DESKTOP_TEXT_MESHCORE_SETTINGS_FLOOD_ADVERT_INTERVAL[] = "Flood Advert Interval";
+const char DESKTOP_TEXT_MESHCORE_RADIO_PRESET_TITLE[] = "Radio Preset";
+const char DESKTOP_TEXT_MESHCORE_CUSTOM[] = "CUST";
+const char *const DESKTOP_TEXT_MESHCORE_RADIO_PRESET_NAME_VALUES
+	[DESKTOP_TEXT_MESHCORE_RADIO_PRESET_COUNT] = {
+	"VN920(Narrow)",
+	"AU915",
+	"AU916(Narrow)",
+	"AU923(SA, WA)",
+	"AU923+(QLD)",
+	"EU869(Narrow)",
+	"CZ869(Narrow)",
+	"EU433(Long Range)",
+	"NZ917",
+	"NZ917+(Narrow)",
+	"PT433",
+	"PT869",
+	"CH869",
+	"US910(Recommended)",
+};
+const char *const DESKTOP_TEXT_MESHCORE_RADIO_PRESET_SHORT_VALUES
+	[DESKTOP_TEXT_MESHCORE_RADIO_PRESET_COUNT] = {
+	"VN920",
+	"AU915",
+	"AU916",
+	"AU923",
+	"AU923+",
+	"EU869",
+	"CZ869",
+	"EU433",
+	"NZ917",
+	"NZ917+",
+	"PT433",
+	"PT869",
+	"CH869",
+	"US910",
+};
+const char DESKTOP_TEXT_MESHCORE_RADIO_PRESET_CONFIRM_TITLE[] = "Apply Preset";
+const char DESKTOP_TEXT_MESHCORE_RADIO_PRESET_DETAIL_FORMAT[] =
+	"%s\nFreq: %u.%03u MHz\nRate: %u.%03u kHz\nSF: %u\nCR: %u\n\n";
+const char DESKTOP_TEXT_MESHCORE_ACTION_RESET[] = "> Reset";
+const char *const DESKTOP_TEXT_MESHCORE_ROLE_VALUES[DESKTOP_TEXT_MESHCORE_ROLE_COUNT] = {
+	DESKTOP_TEXT_WIDGET_MESHCORE_ROLE_CLIENT,
+	DESKTOP_TEXT_WIDGET_MESHCORE_ROLE_REPEATER,
+	DESKTOP_TEXT_WIDGET_MESHCORE_ROLE_ROOM,
+	DESKTOP_TEXT_WIDGET_MESHCORE_ROLE_SENSOR,
+};
+const char DESKTOP_TEXT_MESHCORE_CHANNEL_SETTINGS_SECRET[] = "Secret";
+const char DESKTOP_TEXT_MESHCORE_CHANNEL_SETTINGS_NAME[] = "Name";
+const char DESKTOP_TEXT_MESHCORE_NUMBER_INPUT_MULTI_ACKS[] = "Multi ACKs";
+const char DESKTOP_TEXT_MESHCORE_NUMBER_INPUT_FLOOD_MAX[] = "Flood Max(1-64)";
+const char DESKTOP_TEXT_MESHCORE_NUMBER_INPUT_CONTACT_ADD_HOPS_LIMIT[] = "Hops Limit(0-63)";
+const char DESKTOP_TEXT_MESHCORE_NUMBER_INPUT_TX_DELAY_FACTOR[] = "TX Delay x100(0 - 200)";
+const char DESKTOP_TEXT_MESHCORE_NUMBER_INPUT_DIRECT_TX_DELAY_FACTOR[] = "Direct Delay x100 (0 - 200)";
+const char DESKTOP_TEXT_MESHCORE_NUMBER_INPUT_ADVERT_INTERVAL[] = "Advert Interval (s)";
+const char DESKTOP_TEXT_MESHCORE_NUMBER_INPUT_FLOOD_ADVERT_INTERVAL[] = "Flood Advert (s)";
+const char DESKTOP_TEXT_MESHCORE_PUBLIC_KEY_TITLE[] = "Public Key";
+const char DESKTOP_TEXT_MESHCORE_CHANNEL_SECRET_TITLE[] = "Channel Secret";
+const char DESKTOP_TEXT_MESHCORE_CHANNEL_QRCODE_BUTTON[] = "QRcode";
+const char DESKTOP_TEXT_MESHCORE_RESET_CONFIRM_TITLE[] = "Reset";
+const char DESKTOP_TEXT_MESHCORE_RESET_CONFIRM_TEXT[] =
+	"Reset MeshCore? Other nodes\nwill treat this as a new device.";
+const char DESKTOP_TEXT_MESHCORE_RESET_DONE[] = "MeshCore config reset.";
+const char DESKTOP_TEXT_MESHCORE_TELEMETRY_MODE_DENY[] = "Disable";
+const char DESKTOP_TEXT_MESHCORE_TELEMETRY_MODE_ALL[] = "Enable";
+
+const char DESKTOP_TEXT_MESSAGES_SENT[] = "Sent";
+const char DESKTOP_TEXT_MESSAGES_SENT_MESSAGE[] = "Message sent.";
+const char DESKTOP_TEXT_MESSAGES_SEND_FAILED[] = "Send failed";
+const char DESKTOP_TEXT_MESSAGES_SEND_FAILED_MESSAGE[] = "Send failed, try again.";
+const char DESKTOP_TEXT_MESSAGES_INBOX[] = "Inbox";
+const char DESKTOP_TEXT_MESSAGES_NEW_MESSAGE[] = "New Message";
+const char DESKTOP_TEXT_MESSAGES_SELECT_TARGET[] = "Select target";
+const char DESKTOP_TEXT_MESSAGES_LOADING[] = "Loading...";
+const char DESKTOP_TEXT_MESSAGES_NO_MORE_MESSAGES[] = "(No more messages)";
+const char DESKTOP_TEXT_MESSAGES_NO_TARGET[] = "(No target)";
+const char DESKTOP_TEXT_MESSAGES_INBOX_ROW_FORMAT[] = "%s %s";
+const char DESKTOP_TEXT_MESSAGES_LABEL_TO[] = "TO";
+const char DESKTOP_TEXT_MESSAGES_LABEL_ROUTE[] = "Route";
+const char DESKTOP_TEXT_MESSAGES_LABEL_CONTENT[] = "Content";
+const char DESKTOP_TEXT_MESSAGES_LABEL_EDIT_CONTENT[] = "Edit Content";
+const char DESKTOP_TEXT_MESSAGES_ACTION_SEND[] = "> Send";
+const char DESKTOP_TEXT_MESSAGES_CUSTOM[] = "Custom";
+const char DESKTOP_TEXT_MESSAGES_DETAIL_NO_MESSAGE[] = "No message";
+const char DESKTOP_TEXT_MESSAGES_CHANNEL_SHORT[] = "CH@";
+const char DESKTOP_TEXT_MESSAGES_PERSON_SHORT[] = "DM@";
+const char DESKTOP_TEXT_MESSAGES_FLOOD_SHORT[] = "FL@";
+const char *const DESKTOP_TEXT_MESSAGES_ROUTE_VALUES[DESKTOP_TEXT_MESSAGES_ROUTE_COUNT] = {
+	"Flood",
+	"Direct",
+};
+const char DESKTOP_TEXT_MESSAGES_TIME_AGO_NOW[] = "now";
+const char DESKTOP_TEXT_MESSAGES_TIME_AGO_MIN_FORMAT[] = "%um";
+const char DESKTOP_TEXT_MESSAGES_TIME_AGO_HOUR_FORMAT[] = "%uh";
+const char DESKTOP_TEXT_MESSAGES_TIME_AGO_DAY_FORMAT[] = "%ud";
+const char DESKTOP_TEXT_MESSAGES_TARGET_CHANNEL_FORMAT[] = "CH. %s (%u)";
+const char DESKTOP_TEXT_MESSAGES_TARGET_CONTACT_FORMAT[] = "PEER. %s (%02X%02X%02X)";
+const char *const DESKTOP_TEXT_MESSAGES_CANNED_VALUES[DESKTOP_TEXT_MESSAGES_CANNED_COUNT] = {
+	"OK",
+	"On my way",
+	"Need help",
+	"Where are you?",
+	"Battery low",
+};
+const char *const DESKTOP_TEXT_MESSAGES_CONTENT_VALUES[DESKTOP_TEXT_MESSAGES_CONTENT_OPTION_COUNT] = {
+	"OK",
+	"On my way",
+	"Need help",
+	"Where are you?",
+	"Battery low",
+	DESKTOP_TEXT_MESSAGES_CUSTOM,
+};
+
+const char DESKTOP_TEXT_NODES_SENT[] = "Sent";
+const char DESKTOP_TEXT_NODES_REQUEST_SENT[] = "Request sent.";
+const char DESKTOP_TEXT_NODES_REQUESTING[] = "Requesting...";
+const char DESKTOP_TEXT_NODES_REQUEST_ERROR_BUSY_RETRY_LATER[] = "busy,retry later";
+const char DESKTOP_TEXT_NODES_REQUEST_ERROR_FAILURE[] = "request failure";
+const char DESKTOP_TEXT_NODES_REQUEST_ERROR_NEIGHBOR_NOT_ALLOW[] = "neighbor not allow";
+const char DESKTOP_TEXT_NODES_DELETED[] = "Deleted";
+const char DESKTOP_TEXT_NODES_NODE_DELETED[] = "Node deleted.";
+const char DESKTOP_TEXT_NODES_DISCOVER_PATH_REQUEST_SENT[] = "DiscoverPath sent.";
+const char DESKTOP_TEXT_NODES_TRACE_PATH_REQUEST_SENT[] = "TracePath sent.";
+const char DESKTOP_TEXT_NODES_BROADCAST_REQUEST_SENT[] = "Broadcast sent.";
+const char DESKTOP_TEXT_NODES_NODE[] = "Node";
+const char DESKTOP_TEXT_NODES_NO_NODE[] = "(no node)";
+const char DESKTOP_TEXT_NODES_NO_NODES[] = "(no nodes)";
+const char DESKTOP_TEXT_NODES_MENU_ALIAS[] = "Alias";
+const char DESKTOP_TEXT_NODES_MENU_NAME[] = "Name";
+const char DESKTOP_TEXT_NODES_MENU_ROLE[] = "Role";
+const char DESKTOP_TEXT_NODES_MENU_PUBLIC_KEY[] = "Public Key";
+const char DESKTOP_TEXT_NODES_MENU_PERMISSION[] = "Permission";
+const char DESKTOP_TEXT_NODES_MENU_BROADCAST[] = "> Broadcast";
+const char DESKTOP_TEXT_NODES_MENU_BATTERY[] = "Battery";
+const char DESKTOP_TEXT_NODES_MENU_LATITUDE[] = "Latitude";
+const char DESKTOP_TEXT_NODES_MENU_LONGITUDE[] = "Longitude";
+const char DESKTOP_TEXT_NODES_MENU_TELEMETRY[] = "Telemetry";
+const char DESKTOP_TEXT_NODES_MENU_DISCOVER_PATH[] = "Path";
+const char DESKTOP_TEXT_NODES_MENU_TRACE_PATH[] = "TracePath";
+const char DESKTOP_TEXT_NODES_MENU_DELETE[] = "> Delete";
+const char DESKTOP_TEXT_NODES_PERMISSION_TITLE[] = "telemetry permission";
+const char DESKTOP_TEXT_NODES_PERMISSION_BASE[] = "Base";
+const char DESKTOP_TEXT_NODES_PERMISSION_LOCATION[] = "Location";
+const char DESKTOP_TEXT_NODES_PERMISSION_ENVIRONMENT[] = "Environment";
+const char DESKTOP_TEXT_NODES_ROLE_REPEATER[] = "Repeater";
+const char DESKTOP_TEXT_NODES_ROLE_CLIENT[] = "Client";
+const char DESKTOP_TEXT_NODES_TITLE_DISCOVER_PATH[] = "Path";
+const char DESKTOP_TEXT_NODES_TITLE_TRACE_PATH[] = "TracePath";
+const char DESKTOP_TEXT_NODES_BUTTON_REDISCOVER[] = "DiscoverPath";
+const char DESKTOP_TEXT_NODES_BUTTON_RETRACE[] = "Trace";
+const char DESKTOP_TEXT_NODES_DISCOVERING[] = "discovering...";
+const char DESKTOP_TEXT_NODES_TRACING[] = "tracing...";
+const char DESKTOP_TEXT_NODES_STATUS_TRACE_SUCCESS[] = "success";
+const char DESKTOP_TEXT_NODES_STATUS_TRACE_WAITING[] = "waiting";
+const char DESKTOP_TEXT_NODES_STATUS_TRACE_NONE[] = "--";
+const char DESKTOP_TEXT_NODES_ACTION_CONFIRM_DELETE_HEADER[] = "Delete Node?";
+const char DESKTOP_TEXT_NODES_ACTION_CONFIRM_DELETE_TEXT_FORMAT[] =
+	"Delete node:\n%s";
+const char DESKTOP_TEXT_NODES_DISCOVER_READY_TEXT_FORMAT[] =
+	"Node: %s\npath: %s";
+const char DESKTOP_TEXT_NODES_TRACE_PATH_TEXT_FORMAT[] =
+	"Node: %s\npath: %s\nstatus: %s";
+const char DESKTOP_TEXT_NODES_TELEMETRY_TITLE[] = "Telemetry";
+const char DESKTOP_TEXT_NODES_TELEMETRY_NO_NODE[] = "(no node)";
+const char DESKTOP_TEXT_NODES_PUBLIC_KEY_TITLE[] = "Public Key";
+const char DESKTOP_TEXT_NODES_TIME_AGO_NOW[] = "now";
+const char DESKTOP_TEXT_NODES_TIME_AGO_OVER_7D[] = "7d+";
+const char DESKTOP_TEXT_NODES_TIME_AGO_MIN_FORMAT[] = "%um";
+const char DESKTOP_TEXT_NODES_TIME_AGO_HOUR_FORMAT[] = "%uh";
+const char DESKTOP_TEXT_NODES_TIME_AGO_DAY_FORMAT[] = "%ud";
+const char DESKTOP_TEXT_NODES_DASH[] = "-";
+const char DESKTOP_TEXT_NODES_NEIGHBOR[] = "neighbor";
+
+const char DESKTOP_TEXT_TELEMETRY_READINGS[] = "Readings";
+const char DESKTOP_TEXT_TELEMETRY_TRIGGER_SAMPLE[] = "Trigger Sample";
+const char DESKTOP_TEXT_TELEMETRY_SETTINGS_ENABLED[] = "Enabled";
+const char DESKTOP_TEXT_TELEMETRY_SETTINGS_INTERVAL[] = "Interval";
+const char DESKTOP_TEXT_TELEMETRY_HEADER_INTERVAL_MS[] = "Sample Interval (ms)";
+const char DESKTOP_TEXT_TELEMETRY_NO_READINGS[] = "(No readings)";
+const char DESKTOP_TEXT_TELEMETRY_NO_DATA[] = "No data yet";
+const char DESKTOP_TEXT_TELEMETRY_SAMPLE_TRIGGERED[] = "Sample triggered";
+const char DESKTOP_TEXT_TELEMETRY_SAMPLE_DISABLED[] = "Telemetry disabled";
+const char DESKTOP_TEXT_TELEMETRY_SAMPLE_FAILED[] = "Sample failed";
+const char DESKTOP_TEXT_TELEMETRY_OPEN_FAILED[] = "Unable to open";
+const char DESKTOP_TEXT_TELEMETRY_READING_DETAIL_FORMAT[] =
+	"Sensor:\n"
+	"  %s\n"
+	"Channel:\n"
+	"  %s (%u)\n"
+	"Parameter:\n"
+	"  %s\n"
+	"Value:\n"
+	"  %s\n"
+	"Sample:\n"
+	"  Uptime: %u ms\n"
+	"  Age:    %s";
+
+const char DESKTOP_TEXT_POWER_SETTINGS_LOW_VOLTAGE_TIMEOUT[] = "Low Voltage";
+const char DESKTOP_TEXT_POWER_SETTINGS_LOSING_POWER_TIMEOUT[] = "Lose Power";
+const char DESKTOP_TEXT_POWER_SETTINGS_NO_CONNECTION_TIMEOUT[] = "No Connection";
+const char DESKTOP_TEXT_POWER_VALUE_SECONDS_FORMAT[] = "%us";
+const char DESKTOP_TEXT_POWER_VALUE_TEMPERATURE_FORMAT[] = "%s%u.%uC";
+
+const char DESKTOP_TEXT_SYSTEM_MENU_INFORMATION[] = "Information";
+const char DESKTOP_TEXT_SYSTEM_MENU_IDENTITY[] = "Identity";
+const char DESKTOP_TEXT_SYSTEM_MENU_HARDWARE[] = "Hardware";
+const char DESKTOP_TEXT_SYSTEM_MENU_FIRMWARE[] = "Firmware";
+const char DESKTOP_TEXT_SYSTEM_MENU_RUNTIME[] = "Runtime";
+const char DESKTOP_TEXT_SYSTEM_MENU_DEVICES[] = "Devices";
+const char DESKTOP_TEXT_SYSTEM_MENU_INDICATOR[] = "Indicator";
+const char DESKTOP_TEXT_INDICATOR_TITLE[] = "Indicator";
+const char DESKTOP_TEXT_INDICATOR_LIGHT[] = "Light";
+const char DESKTOP_TEXT_INDICATOR_HEARTBEAT[] = "Heartbeat";
+const char DESKTOP_TEXT_INDICATOR_BUZZER[] = "Buzzer";
+const char DESKTOP_TEXT_INDICATOR_DM[] = "DM";
+const char DESKTOP_TEXT_INDICATOR_CHANNEL[] = "Channel";
+const char DESKTOP_TEXT_INDICATOR_SYSTEM[] = "System";
+const char DESKTOP_TEXT_SYSTEM_INFO_IDENTITY_FORMAT[] =
+	"Name:\n"
+	"  %s\n"
+	"Manufacturer:\n"
+	"  %s\n"
+	"Model:\n"
+	"  %s\n"
+	"Serial Number:\n"
+	"  %s";
+const char DESKTOP_TEXT_SYSTEM_INFO_HARDWARE_FORMAT[] =
+	"MCU:\n"
+	"  %s\n"
+	"Flash:\n"
+	"  %u kb\n"
+	"RAM:\n"
+	"  %u kb";
+const char DESKTOP_TEXT_SYSTEM_INFO_HARDWARE_BLUETOOTH_FORMAT[] =
+	"MCU:\n"
+	"  %s\n"
+	"Flash:\n"
+	"  %u kb\n"
+	"RAM:\n"
+	"  %u kb\n"
+	"Bluetooth Addr:\n"
+	"  %s";
+const char DESKTOP_TEXT_SYSTEM_INFO_FIRMWARE_FORMAT[] =
+	"App Version:\n"
+	"  %s\n"
+	"Build Version:\n"
+	"  %s\n"
+	"Kernel Version:\n"
+	"  Zephyr %s";
+const char DESKTOP_TEXT_SYSTEM_INFO_RUNTIME_FORMAT[] =
+	"Uptime:\n"
+	"  %llu ms\n"
+	"Cycles:\n"
+	"  %llu\n"
+	"Reset Cause:\n"
+	"  %s\n"
+	"Heap Free:\n"
+	"  %s\n"
+	"Heap Allocated:\n"
+	"  %s\n"
+	"ZUI Heap Free:\n"
+	"  %s\n"
+	"ZUI Heap Allocated:\n"
+	"  %s";
+const char DESKTOP_TEXT_SYSTEM_DEVICE_STATE_READY[] = "READY";
+const char DESKTOP_TEXT_SYSTEM_DEVICE_STATE_DISABLED[] = "DISABLED";
+const char DESKTOP_TEXT_SYSTEM_DEVICE_USAGE_FORMAT[] = "- %s (%s, usage=%d)\n";
+const char DESKTOP_TEXT_SYSTEM_DEVICE_FORMAT[] = "- %s (%s)\n";
+
+const char DESKTOP_TEXT_RADIO_PACKET[] = "Packet";
+const char DESKTOP_TEXT_RADIO_CONTINUOUS_WAVE[] = "Continuous Wave";
+const char DESKTOP_TEXT_RADIO_NOISE_ANALYZER[] = "Noise Analyzer";
+const char DESKTOP_TEXT_RADIO_CALIBRATE_NF[] = "Calibrate NF";
+const char DESKTOP_TEXT_RADIO_AGC_RESET[] = "AGC Reset";
+const char DESKTOP_TEXT_RADIO_SETTINGS[] = "Settings";
+const char DESKTOP_TEXT_RADIO_DISABLED[] = "Radio disabled";
+const char DESKTOP_TEXT_RADIO_CALIBRATING[] = "Calibrating";
+const char DESKTOP_TEXT_RADIO_RX_ONLY_MODE[] = "RX Only mode";
+
+const char DESKTOP_TEXT_RADIO_SEND_AS_TEXT[] = "Send as Text";
+const char DESKTOP_TEXT_RADIO_SEND_AS_HEX[] = "Send as Hex";
+const char DESKTOP_TEXT_RADIO_PACKET_CAPTURE[] = "Packet Capture";
+
+const char DESKTOP_TEXT_RADIO_CAPTURE[] = "Capture";
+const char DESKTOP_TEXT_RADIO_RSSI[] = "RSSI";
+const char DESKTOP_TEXT_RADIO_SNR[] = "SNR";
+const char DESKTOP_TEXT_RADIO_LEN[] = "LEN";
+const char DESKTOP_TEXT_RADIO_HEX[] = "Hex";
+const char DESKTOP_TEXT_RADIO_TEXT[] = "Text";
+const char DESKTOP_TEXT_RADIO_EMPTY[] = "(empty)";
+const char DESKTOP_TEXT_RADIO_DASH[] = "--";
+
+const char DESKTOP_TEXT_RADIO_NOISE[] = "Noise";
+const char DESKTOP_TEXT_RADIO_DBM[] = "dBm";
+const char DESKTOP_TEXT_RADIO_FORMAT_MIN_MAX[] = "MIN %d | MAX %d";
+const char DESKTOP_TEXT_RADIO_MIN_MAX_DASH[] = "MIN -- | MAX --";
+const char DESKTOP_TEXT_RADIO_RX_UNKNOWN[] = "RX?";
+const char DESKTOP_TEXT_RADIO_NA[] = "N/A";
+const char DESKTOP_TEXT_RADIO_FORMAT_NF_STATUS[] = "NF %d | %s";
+const char DESKTOP_TEXT_RADIO_FORMAT_NF_DASH_STATUS[] = "NF -- | %s";
+const char DESKTOP_TEXT_RADIO_ACT[] = "ACT";
+const char DESKTOP_TEXT_RADIO_QUIET[] = "QUIET";
+
+const char DESKTOP_TEXT_RADIO_SETTINGS_ENABLED[] = "Enabled";
+const char DESKTOP_TEXT_RADIO_SETTINGS_RX_ONLY[] = "RX Only";
+const char DESKTOP_TEXT_RADIO_SETTINGS_FREQUENCY[] = "Frequency";
+const char DESKTOP_TEXT_RADIO_SETTINGS_BANDWIDTH[] = "Bandwidth";
+const char DESKTOP_TEXT_RADIO_SETTINGS_DATA_RATE[] = "Data Rate";
+const char DESKTOP_TEXT_RADIO_SETTINGS_CODING_RATE[] = "Coding Rate";
+const char DESKTOP_TEXT_RADIO_SETTINGS_PREAMBLE[] = "Preamble";
+const char DESKTOP_TEXT_RADIO_SETTINGS_TX_POWER[] = "TX Power";
+const char DESKTOP_TEXT_RADIO_SETTINGS_PACKET_CRC[] = "Packet CRC";
+const char DESKTOP_TEXT_RADIO_SETTINGS_RX_BOOSTED[] = "RX Boosted";
+const char DESKTOP_TEXT_RADIO_SETTINGS_DUTY_CYCLE[] = "Duty Cycle";
+const char DESKTOP_TEXT_RADIO_SETTINGS_DUTY_RX_TIME[] = "Duty RX Time";
+const char DESKTOP_TEXT_RADIO_SETTINGS_DUTY_SLEEP_TIME[] = "Duty Sleep Time";
+
+const char DESKTOP_TEXT_RADIO_CW_TX_POWER[] = "Tx Power";
+const char DESKTOP_TEXT_RADIO_CW_DURATION[] = "Duration";
+const char DESKTOP_TEXT_RADIO_CW_EXECUTE[] = "> Execute";
+
+const char DESKTOP_TEXT_RADIO_HEADER_FREQUENCY_HZ[] = "Frequency (Hz)";
+const char DESKTOP_TEXT_RADIO_HEADER_PREAMBLE[] = "Preamble";
+const char DESKTOP_TEXT_RADIO_HEADER_DUTY_RX_MS[] = "Duty RX (ms)";
+const char DESKTOP_TEXT_RADIO_HEADER_DUTY_SLEEP_MS[] = "Duty Sleep (ms)";
+
+const char DESKTOP_TEXT_RADIO_REJECTED[] = "Rejected";
+const char DESKTOP_TEXT_RADIO_EXECUTING[] = "Executing";
+const char DESKTOP_TEXT_RADIO_FINISHED[] = "Finished";
+
+const char DESKTOP_TEXT_RADIO_FORMAT_ERROR_CODE[] = "Error Code (%d)";
+const char DESKTOP_TEXT_RADIO_FORMAT_LEN_TOA[] = "Len: %u bytes, ToA: %u ms";
+const char DESKTOP_TEXT_RADIO_FORMAT_TEXT_MESSAGE_HEADER[] = "Text message (%u/%u)";
+const char DESKTOP_TEXT_RADIO_FORMAT_HEX_PAYLOAD_HEADER[] = "Hex payload (%u/%u)";
+const char DESKTOP_TEXT_RADIO_FORMAT_U_MS[] = "%ums";
+
+const char *const DESKTOP_TEXT_RADIO_BW_VALUES[DESKTOP_TEXT_RADIO_BW_COUNT] = {
+	"7.8 kHz",
+	"10.4 kHz",
+	"15.6 kHz",
+	"20.8 kHz",
+	"31.25 kHz",
+	"41.7 kHz",
+	"62.5 kHz",
+	"125 kHz",
+	"250 kHz",
+	"500 kHz",
+};
+
+const char DESKTOP_TEXT_VIEW_MENU_INVALID_APP[] = "(invalid)";
+const char DESKTOP_TEXT_VIEW_POWER_SLEEP[] = "Sleep";
+const char DESKTOP_TEXT_VIEW_POWER_SHUTDOWN[] = "Shutdown";
+const char DESKTOP_TEXT_VIEW_POWER_REBOOT[] = "Reboot";
+const char DESKTOP_TEXT_VIEW_POWER_INVALID[] = "(invalid)";
+const char DESKTOP_TEXT_VIEW_POWER_SLEEP_SELECTED[] = "Sleep selected";
+const char DESKTOP_TEXT_VIEW_POWER_SHUTDOWN_SELECTED[] = "Shutdown selected";
+const char DESKTOP_TEXT_VIEW_POWER_REBOOT_SELECTED[] = "Reboot selected";
+
+const char *const DESKTOP_TEXT_WIDGET_CLOCK_DAY_VALUES[DESKTOP_TEXT_WIDGET_CLOCK_DAY_COUNT] = {
+	"SUN",
+	"MON",
+	"TUE",
+	"WED",
+	"THU",
+	"FRI",
+	"SAT",
+};
+const char DESKTOP_TEXT_WIDGET_CLOCK_MERIDIEM_AM[] = "A";
+const char DESKTOP_TEXT_WIDGET_CLOCK_MERIDIEM_PM[] = "P";
+const char DESKTOP_TEXT_WIDGET_CLOCK_PLACEHOLDER_HMS[] = "--";
+const char DESKTOP_TEXT_WIDGET_CLOCK_PLACEHOLDER_TIME[] = "--:--";
+const char DESKTOP_TEXT_WIDGET_CLOCK_PLACEHOLDER_DAY[] = "---";
+const char DESKTOP_TEXT_WIDGET_CLOCK_PLACEHOLDER_DATE[] = "--.--";
+const char DESKTOP_TEXT_WIDGET_CLOCK_SYNC[] = "SYNC";
+const char DESKTOP_TEXT_WIDGET_CLOCK_UNSYNC[] = "UNSYNC";
+
+const char *const DESKTOP_TEXT_WIDGET_COMPASS_DIRECTION_VALUES
+	[DESKTOP_TEXT_WIDGET_COMPASS_DIRECTION_COUNT] = {
+	"N",
+	"NE",
+	"E",
+	"SE",
+	"S",
+	"SW",
+	"W",
+	"NW",
+};
+const char DESKTOP_TEXT_WIDGET_COMPASS_PLACEHOLDER_HEADING[] = "---";
+const char DESKTOP_TEXT_WIDGET_COMPASS_PLACEHOLDER_DIRECTION[] = "--";
+const char DESKTOP_TEXT_WIDGET_COMPASS_ACCURACY_LABEL[] = "ACC";
+const char DESKTOP_TEXT_WIDGET_COMPASS_ACCURACY_UNAVAILABLE[] = "--";
+const char DESKTOP_TEXT_WIDGET_COMPASS_ACCURACY_UNRELIABLE[] = "UNREL";
+const char DESKTOP_TEXT_WIDGET_COMPASS_ACCURACY_LOW[] = "LOW";
+const char DESKTOP_TEXT_WIDGET_COMPASS_ACCURACY_MEDIUM[] = "MED";
+const char DESKTOP_TEXT_WIDGET_COMPASS_ACCURACY_HIGH[] = "HIGH";
+const char DESKTOP_TEXT_WIDGET_COMPASS_STATUS_OFF[] = "OFF";
+const char DESKTOP_TEXT_WIDGET_COMPASS_STATUS_WAIT[] = "WAIT";
+const char DESKTOP_TEXT_WIDGET_COMPASS_STATUS_CALIBRATE[] = "CAL";
+const char DESKTOP_TEXT_WIDGET_COMPASS_STATUS_LEVEL[] = "LEVEL";
+const char DESKTOP_TEXT_WIDGET_COMPASS_STATUS_OK[] = "OK";
+const char DESKTOP_TEXT_WIDGET_COMPASS_STATUS_ERROR[] = "ERR";
+const char DESKTOP_TEXT_WIDGET_COMPASS_CALIBRATION_TITLE[] = "CALIBRATE COMPASS";
+const char DESKTOP_TEXT_WIDGET_COMPASS_CALIBRATION_ACTION[] = "MOVE IN FIGURE 8";
+
+const char DESKTOP_TEXT_WIDGET_INFO_ICON_INFO[] = "i";
+const char DESKTOP_TEXT_WIDGET_INFO_LABEL_VERSION[] = "VER";
+const char DESKTOP_TEXT_WIDGET_INFO_LABEL_SN[] = "SN";
+const char DESKTOP_TEXT_WIDGET_INFO_PLACEHOLDER_DEVICE[] = "--";
+const char DESKTOP_TEXT_WIDGET_INFO_PLACEHOLDER_VERSION[] = "--";
+const char DESKTOP_TEXT_WIDGET_INFO_SERIAL_UNKNOWN[] = "UNKNOWN";
+
+const char DESKTOP_TEXT_WIDGET_MESHCORE_ROLE[] = "Client";
+const char DESKTOP_TEXT_WIDGET_MESHCORE_SYNC_WORD_PRIVATE[] = "PR";
+const char DESKTOP_TEXT_WIDGET_MESHCORE_ROLE_CLIENT[] = "Chat";
+const char DESKTOP_TEXT_WIDGET_MESHCORE_ROLE_REPEATER[] = "Repeater";
+const char DESKTOP_TEXT_WIDGET_MESHCORE_ROLE_ROOM[] = "Room";
+const char DESKTOP_TEXT_WIDGET_MESHCORE_ROLE_SENSOR[] = "Sensor";
+
+const char DESKTOP_TEXT_WIDGET_MESSAGES_NO_MORE_MESSAGES[] = "No more messages";
+const char DESKTOP_TEXT_WIDGET_MESSAGES_EMPTY[] = "No messages";
+const char DESKTOP_TEXT_WIDGET_MESSAGES_DIRECT[] = "DM";
+const char DESKTOP_TEXT_WIDGET_MESSAGES_CHANNEL[] = "CH";
+const char DESKTOP_TEXT_WIDGET_MESSAGES_FLOOD[] = "FL";
+const char DESKTOP_TEXT_WIDGET_MESSAGES_SELECTED_LINE_FORMAT[] = "> %s";
+const char DESKTOP_TEXT_WIDGET_MESSAGES_UNREAD[] = "NEW";
+const char DESKTOP_TEXT_WIDGET_MESSAGES_NEWER[] = "+NEW";
+const char DESKTOP_TEXT_WIDGET_MESSAGES_POSITION_FORMAT[] = "%u/%u";
+
+const char DESKTOP_TEXT_WIDGET_NODES_ROOM[] = "ROOM";
+const char DESKTOP_TEXT_WIDGET_NODES_SENSOR[] = "SNS";
+const char DESKTOP_TEXT_WIDGET_NODES_ROLE_UNKNOWN[] = "?";
+const char DESKTOP_TEXT_WIDGET_NODES_ADVERT[] = "Advert";
+const char DESKTOP_TEXT_WIDGET_NODES_ADVERT_REQUEST_FORMAT[] = "Req %s";
+const char DESKTOP_TEXT_WIDGET_NODES_CAPACITY_FORMAT[] = "Saved %u/%u";
+const char DESKTOP_TEXT_WIDGET_NODES_UNKNOWN_NAME[] = "???";
+const char DESKTOP_TEXT_WIDGET_NODES_EMPTY[] = "No nodes";
+const char DESKTOP_TEXT_WIDGET_NODES_CLI[] = "CLI";
+const char DESKTOP_TEXT_WIDGET_NODES_RPT[] = "RPT";
+const char DESKTOP_TEXT_WIDGET_NODES_BROADCAST[] = "Broadcast";
+const char DESKTOP_TEXT_WIDGET_NODES_CONTACT_FORMAT[] = "%s@%s";
+const char DESKTOP_TEXT_WIDGET_NODES_ROLE_COUNTS_FORMAT[] = "%s %u / %s %u";
+
+const char DESKTOP_TEXT_WIDGET_POSITION_PLACEHOLDER_DIR[] = "-";
+const char DESKTOP_TEXT_WIDGET_POSITION_PLACEHOLDER_DEG[] = "---";
+const char DESKTOP_TEXT_WIDGET_POSITION_PLACEHOLDER_MIN[] = "--.---'";
+const char DESKTOP_TEXT_WIDGET_POSITION_PLACEHOLDER_ALT[] = "---.-";
+const char DESKTOP_TEXT_WIDGET_POSITION_LABEL_POSITION[] = "Position";
+const char DESKTOP_TEXT_WIDGET_POSITION_LABEL_ALTITUDE[] = "Altitude";
+const char DESKTOP_TEXT_WIDGET_POSITION_UNIT_METER[] = "m";
+
+const char DESKTOP_TEXT_WIDGET_POWER_PLACEHOLDER_SOC[] = "--%";
+const char DESKTOP_TEXT_WIDGET_POWER_PLACEHOLDER_VOLTAGE[] = "--.--V";
+const char DESKTOP_TEXT_WIDGET_POWER_TEMP_NC[] = "NC";
+const char DESKTOP_TEXT_WIDGET_POWER_VOLTAGE_FORMAT[] = "%u.%02uV";
+
+const char *const DESKTOP_TEXT_WIDGET_RADIO_BW_SHORT_VALUES[DESKTOP_TEXT_WIDGET_RADIO_BW_SHORT_COUNT] = {
+	"7.8k",  "10.4k", "15.6k",  "20.8k", "31.25k",
+	"41.7k", "62.5k", "125k",   "200k",  "250k",
+	"400k",  "500k",  "800k",   "1M",    "1.6M",
+};
+const char DESKTOP_TEXT_WIDGET_RADIO_PLACEHOLDER_FREQUENCY[] = "---.---";
+const char DESKTOP_TEXT_WIDGET_RADIO_PLACEHOLDER_VALUE[] = "--";
+const char DESKTOP_TEXT_WIDGET_RADIO_LR[] = "L";
+const char DESKTOP_TEXT_WIDGET_RADIO_STATUS_OFF[] = "OFF";
+const char DESKTOP_TEXT_WIDGET_RADIO_STATUS_TX[] = "TX";
+const char DESKTOP_TEXT_WIDGET_RADIO_STATUS_RX[] = "RX";
+const char DESKTOP_TEXT_WIDGET_RADIO_STATUS_IDLE[] = "IDL";
+const char DESKTOP_TEXT_WIDGET_RADIO_BW_KHZ_FORMAT[] = "%uk";
+const char DESKTOP_TEXT_WIDGET_RADIO_TX_POWER_FORMAT[] = "%ddBm";
+const char DESKTOP_TEXT_WIDGET_RADIO_SF_FORMAT[] = "SF%u";
+const char DESKTOP_TEXT_WIDGET_RADIO_CR_FORMAT[] = "CR%u";
+
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_PAGE_FORMAT[] = "%u/%u";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_VALUE_MISSING[] = "--";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_VALUE_OVERFLOW[] = "...";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_SHORT_DIE_TEMP[] = "DieTemp";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_SHORT_TEMP[] = "Temp";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_SHORT_PRESS[] = "Press";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_SHORT_HUMIDITY[] = "Humid";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_SHORT_VOLTAGE[] = "Volt";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_SHORT_CURRENT[] = "Curr";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_SHORT_BATTERY[] = "Batt";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_UNIT_C[] = "C";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_UNIT_KPA[] = "kPa";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_UNIT_PERCENT[] = "%";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_UNIT_LUX[] = "lx";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_UNIT_V[] = "V";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_UNIT_A[] = "A";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_UNIT_ACCEL[] = "m/s2";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_UNIT_GYRO[] = "rad/s";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_UNIT_GAUSS[] = "G";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_STATUS_ON[] = "ON";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_STATUS_OFF[] = "OFF";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_NO_DATA[] = "NO DATA";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_BINDINGS_FORMAT[] = "%u ch";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_INTERVAL_FORMAT[] = "%us";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_AGE_FORMAT[] = "%us ago";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_COUNT_FORMAT[] = "%u";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_ACCEL[] = "Accel";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_GYRO[] = "Gyro";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_MAGN[] = "Magn";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_DIE_TEMP[] = "DieTemp";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_AMBIENT[] = "Ambient";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_PRESS[] = "Pressure";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_HUMIDITY[] = "Humidity";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_LIGHT[] = "Light";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_VOLTAGE[] = "Voltage";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_CURRENT[] = "Current";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_BATTERY[] = "Battery";
+const char DESKTOP_TEXT_WIDGET_TELEMETRY_LABEL_CHANNEL[] = "Channel";
+const char *const
+	DESKTOP_TEXT_WIDGET_TELEMETRY_AXIS_VALUES[DESKTOP_TEXT_WIDGET_TELEMETRY_AXIS_COUNT] = {
+		"X",
+		"Y",
+		"Z",
+		"W",
+	};
+
+const char DESKTOP_TEXT_WIDGET_SATELLITE_STATUS_OFF[] = "OFF";
+const char DESKTOP_TEXT_WIDGET_SATELLITE_STATUS_SLEEP[] = "SLEEP";
+const char DESKTOP_TEXT_WIDGET_SATELLITE_STATUS_ACQ[] = "ACQ";
+const char DESKTOP_TEXT_WIDGET_SATELLITE_STATUS_TRACK[] = "TRACK";
+const char DESKTOP_TEXT_WIDGET_SATELLITE_STATUS_ERROR[] = "ERROR";
+const char DESKTOP_TEXT_WIDGET_SATELLITE_LABEL_HDOP[] = "HDOP";
+const char DESKTOP_TEXT_WIDGET_SATELLITE_LABEL_SATS[] = "SATS";
+const char DESKTOP_TEXT_WIDGET_SATELLITE_TZ_LUT[] = "LUT";
+const char DESKTOP_TEXT_WIDGET_SATELLITE_PLACEHOLDER_HDOP[] = "--";
+const char DESKTOP_TEXT_WIDGET_SATELLITE_PLACEHOLDER_SATS[] = "--/--";
+const char DESKTOP_TEXT_WIDGET_SATELLITE_PLACEHOLDER_UTC[] = "---- -- -- --:--:--";
+
+const char DESKTOP_TEXT_WIDGET_USAGE_TITLE_RAM_USAGE[] = "RAM Usage";
+const char DESKTOP_TEXT_WIDGET_USAGE_LABEL_SYSTEM[] = "System";
+const char DESKTOP_TEXT_WIDGET_USAGE_LABEL_GRAPH[] = "Graph";
+const char DESKTOP_TEXT_WIDGET_USAGE_NOT_AVAILABLE[] = "n/a";
+const char DESKTOP_TEXT_WIDGET_USAGE_VALUE_FORMAT[] = "%u%% %u.%uKiB";

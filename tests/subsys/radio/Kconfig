@@ -1,0 +1,13 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+mainmenu "Meshbus Radio service test"
+
+config TEST_MBS_RADIO_SERVICE_DUT
+	bool "Enable Mesh Probe R2 Radio service-DUT checks"
+	help
+	  Build the checks that exercise the real Mesh Probe R2 SX1262 through the public
+	  Meshbus Radio API. This option is selected only by the dedicated
+	  service-DUT Twister scenario.
+
+source "Kconfig.zephyr"

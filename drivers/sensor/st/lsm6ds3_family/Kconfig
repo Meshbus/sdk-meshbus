@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig FOBE_LSM6DS3_FAMILY
+	bool "FoBE LSM6DS3 family motion sensor driver"
+	default y
+	depends on DT_HAS_FOBE_LSM6DS3_FAMILY_ENABLED
+	depends on I2C
+	help
+	  Enable the variant-aware LSM6DS3 family driver. It distinguishes the
+	  LSM6DS3/LSM6DS3TR (WHO_AM_I 0x69) from the LSM6DS3TR-C/LSM6DSL
+	  register family (WHO_AM_I 0x6a) and uses their common basic motion
+	  sampling register subset.
+
+if FOBE_LSM6DS3_FAMILY
+
+config FOBE_LSM6DS3_FAMILY_ACCEL_ODR
+	int "Accelerometer ODR register value"
+	range 1 10
+	default 1
+	help
+	  Common CTRL1_XL ODR encoding: 1=12.5 Hz, 2=26 Hz, 3=52 Hz,
+	  4=104 Hz, 5=208 Hz, 6=416 Hz, 7=833 Hz, 8=1.66 kHz,
+	  9=3.33 kHz, and 10=6.66 kHz.
+
+config FOBE_LSM6DS3_FAMILY_GYRO_ODR
+	int "Gyroscope ODR register value"
+	range 1 10
+	default 1
+	help
+	  Common CTRL2_G ODR encoding. Values have the same frequencies as the
+	  accelerometer ODR setting.
+
+config FOBE_LSM6DS3_FAMILY_ACCEL_FS
+	int "Accelerometer full scale in g"
+	range 2 16
+	default 2
+	help
+	  Supported values are 2, 4, 8, and 16 g.
+
+config FOBE_LSM6DS3_FAMILY_GYRO_FS
+	int "Gyroscope full scale in degrees per second"
+	range 125 2000
+	default 250
+	help
+	  Supported values are 125, 250, 500, 1000, and 2000 dps.
+
+endif # FOBE_LSM6DS3_FAMILY

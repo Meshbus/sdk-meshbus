@@ -1,0 +1,11 @@
+tests:
+  subsys.meshbus.desktop.integration.messages_cache:
+    tags:
+      - meshbus
+      - desktop
+      - integration
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86

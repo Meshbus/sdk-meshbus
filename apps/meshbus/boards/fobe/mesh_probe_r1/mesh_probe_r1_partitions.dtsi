@@ -1,0 +1,34 @@
+/*
+ * SPDX-FileCopyrightText: FoBE Studio
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/* Preserve the preinstalled boot chain and APP start at 0x27000.
+ * Internal flash supplies both Settings and /extra; no external NOR is fitted.
+ */
+&code_partition {
+	reg = <0x00027000 0x000a5000>;
+};
+
+&flash0 {
+	partitions {
+		/delete-node/ partition@ea000;
+		/delete-node/ partition@ee000;
+
+		storage_partition: partition@cc000 {
+			label = "storage";
+			reg = <0x000cc000 0x00008000>;
+		};
+
+		lfs_partition: partition@d4000 {
+			label = "lfs_storage";
+			reg = <0x000d4000 0x00020000>;
+		};
+	};
+};
+
+&mbr_partition { read-only; };
+&softdevice_partition { read-only; };
+&bootloader_partition { read-only; };
+&mbr_params_partition { read-only; };
+&bootloader_settings_partition { read-only; };

@@ -1,0 +1,54 @@
+/* Dedicated destructive two-DevKit validation layout. */
+
+#include <zephyr/dt-bindings/gpio/arduino-header-r3.h>
+#include <zephyr/dt-bindings/lora/sx126x.h>
+
+/delete-node/ &storage_partition;
+
+/ {
+	aliases {
+		lora0 = &sx1262;
+	};
+
+	chosen {
+		meshbus,radio = &sx1262;
+	};
+};
+
+&arduino_spi {
+	cs-gpios = <&arduino_header ARDUINO_HEADER_R3_D10 GPIO_ACTIVE_LOW>;
+
+	sx1262: sx1262@0 {
+		compatible = "semtech,sx1262";
+		reg = <0>;
+		reset-gpios = <&arduino_header ARDUINO_HEADER_R3_D9 GPIO_ACTIVE_LOW>;
+		dio1-gpios = <&arduino_header ARDUINO_HEADER_R3_D8 GPIO_ACTIVE_HIGH>;
+		busy-gpios = <&arduino_header ARDUINO_HEADER_R3_D7 GPIO_ACTIVE_HIGH>;
+		rx-enable-gpios = <&arduino_header ARDUINO_HEADER_R3_D6 GPIO_ACTIVE_HIGH>;
+		dio2-tx-enable;
+		dio3-tcxo-voltage = <SX126X_DIO3_TCXO_1V8>;
+		tcxo-power-startup-delay-ms = <5>;
+		spi-max-frequency = <DT_FREQ_M(2)>;
+		rx-boosted;
+	};
+};
+
+&slot1_partition {
+	reg = <0x0c2000 0x0a2000>;
+};
+
+&cpuapp_rram {
+	partitions {
+		storage_partition: partition@164000 {
+			compatible = "zephyr,mapped-partition";
+			label = "meshbus-message-system-test-storage";
+			reg = <0x164000 0x010000>;
+		};
+
+		product_storage_partition: partition@174000 {
+			compatible = "zephyr,mapped-partition";
+			label = "product-storage-destructible";
+			reg = <0x174000 0x009000>;
+		};
+	};
+};

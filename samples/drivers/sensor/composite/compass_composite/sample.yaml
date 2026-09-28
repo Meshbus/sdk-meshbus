@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+sample:
+  name: compass_composite
+  description: Compass composite sensor sample
+common:
+  tags:
+    - sensor
+    - compass_composite
+  harness: keyboard
+tests:
+  sample.drivers.sensor.composite.compass_composite:
+    integration_platforms:
+      - mesh_probe_r2/nrf54l15/cpuapp

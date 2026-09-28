@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+id: snake
+name: Snake
+version: 1.0.0
+entry-point: snake_app_main
+stack-size: 4096

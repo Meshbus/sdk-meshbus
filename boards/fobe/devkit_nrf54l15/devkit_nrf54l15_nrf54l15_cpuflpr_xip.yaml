@@ -1,0 +1,19 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+identifier: devkit_nrf54l15/nrf54l15/cpuflpr/xip
+name: FoBE DevKit nRF54L15 Fast-Lightweight-Peripheral-Processor (RRAM XIP)
+vendor: fobe
+type: mcu
+arch: riscv
+toolchain:
+  - zephyr
+sysbuild: true
+ram: 68
+flash: 96
+supported:
+  - counter
+  - gpio
+  - i2c
+  - spi
+  - watchdog

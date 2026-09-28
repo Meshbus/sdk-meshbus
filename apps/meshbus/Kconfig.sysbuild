@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+choice BOOTLOADER
+	default BOOTLOADER_MCUBOOT if $(BOARD) = "mesh_probe_r2"
+endchoice
+
+config MERGED_HEX_FILES
+	default y if $(BOARD) = "mesh_probe_r2"
+
+choice MCUBOOT_MODE
+	default MCUBOOT_MODE_SINGLE_APP if "$(BOARD)/$(BOARD_QUALIFIERS)" = "mesh_probe_r2/nrf54l15/cpuapp"
+endchoice
+
+choice BOOT_SIGNATURE_TYPE
+	default BOOT_SIGNATURE_TYPE_NONE
+endchoice
+
+# Authenticated downstream products must supply their own key explicitly.
+config BOOT_SIGNATURE_KEY_FILE
+	default ""
+
+source "$(ZEPHYR_BASE)/share/sysbuild/Kconfig"

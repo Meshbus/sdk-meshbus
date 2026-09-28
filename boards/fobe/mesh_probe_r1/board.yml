@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+board:
+  name: mesh_probe_r1
+  full_name: Mesh Probe R1
+  vendor: fobe
+  socs:
+  - name: nrf52840

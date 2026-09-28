@@ -1,0 +1,12 @@
+/*
+ * SPDX-FileCopyrightText: FoBE Studio
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	chosen {
+		meshbus,indicator-light-active = &led0;
+		meshbus,indicator-buzzer = &pwm0;
+		meshbus,indicator-buzzer-power = &buzzer_power;
+	};
+};

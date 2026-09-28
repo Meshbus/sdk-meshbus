@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+id: cxx_hello
+name: C++ Hello
+version: 1.0.0
+entry-point: cxx_hello_app_main
+stack-size: 4096

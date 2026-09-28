@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+config MCUBOOT_BOOT_BLUETOOTH
+	bool "FoBE MCUboot BLE SMP recovery bridge"
+	depends on MCUBOOT
+	depends on MCUBOOT_SERIAL
+	depends on BT
+	select CRC
+	help
+	  Enable the FoBE BLE SMP bridge for MCUboot serial recovery.
+
+	  This is a bootloader-only transport adapter. It exposes the standard
+	  SMP-over-Bluetooth GATT service and bridges requests into MCUboot's
+	  boot_serial backend, so mobile and host mcumgr tools can use the same
+	  recovery implementation as UART serial recovery.

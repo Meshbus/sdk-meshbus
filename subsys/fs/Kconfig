@@ -1,0 +1,57 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig MBS_FS
+	bool "Meshbus filesystem control service"
+	depends on MBS
+	default y if FILE_SYSTEM
+	help
+	  Enable the Meshbus-owned filesystem control plane. Standard Zephyr
+	  fs_mgmt remains responsible for bulk upload/download; this service
+	  owns path policy, directory management, file deletion, and guarded
+	  known-volume lifecycle operations.
+
+if MBS_FS
+
+module = MBS_FS
+module-str = mbs_fs
+module-dep = MBS
+module-help = Sets log level for Meshbus filesystem service
+source "subsys/logging/Kconfig.template.log_config"
+
+config MBS_FS_INIT_PRIORITY
+	int "Meshbus FS init priority"
+	default 95
+	help
+	  Init priority for creating Meshbus product directories after fstab
+	  automount has run.
+
+config MBS_FS_MGMT
+	bool "Meshbus FS MCUmgr control group"
+	depends on MCUMGR
+	default y
+	help
+	  Expose Meshbus FS status, list, mkdir, stat, delete, and guarded format
+	  control operations through a Meshbus-owned MCUmgr group. Runtime mount
+	  and unmount are intentionally not exposed as remote operations; known
+	  volumes are mounted by the product boot path and remounted internally
+	  during format/recovery flows.
+
+config MBS_FS_FORMAT
+	bool "Enable destructive Meshbus FS format command"
+	depends on FILE_SYSTEM_MKFS
+	default n
+	help
+	  Allow Meshbus FS format operations for known volumes. This is disabled
+	  by default because it destroys all files on the target volume.
+
+config MBS_FS_REBOOT_AFTER_FORMAT
+	bool "Reboot after successful Meshbus FS format"
+	depends on MBS_FS_FORMAT && REBOOT
+	default y
+	help
+	  Reboot after a successful external format command so all services restart
+	  from the newly formatted filesystem instead of keeping stale runtime
+	  state or open handles.
+
+endif # MBS_FS

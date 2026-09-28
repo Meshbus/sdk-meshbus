@@ -1,0 +1,128 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+
+#include <espressif/esp32c6/esp32c6_common.dtsi>
+#include <espressif/partitions_0x0_default.dtsi>
+#include <zephyr/dt-bindings/gpio/arduino-header-r3.h>
+#include "devkit_esp32c6-pinctrl.dtsi"
+
+/ {
+	model = "FoBE DevKit ESP32C6";
+	compatible = "fobe,devkit-esp32c6";
+
+	chosen {
+		zephyr,sram = &sramhp;
+		zephyr,console = &usb_serial;
+		zephyr,shell-uart = &usb_serial;
+		zephyr,flash = &flash0;
+		zephyr,code-partition = &slot0_partition;
+		zephyr,display = &modulino_matrix;
+	};
+
+	aliases {
+		watchdog0 = &wdt0;
+	};
+
+	arduino_header: connector {
+		compatible = "arduino-header-r3";
+		#gpio-cells = <2>;
+		gpio-map-mask = <0xffffffff 0xffffffc0>;
+		gpio-map-pass-thru = <0 0x3f>;
+		/* D14/D15 in this binding denote the dedicated SDA/SCL pins.
+		 * The schematic's D14..D19 are the A0..A5 aliases instead.
+		 */
+		gpio-map = <ARDUINO_HEADER_R3_A0 0 &gpio0 0 0>,
+			   <ARDUINO_HEADER_R3_A1 0 &gpio0 1 0>,
+			   <ARDUINO_HEADER_R3_A2 0 &gpio0 2 0>,
+			   <ARDUINO_HEADER_R3_A3 0 &gpio0 9 0>,
+			   <ARDUINO_HEADER_R3_A4 0 &gpio0 22 0>,
+			   <ARDUINO_HEADER_R3_A5 0 &gpio0 23 0>,
+			   <ARDUINO_HEADER_R3_D0 0 &gpio0 17 0>,
+			   <ARDUINO_HEADER_R3_D1 0 &gpio0 16 0>,
+			   <ARDUINO_HEADER_R3_D2 0 &gpio0 3 0>,
+			   <ARDUINO_HEADER_R3_D3 0 &gpio0 4 0>,
+			   <ARDUINO_HEADER_R3_D4 0 &gpio0 5 0>,
+			   <ARDUINO_HEADER_R3_D5 0 &gpio0 6 0>,
+			   <ARDUINO_HEADER_R3_D6 0 &gpio0 7 0>,
+			   <ARDUINO_HEADER_R3_D7 0 &gpio0 8 0>,
+			   <ARDUINO_HEADER_R3_D8 0 &gpio0 14 0>,
+			   <ARDUINO_HEADER_R3_D9 0 &gpio0 15 0>,
+			   <ARDUINO_HEADER_R3_D10 0 &gpio0 21 0>,
+			   <ARDUINO_HEADER_R3_D11 0 &gpio0 18 0>,
+			   <ARDUINO_HEADER_R3_D12 0 &gpio0 20 0>,
+			   <ARDUINO_HEADER_R3_D13 0 &gpio0 19 0>,
+			   <ARDUINO_HEADER_R3_D14 0 &gpio0 22 0>,
+			   <ARDUINO_HEADER_R3_D15 0 &gpio0 23 0>;
+	};
+
+	arduino_adc: analog-connector {
+		compatible = "arduino,uno-adc";
+		#io-channel-cells = <1>;
+		/* A3/BOOT, A4/SDA and A5/SCL have no ADC function. */
+		io-channel-map = <0 &adc0 0>, <1 &adc0 1>, <2 &adc0 2>;
+	};
+};
+
+&flash0 {
+	reg = <0x0 DT_SIZE_M(4)>;
+	ranges = <0x0 0x0 DT_SIZE_M(4)>;
+};
+
+&gpio0 {
+	status = "okay";
+	/* QFN32 exposes GPIO0..9 and GPIO12..23. */
+	ngpios = <24>;
+	gpio-reserved-ranges = <10 2>;
+};
+
+arduino_serial: &uart0 {
+	status = "okay";
+	current-speed = <115200>;
+	pinctrl-0 = <&uart0_default>;
+	pinctrl-names = "default";
+};
+
+arduino_i2c: &i2c0 {
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+	pinctrl-0 = <&i2c0_default>;
+	pinctrl-names = "default";
+
+	modulino_matrix: display@39 {
+		compatible = "arduino,modulino-led-matrix";
+		reg = <0x39>;
+		width = <12>;
+		height = <8>;
+		status = "okay";
+	};
+};
+
+arduino_spi: &spi2 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-0 = <&spi2_default>;
+	pinctrl-names = "default";
+	cs-gpios = <&gpio0 21 GPIO_ACTIVE_LOW>;
+};
+
+&adc0 {
+	status = "okay";
+};
+
+&trng0 {
+	status = "okay";
+};
+
+&wdt0 {
+	status = "okay";
+};
+
+&usb_serial {
+	status = "okay";
+};

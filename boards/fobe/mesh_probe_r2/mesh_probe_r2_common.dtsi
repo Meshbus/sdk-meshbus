@@ -1,0 +1,204 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <zephyr/dt-bindings/adc/adc.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/input/keymap.h>
+#include <zephyr/dt-bindings/lora/sx126x.h>
+#include <zephyr/dt-bindings/led/led.h>
+#include <zephyr/dt-bindings/mipi_dbi/mipi_dbi.h>
+#include "mesh_probe_r2-pinctrl.dtsi"
+
+#define MESH_PROBE_R2_BATTERY_OCV_CURVE_GENERIC_1S \
+	3300000 3686654 3741018 3775129 3793250 3820965 \
+	3884009 3945074 4008118 4085934 4177454
+
+/ {
+	leds {
+		compatible = "gpio-leds";
+
+		led0: led_0 {
+			label = "Blue LED";
+			gpios = <&gpio2 7 GPIO_ACTIVE_LOW>;
+		};
+	};
+
+	peripheral_power: peripheral_power {
+		compatible = "power-domain-gpio";
+		#power-domain-cells = <0>;
+		enable-gpios = <&gpio2 10 GPIO_ACTIVE_HIGH>;
+		startup-delay-us = <10000>;
+	};
+
+	buttons: buttons {
+		compatible = "gpio-keys";
+		zephyr,suspend-action = "none";
+
+		button0: usr_button {
+			gpios = <&gpio0 2 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "USR Button";
+			zephyr,code = <INPUT_KEY_0>;
+		};
+
+		button1: encoder_button {
+			gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
+			label = "Encoder Button";
+			zephyr,code = <INPUT_KEY_1>;
+		};
+	};
+
+	encoder: encoder {
+		compatible = "gpio-qdec";
+		gpios = <&gpio0 1 GPIO_ACTIVE_LOW>,
+				<&gpio0 0 GPIO_ACTIVE_LOW>;
+		zephyr,axis = <INPUT_REL_WHEEL>;
+		steps-per-period = <4>;
+		sample-time-us = <2000>;
+		idle-timeout-ms = <200>;
+		power-domains = <&peripheral_power>;
+	};
+
+	vbatt: vbatt {
+		status = "okay";
+		compatible = "voltage-divider";
+		io-channels = <&adc 4>;
+		output-ohms = <1500000>;
+		full-ohms = <(1000000 + 1500000)>;
+	};
+
+	fuel_gauge: fuel_gauge {
+		compatible = "zephyr,fuel-gauge-composite";
+		source-primary = <&vbatt>;
+		/*
+		 * Generic protected 1S 4.20 V Li-ion/LiPo estimate.
+		 * 0% is the product active-empty point, not the cell cutoff.
+		 */
+		device-chemistry = "lithium-ion";
+		ocv-capacity-table-0 =
+			<MESH_PROBE_R2_BATTERY_OCV_CURVE_GENERIC_1S>;
+	};
+
+	charger: charger {
+		compatible = "zephyr,charger-composite";
+		source-primary = <&fuel_gauge>;
+		constant-charge-voltage-max-microvolt = <4200000>;
+		/* USB VBUS divider output, asserted while external power is present. */
+		online-gpios = <&gpio2 6 GPIO_ACTIVE_HIGH>;
+	};
+
+	aliases {
+		mcuboot-led0 = &led0;
+		mcuboot-button0 = &button0;
+		led0 = &led0;
+		button0 = &button0;
+		watchdog0 = &wdt31;
+		lora0 = &sx1262;
+	};
+};
+
+&uart30 {
+	status = "okay";
+	current-speed = <115200>;
+	pinctrl-0 = <&uart30_default>;
+	pinctrl-1 = <&uart30_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&uart22 {
+	status = "okay";
+	current-speed = <115200>;
+	pinctrl-0 = <&uart22_default>;
+	pinctrl-1 = <&uart22_sleep>;
+	pinctrl-names = "default", "sleep";
+
+	l76k: l76k {
+		status = "okay";
+		compatible = "quectel,l76k";
+		reset-gpios = <&gpio2 8 GPIO_ACTIVE_LOW>;
+		wakeup-gpios = <&gpio2 9 GPIO_ACTIVE_HIGH>;
+		power-domains = <&peripheral_power>;
+	};
+};
+
+&i2c20 {
+	status = "okay";
+	pinctrl-0 = <&i2c20_default>;
+	pinctrl-1 = <&i2c20_sleep>;
+	pinctrl-names = "default", "sleep";
+	clock-frequency = <I2C_BITRATE_FAST_PLUS>;
+	/* Needed by i2c_nrfx_twim when concatenating a 1-byte control field + payload (e.g. SSD1306 full-line writes). */
+	zephyr,concat-buf-size = <256>;
+	zephyr,flash-buf-max-size = <256>;
+
+	ssd1306: ssd1306@3d {
+		/* Zephyr renamed the compatible from "solomon,ssd1306fb" -> "solomon,ssd1306". */
+		compatible = "solomon,ssd1306";
+		reg = <0x3d>;
+		width = <128>;
+		height = <64>;
+		segment-offset = <0>;
+		page-offset = <0>;
+		display-offset = <0>;
+		multiplex-ratio = <63>;
+		segment-remap;
+		com-invdir;
+		prechargep = <0x22>;
+		power-domains = <&peripheral_power>;
+	};
+
+};
+
+&i2c21 {
+	status = "okay";
+	pinctrl-0 = <&i2c21_default>;
+	pinctrl-1 = <&i2c21_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&spi00 {
+	status = "okay";
+	pinctrl-0 = <&spi00_default>;
+	pinctrl-1 = <&spi00_sleep>;
+	pinctrl-names = "default", "sleep";
+	cs-gpios = <&gpio2 0 GPIO_ACTIVE_LOW>;
+
+	sx1262: sx1262@0 {
+		compatible = "semtech,sx1262";
+		label = "sx1262";
+		reg = <0>;
+		reset-gpios = <&gpio2 3 GPIO_ACTIVE_LOW>;
+		busy-gpios = <&gpio1 7 GPIO_ACTIVE_HIGH>;
+		dio1-gpios = <&gpio1 8 GPIO_ACTIVE_HIGH>;
+		dio2-tx-enable;
+		dio3-tcxo-voltage = <SX126X_DIO3_TCXO_1V8>;
+		rx-enable-gpios = <&gpio2 5 GPIO_ACTIVE_HIGH>;
+		tcxo-power-startup-delay-ms = <5>;
+		spi-max-frequency = <DT_FREQ_M(8)>;
+		rx-boosted;
+	};
+};
+
+&adc {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	channel@4 {
+		reg = <4>;
+		zephyr,gain = "ADC_GAIN_1_4";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>;
+		zephyr,input-positive = <NRF_SAADC_AIN4>;
+		zephyr,resolution = <12>;
+		zephyr,oversampling = <8>;
+	};
+};
+
+&pwm20 {
+	status = "okay";
+	pinctrl-0 = <&pwm20_default>;
+	pinctrl-1 = <&pwm20_sleep>;
+	pinctrl-names = "default", "sleep";
+};

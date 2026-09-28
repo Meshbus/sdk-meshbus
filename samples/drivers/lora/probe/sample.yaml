@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+sample:
+  name: LoRa probe
+tests:
+  sample.drivers.lora.probe:
+    build_only: true
+    tags:
+      - drivers
+      - lora
+    filter: dt_alias_exists("lora0")
+    integration_platforms:
+      - tracker_t1000_e

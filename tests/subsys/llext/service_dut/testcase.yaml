@@ -1,0 +1,23 @@
+tests:
+  subsys.meshbus.llext.service_dut.mesh_probe_r2.app:
+    tags:
+      - meshbus
+      - llext
+      - littlefs
+      - service_dut
+    harness: ztest
+    harness_config:
+      fixture:
+        - mesh_probe_r2
+        - test-filesystem
+    extra_configs:
+      - CONFIG_DISPLAY=y
+      - CONFIG_U8G2=y
+      - CONFIG_ZUI=y
+      - CONFIG_MBS_LLEXT_APP_HEAP_RESERVE_SIZE=32768
+      - CONFIG_MBS_LLEXT_APP_MAX_HEAP_SIZE=32768
+    timeout: 30
+    platform_allow:
+      - mesh_probe_r2/nrf54l15/cpuapp
+    integration_platforms:
+      - mesh_probe_r2/nrf54l15/cpuapp

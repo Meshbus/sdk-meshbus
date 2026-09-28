@@ -1,0 +1,518 @@
+# SPDX-FileCopyrightText: 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+name: Validation
+on:
+  workflow_call:
+    inputs:
+      full:
+        type: boolean
+        default: false
+      strict:
+        description: Require clean CLI packages built afresh
+        type: boolean
+        default: false
+      retention-days:
+        type: number
+        default: 14
+      image:
+        type: string
+        default: stable
+    outputs:
+      image:
+        value: ${{ jobs.plan.outputs.image }}
+      products:
+        value: ${{ jobs.prepare.outputs.products }}
+permissions:
+  contents: read
+concurrency:
+  group: validation-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+defaults:
+  run:
+    shell: bash
+jobs:
+  plan:
+    name: Plan validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+      sdk: ${{ steps.plan.outputs.sdk }}
+      products: ${{ steps.plan.outputs.products }}
+      workspace: ${{ steps.plan.outputs.workspace }}
+      heavy: ${{ steps.plan.outputs.heavy }}
+      audit: ${{ steps.plan.outputs.audit }}
+      west-audit: ${{ steps.plan.outputs.west_audit }}
+      audit-current: ${{ steps.plan.outputs.audit_current }}
+      fonts: ${{ steps.plan.outputs.fonts }}
+      checkpatch: ${{ steps.plan.outputs.checkpatch }}
+      rust: ${{ steps.plan.outputs.rust }}
+      host: ${{ steps.plan.outputs.host }}
+      cli: ${{ steps.plan.outputs.cli }}
+      linux: ${{ steps.plan.outputs.linux_targets }}
+      mac: ${{ steps.plan.outputs.mac_targets }}
+      native: ${{ steps.plan.outputs.native_targets }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: meshbus
+          fetch-depth: 0
+          persist-credentials: false
+      - id: plan
+        working-directory: meshbus
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          FULL: ${{ inputs.full || inputs.strict }}
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          args=()
+          if [[ -n "$PR_BASE" ]]; then args+=(--base "$PR_BASE"); fi
+          if [[ "$EVENT" == push ]]; then args+=(--before "$BEFORE"); fi
+          if [[ "$FULL" == true || "$EVENT" == schedule || "$EVENT" == workflow_dispatch ]]; then args+=(--full --audit-current); fi
+          python scripts/ci/plan.py "${args[@]}" --output ../snapshot/plan.json
+      - id: image
+        if: steps.plan.outputs.heavy == 'true'
+        env:
+          IMAGE_REF: ${{ inputs.image }}
+        run: python meshbus/scripts/ci/image.py --repository Meshbus/sdk-meshbus --reference "$IMAGE_REF"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ci-plan
+          path: snapshot/plan.json
+          if-no-files-found: error
+
+  prepare:
+    needs: plan
+    if: needs.plan.outputs.workspace == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    outputs:
+      image: ${{ needs.plan.outputs.image }}
+      shards: ${{ steps.shards.outputs.matrix }}
+      products: ${{ steps.products.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: meshbus
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Reserve disk for image and dependencies
+        run: bash meshbus/scripts/ci/prepare-disk.sh host
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ci-plan
+          path: snapshot
+      - name: Update pinned dependencies and record versions
+        env:
+          IMAGE: ${{ needs.plan.outputs.image }}
+        run: |
+          docker pull "$IMAGE"
+          test "$(docker image inspect --format '{{ index .Config.Labels "org.meshbus.builder.schema" }}' "$IMAGE")" = 1
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work "$IMAGE" \
+            bash -euc '
+              git config --global --add safe.directory /work/meshbus
+              python meshbus/scripts/ci/workspace.py --workspace /work --record /work/snapshot
+              cp -r /opt/builder /work/snapshot/tools
+              chmod -R a+rX /work/snapshot/tools
+            '
+          printf '%s\n' "$IMAGE" > snapshot/image.txt
+      - id: products
+        if: needs.plan.outputs.products == 'true'
+        env:
+          IMAGE: ${{ needs.plan.outputs.image }}
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work "$IMAGE" \
+            python meshbus/scripts/release/release.py matrix > snapshot/products.json
+          echo "matrix=$(jq -c . snapshot/products.json)" >> "$GITHUB_OUTPUT"
+      - id: shards
+        if: needs.plan.outputs.sdk == 'true'
+        env:
+          IMAGE: ${{ needs.plan.outputs.image }}
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work "$IMAGE" bash -euc '
+            git config --global --add safe.directory /work/meshbus
+            python meshbus/scripts/ci/test_plan.py generate --workspace /work --snapshot /work/snapshot
+          '
+          echo "matrix=$(jq -c . snapshot/shards.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: source-snapshot
+          path: snapshot
+          retention-days: ${{ inputs.retention-days }}
+          if-no-files-found: error
+
+  lightweight:
+    name: Source checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PR_BASE: ${{ github.event.pull_request.base.sha }}
+      DIFF_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: meshbus
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Install existing pinned source-check tools
+        run: |
+          python -m pip install -c meshbus/.github/docker/requirements.lock PyYAML reuse ruff
+          python meshbus/.github/docker/install-tools.py --light --prefix "$RUNNER_TEMP/source-tools"
+          echo "$RUNNER_TEMP/source-tools/actionlint" >> "$GITHUB_PATH"
+          echo "$RUNNER_TEMP/source-tools/gitleaks" >> "$GITHUB_PATH"
+      - name: Metadata
+        run: python meshbus/scripts/ci/metadata.py
+      - name: Documentation
+        if: ${{ !cancelled() }}
+        run: python meshbus/scripts/ci/docs.py
+      - name: Secrets
+        if: ${{ !cancelled() }}
+        run: python meshbus/scripts/ci/quality.py secrets
+      - name: Repository license policy
+        if: ${{ !cancelled() }}
+        run: python meshbus/scripts/ci/quality.py licenses
+      - name: Workflow, Python and commit style
+        if: ${{ !cancelled() }}
+        run: python meshbus/scripts/ci/quality.py style
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: source-checks
+          path: ci-output
+          retention-days: 14
+
+  quality:
+    name: Workspace checks
+    needs: [plan, prepare]
+    if: needs.plan.outputs.fonts == 'true' || needs.plan.outputs.checkpatch == 'true' || needs.plan.outputs.audit == 'true'
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ needs.prepare.outputs.image }}
+      volumes:
+        - /usr/local/lib/android:/__host_sdks/android
+        - /usr/share/dotnet:/__host_sdks/dotnet
+        - /opt/ghc:/__host_sdks/ghc
+        - /usr/local/.ghcup:/__host_sdks/ghcup
+        - /opt/hostedtoolcache/CodeQL:/__host_sdks/codeql
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: meshbus
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./meshbus/.github/actions/workspace
+      - name: Font inventory
+        if: needs.plan.outputs.fonts == 'true'
+        run: python meshbus/scripts/ci/quality.py fonts
+      - name: C/C++ patch style
+        if: ${{ !cancelled() && needs.plan.outputs.checkpatch == 'true' }}
+        env:
+          DIFF_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: python meshbus/scripts/ci/quality.py checkpatch
+      - name: Cargo vulnerabilities
+        if: ${{ !cancelled() && needs.plan.outputs.audit == 'true' }}
+        env:
+          DIFF_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CURRENT: ${{ needs.plan.outputs.audit-current }}
+        run: |
+          args=()
+          if [[ "$CURRENT" == true ]]; then args+=(--current); fi
+          python meshbus/scripts/ci/quality.py vulnerabilities "${args[@]}"
+      - name: West dependency vulnerability report
+        if: ${{ !cancelled() && needs.plan.outputs.west-audit == 'true' }}
+        env:
+          DIFF_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CURRENT: ${{ needs.plan.outputs.audit-current }}
+        run: |
+          args=()
+          if [[ "$CURRENT" == true ]]; then args+=(--current); fi
+          python meshbus/scripts/ci/quality.py west-vulnerabilities "${args[@]}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: workspace-checks
+          path: ci-output
+          retention-days: 14
+
+  host:
+    name: Host / Python and Rust
+    needs: [plan, prepare]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.host == 'true' && (needs.prepare.result == 'success' || needs.plan.outputs.workspace == 'false') }}
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ needs.plan.outputs.image }}
+      volumes:
+        - /usr/local/lib/android:/__host_sdks/android
+        - /usr/share/dotnet:/__host_sdks/dotnet
+        - /opt/ghc:/__host_sdks/ghc
+        - /usr/local/.ghcup:/__host_sdks/ghcup
+        - /opt/hostedtoolcache/CodeQL:/__host_sdks/codeql
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/cargo-build
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: meshbus
+          persist-credentials: false
+      - uses: ./meshbus/.github/actions/workspace
+        if: needs.plan.outputs.rust == 'true'
+      - uses: ./meshbus/.github/actions/cargo-cache
+        if: needs.plan.outputs.rust == 'true'
+        with:
+          target: host-test
+          image: ${{ needs.plan.outputs.image }}
+      - env:
+          RUST: ${{ needs.plan.outputs.rust }}
+        run: |
+          args=()
+          if [[ "$RUST" != true ]]; then args+=(--python-only); fi
+          python meshbus/scripts/ci/run.py host "${args[@]}"
+
+  zephyr:
+    name: ${{ matrix.name }}
+    needs: [plan, prepare]
+    if: needs.plan.outputs.sdk == 'true'
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ needs.prepare.outputs.image }}
+      volumes:
+        - /usr/local/lib/android:/__host_sdks/android
+        - /usr/share/dotnet:/__host_sdks/dotnet
+        - /opt/ghc:/__host_sdks/ghc
+        - /usr/local/.ghcup:/__host_sdks/ghcup
+        - /opt/hostedtoolcache/CodeQL:/__host_sdks/codeql
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: meshbus
+          persist-credentials: false
+      - uses: ./meshbus/.github/actions/workspace
+      - id: ccache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .ccache
+          key: ccache-v2-${{ needs.prepare.outputs.image }}-${{ matrix.layer }}-${{ matrix.shard }}-${{ github.sha }}
+          restore-keys: |
+            ccache-v2-${{ needs.prepare.outputs.image }}-${{ matrix.layer }}-${{ matrix.shard }}-
+      - env:
+          SHARD: ${{ matrix.shard }}
+          LAYER: ${{ matrix.layer }}
+          CCACHE_DIR: ${{ github.workspace }}/.ccache
+          CCACHE_BASEDIR: ${{ github.workspace }}
+          CCACHE_MAXSIZE: 2G
+        run: python meshbus/scripts/ci/run.py "$LAYER" --shard "$SHARD"
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        if: ${{ !cancelled() && steps.ccache.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+        with:
+          path: .ccache
+          key: ${{ steps.ccache.outputs.cache-primary-key }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: zephyr-${{ matrix.layer }}-${{ matrix.shard }}
+          path: |
+            ci-output/**/twister.json
+            ci-output/**/*.xml
+            ci-output/**/*.log
+          retention-days: 14
+
+  cli-linux:
+    needs: [plan, prepare]
+    if: needs.plan.outputs.cli == 'true'
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ needs.prepare.outputs.image }}
+      volumes:
+        - /usr/local/lib/android:/__host_sdks/android
+        - /usr/share/dotnet:/__host_sdks/dotnet
+        - /opt/ghc:/__host_sdks/ghc
+        - /usr/local/.ghcup:/__host_sdks/ghcup
+        - /opt/hostedtoolcache/CodeQL:/__host_sdks/codeql
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/cargo-build
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.plan.outputs.linux) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: meshbus
+          persist-credentials: false
+      - uses: ./meshbus/.github/actions/workspace
+      - uses: ./meshbus/.github/actions/cargo-cache
+        with:
+          target: ${{ matrix.target }}
+          image: ${{ needs.prepare.outputs.image }}
+          candidate: ${{ inputs.strict }}
+      - env:
+          TARGET: ${{ matrix.target }}
+          CANDIDATE: ${{ inputs.strict }}
+          CARGO_BUILD_JOBS: 2
+          BUILDER_IMAGE: ${{ needs.prepare.outputs.image }}
+          XWIN_CACHE_DIR: ${{ github.workspace }}/xwin-cache
+          XWIN_VERSION: 17
+          XWIN_SDK_VERSION: 10.0.26100
+          XWIN_CRT_VERSION: 14.44.17.14
+        run: |
+          args=()
+          if [[ "$CANDIDATE" == true ]]; then args+=(--candidate); fi
+          python meshbus/scripts/ci/run.py cli --target "$TARGET" "${args[@]}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cli-${{ matrix.target }}
+          path: ci-output/parts/cli/${{ matrix.target }}
+          retention-days: ${{ inputs.retention-days }}
+          if-no-files-found: error
+
+  cli-mac:
+    needs: [plan, prepare]
+    if: needs.plan.outputs.cli == 'true'
+    runs-on: ${{ matrix.runner }}
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/cargo-build
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.mac) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: meshbus
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - run: |
+          python -m pip install -c meshbus/.github/docker/requirements.lock west PyYAML jsonschema
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+      - uses: ./meshbus/.github/actions/workspace
+      - uses: ./meshbus/.github/actions/cargo-cache
+        with:
+          target: ${{ matrix.target }}
+          image: rust-1.97.1-${{ matrix.runner }}
+          candidate: ${{ inputs.strict }}
+      - env:
+          TARGET: ${{ matrix.target }}
+          CANDIDATE: ${{ inputs.strict }}
+        run: |
+          args=()
+          if [[ "$CANDIDATE" == true ]]; then args+=(--candidate); fi
+          python meshbus/scripts/ci/run.py cli --target "$TARGET" "${args[@]}"
+          cargo test --locked --manifest-path meshbus/scripts/meshbus/Cargo.toml
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cli-${{ matrix.target }}
+          path: ci-output/parts/cli/${{ matrix.target }}
+          retention-days: ${{ inputs.retention-days }}
+          if-no-files-found: error
+
+  native:
+    needs: [plan, prepare, cli-linux, cli-mac]
+    if: ${{ !cancelled() && needs.prepare.result == 'success' && needs.plan.outputs.cli == 'true' }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.native) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: meshbus
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: cli-${{ matrix.target }}
+          path: cli-part
+      - run: python meshbus/scripts/ci/artifact.py cli-part native-cli
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-validation-${{ matrix.target }}
+          path: native-cli/native-validation.json
+          retention-days: ${{ inputs.retention-days }}
+          if-no-files-found: error
+
+  products:
+    name: Firmware / ${{ matrix.id }}
+    needs: [plan, prepare]
+    if: needs.plan.outputs.products == 'true'
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ needs.prepare.outputs.image }}
+      volumes:
+        - /usr/local/lib/android:/__host_sdks/android
+        - /usr/share/dotnet:/__host_sdks/dotnet
+        - /opt/ghc:/__host_sdks/ghc
+        - /usr/local/.ghcup:/__host_sdks/ghcup
+        - /opt/hostedtoolcache/CodeQL:/__host_sdks/codeql
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.products) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: meshbus
+          persist-credentials: false
+      - uses: ./meshbus/.github/actions/workspace
+      - env:
+          BOARD: ${{ matrix.board }}
+        run: python meshbus/scripts/ci/run.py product --target "$BOARD"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: product-evidence-${{ matrix.id }}
+          include-hidden-files: true
+          path: |
+            product-build/**/build.log
+            product-build/**/zephyr/.config
+            product-build/**/zephyr/zephyr.map
+          retention-days: ${{ inputs.retention-days }}
+
+  required:
+    name: Required checks
+    if: always()
+    needs: [plan, prepare, lightweight, quality, host, zephyr, cli-linux, cli-mac, native, products]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: meshbus
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ci-plan
+          path: snapshot
+      - env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python meshbus/scripts/ci/checks.py aggregate --plan snapshot/plan.json
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        if: needs.plan.outputs.sdk == 'true'
+        with:
+          name: source-snapshot
+          path: snapshot
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        if: needs.plan.outputs.sdk == 'true'
+        with:
+          pattern: zephyr-*
+          path: test-reports
+      - if: needs.plan.outputs.sdk == 'true'
+        run: python meshbus/scripts/ci/test_plan.py verify --snapshot snapshot --reports test-reports

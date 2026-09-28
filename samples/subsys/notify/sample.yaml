@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+sample:
+  name: Meshbus notify service
+  description: Starts Meshbus notify and logs published notifications for board shell manual validation
+common:
+  tags:
+    - meshbus
+    - notify
+  harness: keyboard
+tests:
+  sample.subsys.meshbus.services.notify:
+    integration_platforms:
+      - mesh_probe_r2/nrf54l15/cpuapp
+      - tracker_t1000_e

@@ -1,0 +1,75 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <dt-bindings/sensor/sensor_channel.h>
+
+/ {
+	compass: compass {
+		compatible = "zephyr,compass-composite";
+		accel-source = <&lsm6ds3tr>;
+		gyro-source = <&lsm6ds3tr>;
+		magn-source = <&mmc5603>;
+		accel-channel = <SENSOR_CHAN_ACCEL_XYZ>;
+		gyro-channel = <SENSOR_CHAN_GYRO_XYZ>;
+		magn-channel = <SENSOR_CHAN_MAGN_XYZ>;
+		declination-milli-deg = <0>;
+		gyro-fusion-alpha-milli = <400>;
+		/* Mesh Probe R2 FLU frame: +X front, +Y left, +Z up; both sensors are on the back. */
+		accel-axis-remap = <1 0 2>;
+		accel-axis-sign = <1 1 (-1)>;
+		magn-axis-remap = <1 0 2>;
+		magn-axis-sign = <1 1 (-1)>;
+		status = "okay";
+	};
+};
+
+&i2c20 {
+	mmc5603: mmc5603@30 {
+		compatible = "memsic,mmc56x3";
+		reg = <0x30>;
+		magn-odr = <0>;
+		auto-self-reset;
+		power-domains = <&peripheral_power>;
+	};
+
+	lsm6ds3tr: lsm6ds3tr@6a {
+		compatible = "st,lsm6dsl";
+		reg = <0x6a>;
+		power-domains = <&peripheral_power>;
+	};
+};
+
+/* Match the Mesh Probe R2 mbs_client/MCUboot flash-map ABI. */
+&cpuapp_rram {
+	/delete-node/ partitions;
+
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x0 DT_SIZE_K(128)>;
+		};
+
+		slot0_partition: partition@20000 {
+			label = "image-0";
+			reg = <0x20000 DT_SIZE_K(1024)>;
+		};
+
+		storage_partition: partition@120000 {
+			label = "storage";
+			reg = <0x120000 DT_SIZE_K(128)>;
+		};
+
+		extra_partition: partition@140000 {
+			label = "extra";
+			reg = <0x140000 DT_SIZE_K(148)>;
+		};
+	};
+};

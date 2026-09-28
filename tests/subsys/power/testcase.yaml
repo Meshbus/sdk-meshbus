@@ -1,0 +1,41 @@
+tests:
+  subsys.meshbus.power.contract:
+    tags:
+      - meshbus
+      - power
+      - contract
+      - ztest
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86
+  subsys.meshbus.power.contract.fuel_gauge:
+    tags:
+      - meshbus
+      - power
+      - contract
+      - ztest
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86
+    extra_dtc_overlay_files:
+      - boards/qemu_x86_fuel_gauge.overlay
+    extra_conf_files:
+      - configs/fuel_gauge.conf
+  subsys.meshbus.power.contract.meshcore_shutdown_flush:
+    tags:
+      - meshbus
+      - power
+      - meshcore
+      - contract
+      - ztest
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86
+    extra_conf_files:
+      - configs/meshcore_shutdown_flush.conf

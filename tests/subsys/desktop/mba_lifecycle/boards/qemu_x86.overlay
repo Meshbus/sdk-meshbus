@@ -1,0 +1,15 @@
+&flash_sim0 {
+	partitions {
+		extra_partition: partition@41000 {
+			compatible = "zephyr,mapped-partition";
+			label = "extra_partition";
+			reg = <0x00041000 0x000bf000>;
+		};
+	};
+};
+
+/ {
+	chosen {
+		zephyr,settings-partition = &storage_partition;
+	};
+};

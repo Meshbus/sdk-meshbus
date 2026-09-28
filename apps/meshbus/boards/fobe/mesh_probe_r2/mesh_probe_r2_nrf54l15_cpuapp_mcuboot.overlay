@@ -1,0 +1,75 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "mesh_probe_r2_partitions.dtsi"
+
+/*
+ * MCUboot only needs the recovery UART, boot mode retention, and status
+ * indication path. Keep application peripherals out of the bootloader image.
+ */
+/ {
+
+	chosen {
+		zephyr,code-partition = &boot_partition;
+		/delete-property/ zephyr,display;
+	};
+};
+
+&peripheral_power {
+	status = "disabled";
+};
+
+&i2c20 {
+	status = "disabled";
+};
+
+&ssd1306 {
+	status = "disabled";
+};
+
+&encoder {
+	status = "disabled";
+};
+
+&vbatt {
+	status = "disabled";
+};
+
+&fuel_gauge {
+	status = "disabled";
+};
+
+&charger {
+	status = "disabled";
+};
+
+&i2c21 {
+	status = "disabled";
+};
+
+&spi00 {
+	status = "disabled";
+};
+
+&sx1262 {
+	status = "disabled";
+};
+
+&adc {
+	status = "disabled";
+};
+
+&pwm20 {
+	status = "disabled";
+};
+
+&uart22 {
+	status = "disabled";
+};
+
+&l76k {
+	status = "disabled";
+};

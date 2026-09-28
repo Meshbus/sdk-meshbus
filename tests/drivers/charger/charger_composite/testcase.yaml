@@ -1,0 +1,15 @@
+# Copyright (c) 2025 FoBE Projects
+# SPDX-License-Identifier: Apache-2.0
+
+tests:
+  drivers.charger.charger_composite:
+    tags:
+      - charger_composite
+      - drivers
+      - charger
+    platform_allow:
+      - qemu_x86
+      - native_sim
+    integration_platforms:
+      - qemu_x86
+    harness: ztest

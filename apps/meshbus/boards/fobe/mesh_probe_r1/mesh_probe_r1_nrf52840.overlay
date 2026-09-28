@@ -1,0 +1,55 @@
+/*
+ * SPDX-FileCopyrightText: FoBE Studio
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <dt-bindings/sensor/sensor_channel.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+
+#include "mesh_probe_r1_partitions.dtsi"
+
+/ {
+	fstab: fstab {
+		compatible = "zephyr,fstab";
+		extra: extra {
+			compatible = "zephyr,fstab,littlefs";
+			automount;
+			mount-point = "/extra";
+			partition = <&lfs_partition>;
+			read-size = <16>;
+			prog-size = <16>;
+			cache-size = <128>;
+			lookahead-size = <64>;
+			block-cycles = <512>;
+		};
+	};
+
+	meshbus_telemetry: meshbus-telemetry {
+		compatible = "fobe,meshbus-telemetry";
+		ch0 { sensor = <&vbatt>; channel = <SENSOR_CHAN_VOLTAGE>; };
+	};
+
+	chosen {
+		meshbus,indicator-light-active = &led0;
+		meshbus,telemetry = &meshbus_telemetry;
+		meshbus,fuel-gauge = &fuel_gauge;
+		meshbus,charger = &charger;
+		meshbus,power-button = &button0;
+		meshbus,radio = &sx1262;
+		meshbus,gnss = &l76k;
+		meshbus,input-buttons = &buttons;
+		meshbus,input-encoder = &encoder;
+	};
+};
+
+&button0 {
+	zephyr,code = <INPUT_BTN_BACK>;
+};
+
+&button1 {
+	zephyr,code = <INPUT_BTN_SELECT>;
+};
+
+&buttons {
+	wakeup-source;
+};

@@ -1,0 +1,127 @@
+# Licensing
+
+FoBE Studio-owned SDK, product firmware, CLI, tools, examples and documentation
+use [Apache-2.0](LICENSE). Copyright attribution is **FoBE Studio**. Original
+third-party copyright and license notices remain applicable to their portions.
+
+## Third-party exceptions
+
+`LICENSES/` holds standard SPDX texts. Original source declarations remain
+with their files; `REUSE.toml` supplies missing machine-readable metadata.
+Component-specific copyright and complete permission notices live beside their
+sources. A standard license identifier does not replace those notices.
+The CI policy documents BSL-1.0 as a distribution-only standard text for an
+external Cargo dependency; its raw REUSE unused-text finding remains visible.
+
+| Component | Applicable files | Terms | Source and notice | Distribution scope |
+| --- | --- | --- | --- | --- |
+| Inherited board support, LoRa samples and Zephyr configuration | Original file headers | Apache-2.0, original upstream authors | File headers and [standard text](LICENSES/Apache-2.0.txt) | Selected source/build inputs |
+| ZUI and English predictive dictionary | External `sdk-zui` module | Apache-2.0 for ZUI; ISC, Zeke Sikelianos for dictionary | Module `LICENSING.md` and `src/dicts/LICENSE` | Exported public headers; firmware using ZUI and the built-in dictionary |
+| CLI bsdiff and detools-derived implementation | `scripts/meshbus/` | BSD-2-Clause, original authors | [CLI NOTICE](scripts/meshbus/NOTICE) | CLI distributions |
+| CLI clipboard-win dependency | Target-specific Cargo graph | BSL-1.0 | Upstream package; [standard fallback](LICENSES/BSL-1.0.txt) | Selected CLI targets |
+| CLI protoc-bin-vendored tool | Cargo build dependency | MIT, Stepan Koltsov | Supplemental full notice in [CLI NOTICE](scripts/meshbus/NOTICE) | Build tool; not bundled as a CLI runtime |
+
+## Desktop segment fonts
+
+`subsys/desktop/assets/assets_fonts.h` contains the project-designed and
+generated `F_segment_46` and `F_segment_24` arrays. These are FoBE Studio-owned
+Apache-2.0 content, as recorded in `REUSE.toml`.
+
+## External projects and fonts
+
+External west projects retain their own source headers, licensing guides and
+complete terms. Their resolved versions are recorded by the manifest and build
+provenance. The SDK's default does not relicense dependency contents.
+
+- [sdk-u8g2](https://github.com/Meshbus/sdk-u8g2) owns the U8g2 implementation,
+  three public display headers and fonts. Its core retains BSD-2-Clause;
+  FoBE Studio integration uses Apache-2.0. Font terms are independent. See
+  [Meshbus font selections](docs/licensing/fonts.md) and the dependency's
+  `LICENSING.md`, `fonts/catalog.json`, `fonts/sources.json` and `fonts/notices/`.
+- `meshbus-protobufs` owns its schemas, options and other original content under
+  Apache-2.0. Its generators and runtimes have their own terms. Preserve its
+  license and notices for schema content incorporated into generated outputs.
+- `sdk-meshcore` and `sdk-arduboy` retain their own `LICENSING.md`, `LICENSES/`
+  and source records. Use the materials from the resolved dependency revision.
+
+## External dependency license selections
+
+These recorded cases apply the
+[compiled-dependency policy](docs/adr/0012-restrict-compiled-third-party-licenses.md).
+They are not a complete inventory of every target. Recheck resolved versions
+and delivered files when preparing a distribution.
+
+- The CLI's `unescaper` 0.1.10 dependency uses the MIT option of its
+  `MIT OR GPL-3.0-only` license. It is reached through `serialport` on Linux
+  non-musl targets. Preserve its MIT notice when packaging that target.
+- GCC runtime material bearing `GPL-3.0-or-later WITH GCC-exception-3.1`,
+  including relevant `libgcc`, `libstdc++` and Zephyr GCOV material, is evaluated
+  under the [GCC Runtime Library Exception](https://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html).
+  Keep the exception with its license and review the actual compilation and
+  distribution inputs. This selection does not cover unrelated GPL material.
+
+## Source provenance
+
+The FoBE source baseline is commit
+`748e79923cd091e0c99e9701af19fcc598811d8a`. This identifies the original source
+selection; current implementation and ownership are recorded in this repository.
+
+The `support/openocd.cfg` scripts for `boards/fobe/devkit_nrf54l15/` and
+`boards/fobe/mesh_probe_r2/` retain the Apache-2.0 notice from Zephyr's
+`boards/seeed/xiao_nrf54l15/support/openocd.cfg` at commit
+`53374c62579468908f3b7534a58d4c641f20f0f5`. Their unchanged upstream bodies retain
+upstream ownership.
+
+`REUSE.toml` records FoBE Studio attribution for these board files alongside
+the retained upstream declarations. Upstream portions keep their own provenance
+and ownership.
+
+## CLI distributions
+
+Release packaging copies the CLI `NOTICE` to `THIRD-PARTY-NOTICES.txt` and
+collects package license files from Cargo's target-filtered resolve graph.
+`dependencies.json` distinguishes runtime dependencies from proc-macro/code
+generators whose notices are conservatively retained. Development dependencies
+and unreachable packages are excluded. Host build tools are recorded separately
+in `build-tools.json`; their presence does not imply their code is distributed.
+
+The collector honors Cargo `license-file`, uses upstream license/notice files
+first, and retains limited Apache/Boost/protoc fallbacks. Missing required text
+fails packaging. `generated-materials.json` records the embedded protobuf
+descriptor digest and the schema project's retained materials, using the same
+schema root as the CLI build. The standalone protoc executable is not shipped.
+Other generated templates and build-script outputs still require release review.
+
+## Source, EDK and firmware distributions
+
+Source distributions retain `LICENSE`, `LICENSES/`, REUSE metadata, this guide,
+component-local declarations and applicable source records. Independent west
+projects retain their own materials at the resolved revision; their complete
+texts are not mirrored into this repository.
+
+EDKs include Apache-2.0 `LICENSE.txt`, `LICENSES/Apache-2.0.txt`,
+`NOTICE.txt` and file declarations. Exported ZUI headers additionally carry
+`ZUI-NOTICES.md`; exported U8g2 headers retain `U8G2-NOTICES.md`. The verifier
+requires the root and standard Apache-2.0 license texts to match and checks
+the notices for exported components.
+
+Firmware archives include `licenses/` and `license-materials.json`. Packaging
+selects component roots from both images' private SPDX source inventories and
+build module records, copies their root/standard license materials, and retains
+nested licenses and leading C/C++ source notices. Protobuf schema materials are
+included explicitly for generated bindings; the built-in predictive dictionary
+keeps its ISC notice. Custom dictionaries use adjacent license/notice files
+and optional `<dictionary>.license` sidecars; missing declarations fail packaging.
+
+U8g2 font arrays are selected from the final unstripped ELF's defined object
+symbols. The collector preserves per-font attribution, catalog license/status,
+selected family notices and the dependency's supplemental full license texts.
+Those generic texts form a conservative superset; inclusion is not a license
+choice or approval of a restricted font. Source hashes for retained font notices
+remain checked against the external module's own records.
+
+Development builds without SPDX are marked `partial-no-spdx`; they are not
+complete dependency collections. Even with SPDX, the bundle is component-level
+evidence: toolchain runtimes, other generated material, compatibility, required
+source delivery and unresolved grants remain release-review responsibilities.
+See [distribution guidance](DISTRIBUTION.md#candidate-assembly-and-provenance).

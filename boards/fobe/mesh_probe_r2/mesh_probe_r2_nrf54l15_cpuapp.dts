@@ -1,0 +1,21 @@
+/dts-v1/;
+
+#include <nordic/nrf54l15_cpuapp.dtsi>
+#include "nrf54l15_cpuapp_common.dtsi"
+
+/ {
+	compatible = "fobe,mesh_probe_r2-nrf54l15-cpuapp";
+	model = "Mesh Probe R2 nRF54L15 Application MCU";
+
+	chosen {
+		zephyr,code-partition = &slot0_partition;
+		zephyr,sram = &cpuapp_sram;
+	};
+};
+
+&uicr {
+	nfct-pins-as-gpios;
+};
+
+/* Include default memory partition configuration file */
+#include <vendor/nordic/nrf54l15_cpuapp_partition.dtsi>

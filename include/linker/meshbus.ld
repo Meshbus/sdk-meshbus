@@ -1,0 +1,11 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <zephyr/linker/iterable_sections.h>
+
+#if defined(CONFIG_MBS_POWER)
+ITERABLE_SECTION_RAM(mbs_power_action_callback, Z_LINK_ITERABLE_SUBALIGN)
+#endif

@@ -1,0 +1,46 @@
+/* Dedicated validation-device layout. See README.rst before flashing. */
+
+/delete-node/ &storage_partition;
+
+&slot1_partition {
+	reg = <0x0c2000 0x0a2000>;
+};
+
+&cpuapp_rram {
+	partitions {
+		extra_partition: partition@164000 {
+			compatible = "zephyr,mapped-partition";
+			label = "meshbus-test-filesystem";
+			reg = <0x164000 0x00f000>;
+		};
+
+		fs_test_stage_partition: partition@173000 {
+			compatible = "zephyr,mapped-partition";
+			label = "meshbus-fs-test-stage";
+			reg = <0x173000 0x001000>;
+		};
+
+		product_storage_partition: partition@174000 {
+			compatible = "zephyr,mapped-partition";
+			label = "product-storage-preserved";
+			reg = <0x174000 0x009000>;
+		};
+	};
+};
+
+/ {
+	fstab: fstab {
+		compatible = "zephyr,fstab";
+		extra: extra {
+			compatible = "zephyr,fstab,littlefs";
+			automount;
+			mount-point = "/extra";
+			partition = <&extra_partition>;
+			read-size = <16>;
+			prog-size = <16>;
+			cache-size = <128>;
+			lookahead-size = <16>;
+			block-cycles = <128>;
+		};
+	};
+};

@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+sample:
+  name: Meshbus clock service
+  description: Starts Meshbus clock and exposes config shell commands for board manual validation
+common:
+  tags:
+    - meshbus
+    - clock
+  harness: keyboard
+tests:
+  sample.subsys.meshbus.services.clock:
+    integration_platforms:
+      - mesh_probe_r2/nrf54l15/cpuapp
+      - tracker_t1000_e

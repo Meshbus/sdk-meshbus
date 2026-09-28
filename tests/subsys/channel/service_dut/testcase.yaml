@@ -1,0 +1,18 @@
+tests:
+  subsys.meshbus.channel.service_dut.mesh_probe_r2:
+    tags:
+      - meshbus
+      - channel
+      - zms
+      - service_dut
+    harness: ztest
+    harness_config:
+      fixture:
+        - mesh_probe_r2
+        - test-storage
+    expect_reboot: true
+    timeout: 30
+    platform_allow:
+      - mesh_probe_r2/nrf54l15/cpuapp
+    integration_platforms:
+      - mesh_probe_r2/nrf54l15/cpuapp

@@ -1,0 +1,5 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+rsource "boot_bluetooth/Kconfig"
+rsource "indicator/Kconfig"

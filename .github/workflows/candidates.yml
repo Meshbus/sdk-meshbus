@@ -1,0 +1,113 @@
+# SPDX-FileCopyrightText: 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+name: Candidate preparation
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: Validated builder tag or sha256 digest (resolved once)
+        default: stable
+        required: true
+        type: string
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+jobs:
+  validation:
+    uses: ./.github/workflows/validation.yml
+    with:
+      full: true
+      strict: true
+      retention-days: 90
+      image: ${{ inputs.image }}
+
+  products:
+    name: Firmware candidate / ${{ matrix.id }}
+    needs: validation
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ needs.validation.outputs.image }}
+      volumes:
+        - /usr/local/lib/android:/__host_sdks/android
+        - /usr/share/dotnet:/__host_sdks/dotnet
+        - /opt/ghc:/__host_sdks/ghc
+        - /usr/local/.ghcup:/__host_sdks/ghcup
+        - /opt/hostedtoolcache/CodeQL:/__host_sdks/codeql
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.validation.outputs.products) }}
+    env:
+      MESHBUS_CLI: ${{ github.workspace }}/internal-cli/meshbus/meshbus
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: meshbus
+          persist-credentials: false
+      - uses: ./meshbus/.github/actions/workspace
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: cli-x86_64-unknown-linux-gnu
+          path: internal-part
+      - run: python meshbus/scripts/ci/artifact.py internal-part internal-cli
+      - env:
+          BOARD: ${{ matrix.board }}
+        run: python meshbus/scripts/ci/run.py product --target "$BOARD" --candidate
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: firmware-part-${{ matrix.id }}
+          path: ci-output/firmware-parts
+          retention-days: 90
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: candidate-evidence-${{ matrix.id }}
+          include-hidden-files: true
+          path: |
+            ci-output/edk-qualification-*.log
+            ci-output/extensions-*/**/*.log
+            product-build/**/build.log
+            product-build/**/zephyr/.config
+            product-build/**/zephyr/zephyr.map
+          retention-days: 90
+
+  assemble:
+    needs: [validation, products]
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ needs.validation.outputs.image }}
+      volumes:
+        - /usr/local/lib/android:/__host_sdks/android
+        - /usr/share/dotnet:/__host_sdks/dotnet
+        - /opt/ghc:/__host_sdks/ghc
+        - /usr/local/.ghcup:/__host_sdks/ghcup
+        - /opt/hostedtoolcache/CodeQL:/__host_sdks/codeql
+    timeout-minutes: 30
+    env:
+      MESHBUS_CLI: ${{ github.workspace }}/internal-cli/meshbus/meshbus
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: meshbus
+          persist-credentials: false
+      - uses: ./meshbus/.github/actions/workspace
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: cli-x86_64-unknown-linux-gnu
+          path: internal-part
+      - run: python meshbus/scripts/ci/artifact.py internal-part internal-cli
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: firmware-part-*
+          path: product-parts
+      - working-directory: meshbus
+        run: west release assemble --input ../product-parts --output ../firmware-candidate
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: verified-firmware-candidate
+          path: firmware-candidate
+          retention-days: 90
+          if-no-files-found: error

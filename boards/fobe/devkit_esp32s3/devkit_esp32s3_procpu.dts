@@ -1,0 +1,171 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+
+#include <espressif/esp32s3/esp32s3_wroom_n16r8.dtsi>
+#include <espressif/partitions_0x0_amp_16M.dtsi>
+#include <zephyr/dt-bindings/gpio/arduino-header-r3.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/led/led.h>
+#include "devkit_esp32s3-pinctrl.dtsi"
+
+/ {
+	model = "FoBE DevKit ESP32S3 PROCPU";
+	compatible = "fobe,devkit-esp32s3";
+
+	chosen {
+		zephyr,sram = &sram1;
+		zephyr,console = &usb_serial;
+		zephyr,shell-uart = &usb_serial;
+		zephyr,flash = &flash0;
+		zephyr,code-partition = &slot0_partition;
+		zephyr,bt-hci = &esp32_bt_hci;
+	};
+
+	arduino_header: connector {
+		compatible = "arduino-header-r3";
+		#gpio-cells = <2>;
+		gpio-map-mask = <0xffffffff 0xffffffc0>;
+		gpio-map-pass-thru = <0 0x3f>;
+		gpio-map = <ARDUINO_HEADER_R3_A0 0 &gpio0 1 0>,
+			   <ARDUINO_HEADER_R3_A1 0 &gpio0 2 0>,
+			   <ARDUINO_HEADER_R3_A2 0 &gpio0 3 0>,
+			   <ARDUINO_HEADER_R3_A3 0 &gpio0 4 0>,
+			   <ARDUINO_HEADER_R3_A4 0 &gpio0 5 0>,
+			   <ARDUINO_HEADER_R3_A5 0 &gpio0 6 0>,
+			   <ARDUINO_HEADER_R3_D0 0 &gpio1 8 0>,
+			   <ARDUINO_HEADER_R3_D1 0 &gpio1 9 0>,
+			   <ARDUINO_HEADER_R3_D2 0 &gpio0 15 0>,
+			   <ARDUINO_HEADER_R3_D3 0 &gpio0 16 0>,
+			   <ARDUINO_HEADER_R3_D4 0 &gpio0 17 0>,
+			   <ARDUINO_HEADER_R3_D5 0 &gpio0 18 0>,
+			   <ARDUINO_HEADER_R3_D6 0 &gpio0 7 0>,
+			   <ARDUINO_HEADER_R3_D7 0 &gpio0 8 0>,
+			   <ARDUINO_HEADER_R3_D8 0 &gpio0 9 0>,
+			   <ARDUINO_HEADER_R3_D9 0 &gpio0 14 0>,
+			   <ARDUINO_HEADER_R3_D10 0 &gpio0 10 0>,
+			   <ARDUINO_HEADER_R3_D11 0 &gpio0 11 0>,
+			   <ARDUINO_HEADER_R3_D12 0 &gpio0 13 0>,
+			   <ARDUINO_HEADER_R3_D13 0 &gpio0 12 0>,
+			   <ARDUINO_HEADER_R3_D14 0 &gpio1 15 0>,
+			   <ARDUINO_HEADER_R3_D15 0 &gpio1 16 0>;
+	};
+	
+	buttons: buttons {
+		compatible = "gpio-keys";
+
+		button0: button_0 {
+			gpios = <&gpio0 0 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "USR Button";
+			zephyr,code = <INPUT_KEY_0>;
+		};
+	};
+
+	aliases {
+		mcuboot-button0 = &button0;
+		led-strip = &led_strip;
+		sw0 = &button0;
+		i2c-0 = &i2c0;
+		watchdog0 = &wdt0;
+	};
+};
+
+&usb_serial {
+	status = "okay";
+};
+
+&uart0 {
+	status = "disabled";
+};
+
+&uart1 {
+	status = "disabled";
+};
+
+&i2s0 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2s0_default>;
+
+
+	dmas = <&dma 3>;
+	dma-names = "tx";
+
+	led_strip: ws2812@0 {
+		compatible = "worldsemi,ws2812-i2s";
+
+		reg = <0>;
+		chain-length = <1>;
+		color-mapping = <LED_COLOR_ID_GREEN
+				 LED_COLOR_ID_RED
+				 LED_COLOR_ID_BLUE>;
+		reset-delay = <500>;
+	};
+};
+
+&dma {
+	status = "okay";
+};
+
+&i2c0 {
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+	pinctrl-0 = <&i2c0_default>;
+	pinctrl-names = "default";
+};
+
+&trng0 {
+	status = "okay";
+};
+
+&spi2 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+	pinctrl-0 = <&spim2_default>;
+	pinctrl-names = "default";
+};
+
+&gpio0 {
+	status = "okay";
+};
+
+&gpio1 {
+	status = "okay";
+};
+
+&adc0 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+};
+
+&wdt0 {
+	status = "okay";
+};
+
+&timer0 {
+	status = "okay";
+};
+
+&timer1 {
+	status = "okay";
+};
+
+&esp32_bt_hci {
+	status = "okay";
+};
+
+&wifi {
+	status = "okay";
+};
+
+arduino_serial: &uart0 {};
+
+arduino_i2c: &i2c0 {};
+
+arduino_spi: &spi2 {};

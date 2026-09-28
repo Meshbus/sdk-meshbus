@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+config MBS_SHELL
+	bool "Meshbus shell commands"
+	depends on SHELL
+	default y
+	help
+	  Enable shell commands for Meshbus subsystem.
+	  Provides commands for radio configuration, status monitoring,
+	  and diagnostics under the 'meshbus' command group.

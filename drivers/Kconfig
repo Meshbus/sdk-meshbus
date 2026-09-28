@@ -1,0 +1,13 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+menu "Device Drivers"
+
+rsource "charger/Kconfig"
+rsource "display/Kconfig"
+rsource "sensor/Kconfig"
+rsource "gnss/Kconfig"
+rsource "input/Kconfig"
+rsource "mfd/Kconfig"
+
+endmenu

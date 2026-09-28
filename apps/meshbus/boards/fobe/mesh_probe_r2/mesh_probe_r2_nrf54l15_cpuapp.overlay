@@ -1,0 +1,197 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <dt-bindings/sensor/sensor_channel.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/input/keymap.h>
+
+#include "mesh_probe_r2_partitions.dtsi"
+
+/ {
+	fstab: fstab {
+		compatible = "zephyr,fstab";
+		extra: extra {
+			compatible = "zephyr,fstab,littlefs";
+			automount;
+			mount-point = "/extra";
+			partition = <&extra_partition>;
+			read-size = <16>;
+			prog-size = <16>;
+			cache-size = <128>;
+			lookahead-size = <64>;
+			block-cycles = <512>;
+		};
+	};
+
+	compass: compass {
+		compatible = "zephyr,compass-composite";
+		status = "okay";
+		accel-source = <&lsm6ds3tr>;
+		gyro-source = <&lsm6ds3tr>;
+		magn-source = <&mmc5603>;
+		accel-channel = <SENSOR_CHAN_ACCEL_XYZ>;
+		gyro-channel = <SENSOR_CHAN_GYRO_XYZ>;
+		magn-channel = <SENSOR_CHAN_MAGN_XYZ>;
+		source-startup-delay-ms = <25>;
+		source-idle-timeout-ms = <0>;
+		calibration-sample-period-ms = <100>;
+		declination-milli-deg = <0>;
+		mount-offset-milli-deg = <0>;
+		gyro-fusion-alpha-milli = <400>;
+		/* Mesh Probe R2 FLU frame: +X front, +Y left, +Z up; both sensors are on the back. */
+		accel-axis-remap = <1 0 2>;
+		accel-axis-sign = <1 1 (-1)>;
+		magn-axis-remap = <1 0 2>;
+		magn-axis-sign = <1 1 (-1)>;
+	};
+
+	mbs_telemetry: meshbus-telemetry {
+		compatible = "fobe,meshbus-telemetry";
+
+		ch0 { sensor = <&lps22>; channel = <SENSOR_CHAN_AMBIENT_TEMP>; };
+		ch1 { sensor = <&lps22>; channel = <SENSOR_CHAN_PRESS>; };
+	};
+
+	chosen {
+		meshbus,indicator-light-active = &led0;
+		meshbus,indicator-buzzer = &pwm20;
+		meshbus,indicator-buzzer-power = &peripheral_power;
+		meshbus,indicator-light-power = &peripheral_power;
+		meshbus,compass = &compass;
+		meshbus,telemetry = &mbs_telemetry;
+		meshbus,fuel-gauge = &fuel_gauge;
+		meshbus,charger = &charger;
+		meshbus,power-button = &button0;
+		meshbus,radio = &sx1262;
+		meshbus,gnss = &l76k;
+		meshbus,input-buttons = &buttons;
+		meshbus,input-encoder = &encoder;
+		meshbus,input-keypad = &keypad;
+	};
+};
+
+/* Optional sensors populated by the Mesh Probe R2 assembly. */
+&i2c20 {
+	lps22: lps22hh@5c {
+		compatible = "st,lps22hh";
+		reg = <0x5c>;
+		odr = <1>;
+		power-domains = <&peripheral_power>;
+	};
+
+	mmc5603: mmc5603@30 {
+		compatible = "memsic,mmc56x3";
+		reg = <0x30>;
+		magn-odr = <0>;
+		auto-self-reset;
+		power-domains = <&peripheral_power>;
+	};
+
+	/* LSM6DS3TR-C uses the LSM6DSL-compatible register map. */
+	lsm6ds3tr: lsm6ds3tr@6a {
+		compatible = "st,lsm6dsl";
+		reg = <0x6a>;
+		power-domains = <&peripheral_power>;
+	};
+};
+
+&button0 {
+	zephyr,code = <INPUT_BTN_BACK>;
+};
+
+&button1 {
+	zephyr,code = <INPUT_BTN_SELECT>;
+};
+
+&buttons {
+	wakeup-source;
+
+	joystick_left: joystick_left {
+		gpios = <&tca6408a 0 GPIO_ACTIVE_LOW>;
+		zephyr,code = <INPUT_KEY_LEFT>;
+	};
+
+	joystick_center: joystick_center {
+		gpios = <&tca6408a 1 GPIO_ACTIVE_LOW>;
+		zephyr,code = <INPUT_KEY_ENTER>;
+	};
+
+	joystick_down: joystick_down {
+		gpios = <&tca6408a 2 GPIO_ACTIVE_LOW>;
+		zephyr,code = <INPUT_KEY_DOWN>;
+	};
+
+	joystick_up: joystick_up {
+		gpios = <&tca6408a 3 GPIO_ACTIVE_LOW>;
+		zephyr,code = <INPUT_KEY_UP>;
+	};
+
+	joystick_right: joystick_right {
+		gpios = <&tca6408a 4 GPIO_ACTIVE_LOW>;
+		zephyr,code = <INPUT_KEY_RIGHT>;
+	};
+
+	joystick_a: joystick_a {
+		gpios = <&tca6408a 5 GPIO_ACTIVE_LOW>;
+		zephyr,code = <INPUT_BTN_SELECT>;
+	};
+
+	joystick_b: joystick_b {
+		gpios = <&tca6408a 6 GPIO_ACTIVE_LOW>;
+		zephyr,code = <INPUT_BTN_BACK>;
+	};
+};
+
+&i2c21 {
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+
+	tca6408a: tca6408a@20 {
+		status = "okay";
+		compatible = "nxp,pca6408";
+		reg = <0x20>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		ngpios = <8>;
+		int-gpios = <&gpio1 14 GPIO_ACTIVE_LOW>;
+		reset-gpios = <&gpio1 13 (GPIO_OPEN_DRAIN | GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+		power-domains = <&peripheral_power>;
+	};
+
+	tca8418: tca8418@34 {
+		status = "okay";
+		compatible = "ti,tca8418";
+		reg = <0x34>;
+		int-gpios = <&gpio1 14 GPIO_ACTIVE_LOW>;
+		reset-gpios = <&gpio1 13 (GPIO_OPEN_DRAIN | GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+		power-domains = <&peripheral_power>;
+
+		tca8418_kbd: tca8418-kbd {
+			status = "okay";
+			compatible = "ti,tca8418-kbd";
+			row-size = <3>;
+			col-size = <4>;
+
+			keypad: keymap {
+				status = "okay";
+				compatible = "input-keymap";
+				keymap = <MATRIX_KEY(0, 0, INPUT_KEY_1)
+						  MATRIX_KEY(0, 1, INPUT_KEY_2)
+						  MATRIX_KEY(0, 2, INPUT_KEY_3)
+						  MATRIX_KEY(0, 3, INPUT_KEY_KPDOT)
+						  MATRIX_KEY(1, 0, INPUT_KEY_4)
+						  MATRIX_KEY(1, 1, INPUT_KEY_5)
+						  MATRIX_KEY(1, 2, INPUT_KEY_6)
+						  MATRIX_KEY(1, 3, INPUT_KEY_0)
+						  MATRIX_KEY(2, 0, INPUT_KEY_7)
+						  MATRIX_KEY(2, 1, INPUT_KEY_8)
+						  MATRIX_KEY(2, 2, INPUT_KEY_9)
+						  MATRIX_KEY(2, 3, INPUT_KEY_KPASTERISK)>;
+				row-size = <3>;
+				col-size = <4>;
+			};
+		};
+	};
+};

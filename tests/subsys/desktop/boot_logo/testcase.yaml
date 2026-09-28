@@ -1,0 +1,17 @@
+common:
+  tags:
+    - meshbus
+    - desktop
+    - integration
+  harness: ztest
+  platform_allow:
+    - qemu_x86
+  integration_platforms:
+    - qemu_x86
+tests:
+  subsys.meshbus.desktop.boot_logo.integration:
+    extra_args:
+      - BOOT_LOGO_DURATION_MS=1000
+  subsys.meshbus.desktop.boot_logo.disabled.integration:
+    extra_args:
+      - BOOT_LOGO_DURATION_MS=0

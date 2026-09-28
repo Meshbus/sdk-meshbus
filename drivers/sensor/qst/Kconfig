@@ -1,0 +1,4 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+rsource "qma6100p/Kconfig"

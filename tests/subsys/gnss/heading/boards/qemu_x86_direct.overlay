@@ -1,0 +1,40 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	fake_imu: fake-imu {
+		compatible = "fobe,compass-vector-sensor";
+		status = "okay";
+		role = "imu";
+	};
+
+	fake_magn: fake-magn {
+		compatible = "fobe,compass-vector-sensor";
+		status = "okay";
+		role = "magnetometer";
+	};
+
+	fake_heading: fake-heading {
+		compatible = "fobe,compass-heading-sensor";
+		status = "okay";
+	};
+
+	compass: compass {
+		compatible = "zephyr,compass-composite";
+		status = "okay";
+		accel-source = <&fake_imu>;
+		gyro-source = <&fake_imu>;
+		magn-source = <&fake_magn>;
+		source-startup-delay-ms = <0>;
+		source-idle-timeout-ms = <0>;
+		calibration-sample-period-ms = <0>;
+		gyro-fusion-alpha-milli = <980>;
+	};
+
+	chosen {
+		meshbus,compass = &fake_heading;
+	};
+};

@@ -1,0 +1,6 @@
+/* SPDX-FileCopyrightText: FoBE Studio */
+/* SPDX-License-Identifier: Apache-2.0 */
+
+#pragma once
+
+#include <desktop/desktop.h>

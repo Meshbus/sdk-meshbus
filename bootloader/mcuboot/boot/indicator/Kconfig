@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+config MCUBOOT_INDICATOR
+	bool "FoBE MCUboot status indicator"
+	depends on MCUBOOT
+	depends on MCUBOOT_ACTION_HOOKS
+	depends on GPIO
+	help
+	  Enable FoBE bootloader status indication hooks for MCUboot.
+
+	  The current implementation uses the mcuboot-led0 devicetree alias for
+	  recovery status and wraps serial console read/write calls to show
+	  recovery traffic activity.

@@ -1,0 +1,27 @@
+tests:
+  subsys.meshbus.desktop.mba_lifecycle.integration:
+    tags:
+      - meshbus
+      - desktop
+      - llext
+      - integration
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86
+  subsys.meshbus.desktop.mba_lifecycle.integration.shuffled:
+    tags:
+      - meshbus
+      - desktop
+      - llext
+      - integration
+      - shuffle
+    harness: ztest
+    extra_configs:
+      - CONFIG_ZTEST_SHUFFLE=y
+      - CONFIG_TIMER_RANDOM_INITIAL_STATE=826366246
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86

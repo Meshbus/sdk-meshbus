@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+# Repository CI exceptions to file metadata and named distribution-only texts.
+# This policy does not declare full REUSE compliance or grant/relicense rights.
+# Board documentation raster images and plain VERSION/scalar version data are
+# scoped out by scripts/ci/license_policy.py without content hashes.
+# Other metadata exemptions below use exact paths and SHA256.
+# Review content before adding an entry or refreshing a digest; do not bulk
+# regenerate this policy from scanner failures.
+# Missing license texts, invalid licenses, read errors and font checks still fail.
+version = 1
+
+# REUSE scans this source tree, not the external Cargo packages in a CLI archive.
+# Keep one canonical Boost text for the clipboard-win packaging fallback without
+# falsely assigning BSL-1.0 to Meshbus code or retaining a duplicate notice file.
+[distribution_licenses]
+"BSL-1.0" = "External clipboard-win fallback in scripts/release/artifacts.py; retained standard text is exercised by CLI archive tests."
+
+[[exemptions]]
+category = "tool-settings"
+reason = "Reviewed editor, formatter, lint, line-ending and ignore settings; waive additional per-file metadata only, retaining existing notices."
+[exemptions.files]
+".checkpatch.conf" = "8def373190f75178cd374e1fa354c494af45acd8fa3816b6aa085f7775d2ef44"
+".clang-format" = "57bc87dc3a2c04aab21fc65ee2ac9f9b433dc2d0a63d4dc8a1a527ef387479ad"
+".editorconfig" = "2da14f40503a37e931a6c2869da9ba6de523138b82fd761a46a6f8fb0daf7ea9"
+".gitattributes" = "f63d19fc04961c85382838429d4ce4f11c76efa83ea70a5a6d63f35d7bb7d88c"
+".gitlint" = "7c7b03fb321c1b4a673905de98a405006aa8c21f8ae98e3284c0d179fae66833"
+"apps/meshbus/.gitignore" = "e4e98b41032ead4a2c0dfd327baf7facdd5b3e38dce2b1474bb4ea6e63362921"
+"scripts/meshbus/.gitignore" = "02e7b40893c74a993a139de7b0f85d8cf2eaea57d544effd576920a514872af4"
+
+[[exemptions]]
+category = "workspace-metadata"
+reason = "Reviewed dependency, module and west command registration data; dependency and tool licenses remain independently checked."
+[exemptions.files]
+"scripts/requirements.txt" = "e2e1688e50795317e35a742c0ad2722988e1605f6d6a317e7995e7e73de1019e"
+"west.yml" = "57f9e66613d4e3260339b2ff9a8953dbe638036b7287332da5d13bb37a7eef42"

@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+identifier: mesh_probe_r1
+name: Mesh Probe R1
+type: mcu
+arch: arm
+ram: 256
+flash: 1024
+toolchain:
+  - zephyr
+  - gnuarmemb
+supported:
+  - adc
+  - ble
+  - counter
+  - gpio
+  - lora
+  - i2c
+  - i2s
+  - pwm
+  - spi
+  - usbd
+  - watchdog
+  - netif:openthread
+vendor: fobe

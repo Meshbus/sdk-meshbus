@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+board:
+  name: devkit_esp32c6
+  full_name: FoBE DevKit ESP32C6
+  vendor: fobe
+  socs:
+    - name: esp32c6

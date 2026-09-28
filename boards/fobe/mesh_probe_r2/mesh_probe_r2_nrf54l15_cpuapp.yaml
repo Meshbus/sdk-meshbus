@@ -1,0 +1,25 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+identifier: mesh_probe_r2/nrf54l15/cpuapp
+name: Mesh Probe R2
+vendor: fobe
+arch: arm
+toolchain:
+  - gnuarmemb
+  - zephyr
+sysbuild: true
+ram: 188
+flash: 1428
+supported:
+  - adc
+  - counter
+  - dmic
+  - gpio
+  - i2c
+  - lora
+  - pwm
+  - retained_mem
+  - spi
+  - watchdog
+  - i2s

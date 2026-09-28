@@ -1,0 +1,52 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  Meshbus Telemetry Configuration
+
+  This virtual node configures which sensor channels should be monitored by
+  the meshbus telemetry subsystem. The binding is intentionally device-agnostic:
+  developers only update devicetree to choose which (sensor, channel) pairs are
+  published periodically via ZBus.
+
+  Channels are described using child nodes. Each child node binds exactly one
+  sensor device and one common Zephyr sensor channel id (enum sensor_channel,
+  below SENSOR_CHAN_ALL). Driver-private channels are not part of the Meshbus
+  Telemetry protocol and cannot be listed here.
+
+  A sensor selected as `meshbus,compass`, including the accelerometer,
+  gyroscope, and magnetometer sources of a `zephyr,compass-composite`, is owned
+  exclusively by the Compass runtime and must not be listed here.
+
+  Example:
+    / {
+      mbs_telemetry: meshbus-telemetry {
+        compatible = "fobe,meshbus-telemetry";
+
+        ch0 { sensor = <&lps22>; channel = <SENSOR_CHAN_AMBIENT_TEMP>; };
+        ch1 { sensor = <&lps22>; channel = <SENSOR_CHAN_PRESS>; };
+      };
+
+      chosen {
+        meshbus,telemetry = &mbs_telemetry;
+      };
+    };
+
+compatible: fobe,meshbus-telemetry
+
+child-binding:
+  description: Telemetry channel mapping entry
+  properties:
+    sensor:
+      type: phandle
+      required: true
+      description: Sensor device which provides the channel data.
+
+    channel:
+      type: int
+      required: true
+      description: |
+        Common sensor channel id. Use values from Zephyr's enum sensor_channel
+        below SENSOR_CHAN_ALL; driver-private channel ids are not supported.
+        In devicetree, include a dt-bindings header that defines channel ids
+        (for example, <dt-bindings/sensor/sensor_channel.h>).

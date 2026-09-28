@@ -1,0 +1,60 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * Partition adjustments for wio_tracker_l1/nrf52840.
+ *
+ * The internal flash layout keeps the stock UF2/S140 v7 SoftDevice and UF2
+ * bootloader boundaries, but expands storage_partition from 32 KiB to 128 KiB.
+ * The application slot shrinks from 788 KiB to 692 KiB so storage still ends
+ * before the read-only UF2 boot area at 0xf4000.
+ *
+ * The 16 Mbit P25Q16H QSPI NOR is reserved entirely for /extra.
+ */
+&flash0 {
+	/delete-node/ partitions;
+
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		reserved_partition_0: partition@0 {
+			label = "SoftDevice";
+			read-only;
+			reg = <0x00000000 0x00027000>;
+		};
+
+		code_partition: partition@27000 {
+			label = "Application";
+			reg = <0x00027000 0x000ad000>;
+		};
+
+		storage_partition: partition@d4000 {
+			label = "Storage";
+			reg = <0x000d4000 0x00020000>;
+		};
+
+		boot_partition: partition@f4000 {
+			label = "UF2";
+			read-only;
+			reg = <0x000f4000 0x0000c000>;
+		};
+	};
+};
+
+&p25q16h {
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		extra_partition: partition@0 {
+			label = "Extra";
+			reg = <0x00000000 0x00200000>;
+		};
+	};
+};

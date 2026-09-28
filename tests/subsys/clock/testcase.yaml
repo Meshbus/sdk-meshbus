@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+tests:
+  subsys.meshbus.clock.contract:
+    tags:
+      - meshbus
+      - clock
+      - contract
+      - ztest
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+      - native_sim
+    integration_platforms:
+      - native_sim
+  subsys.meshbus.clock.timestamps_only:
+    tags: [meshbus, clock, contract, ztest]
+    harness: ztest
+    platform_allow: [qemu_x86, native_sim]
+    integration_platforms: [native_sim]
+    extra_args: CONF_FILE=basic.conf
+  subsys.meshbus.clock.shell:
+    tags: [meshbus, clock, shell, integration, ztest]
+    harness: ztest
+    platform_allow: [qemu_x86, native_sim]
+    integration_platforms: [native_sim]
+    extra_args: EXTRA_CONF_FILE=shell.conf

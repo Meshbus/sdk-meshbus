@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+west-commands:
+  - file: scripts/mklfs/mklfs.py
+    commands:
+      - name: mklfs
+        class: MkLfs
+        help: create a LittleFS image
+
+  - file: scripts/remote/remote.py
+    commands:
+      - name: remote
+        class: Remote
+        help: forward USB debug probes and serial ports to a development host
+
+  - file: scripts/meshbus/meshbus.py
+    commands:
+      - name: meshbus
+        class: Meshbus
+        help: Incrementally build and run the local Rust Meshbus CLI
+
+  - file: scripts/release/release.py
+    commands:
+      - name: release
+        class: Release
+        help: Build and archive product candidates (Python; never publishes)

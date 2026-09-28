@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+sample:
+  name: Meshbus GNSS service
+  description: Starts Meshbus GNSS for board shell and live GNSS manual validation
+common:
+  tags:
+    - meshbus
+    - gnss
+  harness: keyboard
+tests:
+  sample.subsys.meshbus.services.gnss:
+    platform_allow:
+      - mesh_probe_r2/nrf54l15/cpuapp
+    integration_platforms:
+      - mesh_probe_r2/nrf54l15/cpuapp

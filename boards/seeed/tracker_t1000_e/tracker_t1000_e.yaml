@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+identifier: tracker_t1000_e
+name: SenseCAP Card Tracker T1000-E
+type: mcu
+arch: arm
+ram: 256
+flash: 1024
+toolchain:
+  - zephyr
+  - gnuarmemb
+supported:
+  - adc
+  - ble
+  - counter
+  - gpio
+  - gnss
+  - i2c
+  - lora
+  - pwm
+  - spi
+  - usbd
+  - watchdog
+  - netif:openthread
+vendor: seeed

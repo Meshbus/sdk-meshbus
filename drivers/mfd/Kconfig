@@ -1,0 +1,8 @@
+# Copyright (c) 2025 FoBE Projects
+# SPDX-License-Identifier: Apache-2.0
+
+if MFD
+
+rsource "Kconfig.tca8418"
+
+endif # MFD

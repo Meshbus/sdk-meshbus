@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+id: native_peripherals
+name: Native peripherals
+version: 1.0.0
+entry-point: native_peripherals_main
+stack-size: 2048

@@ -1,0 +1,30 @@
+/*
+ * Copyright (c) 2026 FoBE Studio
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <zephyr/dt-bindings/i2c/i2c.h>
+
+/ {
+	test_i2c: i2c@100 {
+		compatible = "zephyr,i2c-emul-controller";
+		clock-frequency = <I2C_BITRATE_STANDARD>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x100 4>;
+		status = "okay";
+
+		lsm6ds3_tr: sensor@6a {
+			compatible = "fobe,lsm6ds3-family";
+			reg = <0x6a>;
+			status = "okay";
+		};
+
+		lsm6ds3_tr_c: sensor@6b {
+			compatible = "fobe,lsm6ds3-family";
+			reg = <0x6b>;
+			status = "okay";
+		};
+	};
+};

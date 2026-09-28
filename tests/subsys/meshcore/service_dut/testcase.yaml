@@ -1,0 +1,18 @@
+tests:
+  subsys.meshbus.meshcore.service_dut.mesh_probe_r2.receive_only:
+    tags:
+      - meshbus
+      - meshcore
+      - radio
+      - service_dut
+    harness: ztest
+    harness_config:
+      fixture:
+        - mesh_probe_r2
+        - radio
+        - test-storage
+    timeout: 30
+    platform_allow:
+      - mesh_probe_r2/nrf54l15/cpuapp
+    integration_platforms:
+      - mesh_probe_r2/nrf54l15/cpuapp

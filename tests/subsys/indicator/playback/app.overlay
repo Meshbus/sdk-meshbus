@@ -1,0 +1,9 @@
+/ {
+    chosen { meshbus,indicator-buzzer = &test_pwm; };
+    test_pwm: pwm@12340000 {
+        reg = <0x12340000 0x100>;
+        compatible = "vnd,indicator-pwm";
+        #pwm-cells = <3>;
+        status = "okay";
+    };
+};

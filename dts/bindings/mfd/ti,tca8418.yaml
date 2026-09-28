@@ -1,0 +1,70 @@
+# Copyright (c) 2025 FoBE Projects
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  Texas Instruments TCA8418 I2C-controlled keypad scan IC.
+
+  This is the Multi-Function Device (MFD) parent driver that provides
+  shared I2C bus access and interrupt handling for child devices.
+
+  The TCA8418 supports up to 80 keys in an 8x10 matrix with integrated
+  50μs debounce and 10-event FIFO. Unused keypad pins can be configured
+  as GPIOs (GPIO child device support planned for future).
+
+  Child devices:
+    - ti,tca8418-kbd: Keyboard matrix controller
+
+  Example configuration:
+
+    #include <zephyr/dt-bindings/input/input-event-codes.h>
+    #include <zephyr/dt-bindings/input/keymap.h>
+
+    &i2c0 {
+        tca8418: tca8418@34 {
+            compatible = "ti,tca8418";
+            reg = <0x34>;
+            int-gpios = <&gpio0 5 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+
+            tca8418_kbd: kbd {
+                compatible = "ti,tca8418-kbd";
+                row-size = <4>;
+                col-size = <4>;
+
+                keymap {
+                    compatible = "input-keymap";
+                    keymap = <
+                        MATRIX_KEY(0, 0, INPUT_KEY_1)
+                        MATRIX_KEY(0, 1, INPUT_KEY_2)
+                        MATRIX_KEY(0, 2, INPUT_KEY_3)
+                        MATRIX_KEY(0, 3, INPUT_KEY_A)
+                    >;
+                    row-size = <4>;
+                    col-size = <4>;
+                };
+            };
+        };
+    };
+
+compatible: ti,tca8418
+
+include: i2c-device.yaml
+
+properties:
+  int-gpios:
+    type: phandle-array
+    description: |
+      GPIO connected to the INT pin (active-low, open-drain).
+      If specified, the driver operates in interrupt mode.
+      If not specified, child drivers may fall back to polling mode.
+
+  reset-gpios:
+    type: phandle-array
+    description: |
+      GPIO connected to the RESET pin (active-low).
+      Optional. If specified, a hardware reset is performed during
+      initialization.
+
+child-binding:
+  description: |
+    Child devices for the TCA8418 MFD.
+    Currently supported: ti,tca8418-kbd (keyboard controller)

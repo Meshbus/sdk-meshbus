@@ -1,0 +1,48 @@
+manifest:
+  remotes:
+    - name: meshbus
+      url-base: https://github.com/Meshbus
+    - name: zephyrproject
+      url-base: https://github.com/zephyrproject-rtos
+
+  defaults:
+    remote: meshbus
+
+  projects:
+    - name: zephyr
+      repo-path: sdk-zephyr
+      revision: 4adceb2f861d6a6de67e348c329e12735c21e8f0
+      import: true
+    - name: meshbus-protobufs
+      path: modules/lib/meshbus-protobufs
+      repo-path: meshbus-protobufs
+      revision: bcd91e626174b2a2a83105c2f43fc96a35ad7fa3
+    - name: meshcore
+      path: modules/lib/meshcore
+      repo-path: sdk-meshcore
+      revision: b14b2ca5d7d15c3aa1770400b7b66fa4d28fd5e3
+    - name: u8g2
+      path: modules/lib/u8g2
+      repo-path: sdk-u8g2
+      revision: c0a719566c1f3a8284c15d2603d70ca6d3f17573
+    - name: zui
+      path: modules/lib/zui
+      repo-path: sdk-zui
+      revision: 68794bd65b8d1dde5583a30b2b22d601faff794e
+      west-commands: scripts/west-commands.yml
+    - name: arduboy
+      path: modules/lib/arduboy
+      repo-path: sdk-arduboy
+      revision: 016162db40cdf64f58a229a7a75f176bda90b805
+    - name: detools
+      path: modules/lib/detools
+      repo-path: sdk-detools
+      revision: fe0f40c323438c4945794780277724397481c6d6
+    - name: heatshrink
+      path: modules/lib/heatshrink
+      repo-path: sdk-heatshrink
+      revision: 8c98cde55c7bde2947064ff70eba30ab1c7dda7c
+
+  self:
+    path: meshbus
+    west-commands: scripts/west-commands.yml

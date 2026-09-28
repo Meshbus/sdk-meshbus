@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+sample:
+  name: Meshbus telemetry service
+  description: Starts Meshbus telemetry and logs live sensor channel events for board shell manual validation
+common:
+  tags:
+    - meshbus
+    - telemetry
+  harness: keyboard
+tests:
+  sample.subsys.meshbus.services.telemetry:
+    platform_allow:
+      - mesh_probe_r2/nrf54l15/cpuapp
+    integration_platforms:
+      - mesh_probe_r2/nrf54l15/cpuapp

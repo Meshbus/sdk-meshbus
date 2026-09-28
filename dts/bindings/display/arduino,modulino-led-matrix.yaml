@@ -1,0 +1,27 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  Arduino Modulino LED Matrix with a 12x8 panel and STM32 I2C controller
+  running node_modulino_firmware with MON and GS4 mode reporting.
+  The default 7-bit address is 0x39 (the firmware uses shifted address 0x72).
+
+compatible: "arduino,modulino-led-matrix"
+
+include: [i2c-device.yaml, display-controller.yaml]
+
+properties:
+  width:
+    const: 12
+
+  height:
+    const: 8
+
+  command-delay-ms:
+    type: int
+    default: 1
+    description: |
+      Minimum settling time after each I2C write. Firmware processes received
+      data in its main loop and shares the receive and status buffers. The
+      default follows the Arduino library's mode-switch delay; increase it if
+      required by the installed firmware. Must be greater than zero.

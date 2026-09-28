@@ -1,0 +1,38 @@
+/*
+ * Dedicated validation-device layout only.
+ *
+ * The stock Mesh Probe R2 layout has no unallocated RRAM. This overlay shortens the
+ * secondary image slot by 64 KiB and gives that range to the test-only ZMS
+ * backend. It preserves the stock 36 KiB product storage bytes at 0x174000
+ * under a different node label so the settings subsystem cannot select them.
+ * Flashing/running this image invalidates any secondary upgrade image and is
+ * therefore prohibited without a device dedicated to destructive validation.
+ */
+
+/delete-node/ &storage_partition;
+
+&slot1_partition {
+	reg = <0x0c2000 0x0a2000>;
+};
+
+&cpuapp_rram {
+	partitions {
+		storage_partition: partition@164000 {
+			compatible = "zephyr,mapped-partition";
+			label = "meshbus-test-storage";
+			reg = <0x164000 0x00f000>;
+		};
+
+		channel_test_stage_partition: partition@173000 {
+			compatible = "zephyr,mapped-partition";
+			label = "meshbus-channel-test-stage";
+			reg = <0x173000 0x001000>;
+		};
+
+		product_storage_partition: partition@174000 {
+			compatible = "zephyr,mapped-partition";
+			label = "product-storage-preserved";
+			reg = <0x174000 0x009000>;
+		};
+	};
+};

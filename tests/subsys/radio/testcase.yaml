@@ -1,0 +1,30 @@
+tests:
+  subsys.meshbus.radio.contract:
+    tags:
+      - meshbus
+      - radio
+      - contract
+    harness: ztest
+    platform_allow:
+      - qemu_x86
+    integration_platforms:
+      - qemu_x86
+
+  subsys.meshbus.radio.service_dut.mesh_probe_r2:
+    tags:
+      - meshbus
+      - radio
+      - service_dut
+    harness: ztest
+    harness_config:
+      fixture:
+        - mesh_probe_r2
+        - radio
+        - test-storage
+    timeout: 30
+    platform_allow:
+      - mesh_probe_r2/nrf54l15/cpuapp
+    integration_platforms:
+      - mesh_probe_r2/nrf54l15/cpuapp
+    extra_conf_files:
+      - configs/service_dut.conf

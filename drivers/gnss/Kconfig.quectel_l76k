@@ -1,0 +1,54 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+config GNSS_QUECTEL_L76K
+	bool "Quectel L76K GNSS modem driver"
+	default y
+	depends on GNSS
+	depends on DT_HAS_QUECTEL_L76K_ENABLED
+	select MODEM_MODULES
+	select MODEM_BACKEND_UART
+	select MODEM_CHAT
+	select GNSS_PARSE
+	select GNSS_NMEA0183
+	select GNSS_NMEA0183_MATCH
+	select UART_USE_RUNTIME_CONFIGURE
+	help
+	  Enable Quectel L76K GNSS modem driver.
+	  The L76K is based on the CASIC AT6558R chipset and supports
+	  GPS, GLONASS, BeiDou, and QZSS constellations.
+
+if GNSS_QUECTEL_L76K
+
+config GNSS_QUECTEL_L76K_UART_RX_BUF_SIZE
+	int "Size of UART backend receive buffer"
+	default 512
+	help
+	  Size of the UART receive buffer in bytes. Should be large enough
+	  to hold multiple NMEA sentences. Increase if data is being lost
+	  at higher baud rates.
+
+config GNSS_QUECTEL_L76K_UART_TX_BUF_SIZE
+	int "Size of UART backend transmit buffer"
+	default 128
+	help
+	  Size of the UART transmit buffer in bytes. Used for sending
+	  PCAS configuration commands to the module.
+
+config GNSS_QUECTEL_L76K_CHAT_RX_BUF_SIZE
+	int "Size of modem chat receive buffer"
+	default 256
+	help
+	  Size of the modem chat receive buffer in bytes. Should be large
+	  enough to hold a complete NMEA sentence (max ~82 characters) plus
+	  some margin.
+
+if GNSS_SATELLITES
+
+config GNSS_QUECTEL_L76K_SAT_ARRAY_SIZE
+	int "Size of GNSS satellites array"
+	default 32
+
+endif # GNSS_SATELLITES
+
+endif # GNSS_QUECTEL_L76K

@@ -1,0 +1,36 @@
+/*
+ * Build-only LR2021 overlay for exercising the LR20XX LBM driver on the
+ * tracker_t1000_e compile target. This does not describe verified hardware.
+ */
+
+#include <zephyr/dt-bindings/lora/lr20xx.h>
+
+/ {
+	aliases {
+		lora0 = &lr2021;
+	};
+};
+
+&spi2 {
+	/delete-node/ lr1110@0;
+
+	lr2021: lr2021@0 {
+		compatible = "semtech,lr2021";
+		status = "okay";
+		reg = <0>;
+		reset-gpios = <&gpio1 10 GPIO_ACTIVE_LOW>;
+		busy-gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>;
+		irq-gpios = <&gpio1 1 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+		spi-max-frequency = <DT_FREQ_M(8)>;
+		irq-dio = <LR20XX_DIO8>;
+		dio-sleep-drive = <LR20XX_DIO_SLEEP_DRIVE_NONE>;
+		dio5-rfsw = <(LR20XX_DIO_RFSW_RX_LF | LR20XX_DIO_RFSW_TX_HF)>;
+		dio6-rfsw = <(LR20XX_DIO_RFSW_RX_LF | LR20XX_DIO_RFSW_TX_LF |
+			       LR20XX_DIO_RFSW_RX_HF | LR20XX_DIO_RFSW_TX_HF)>;
+		lf-clk = "RC";
+		hf-frequency-threshold-hz = <1600000000>;
+		rx-boost-mode-lf = <LR20XX_RX_BOOST_NONE>;
+		rx-boost-mode-hf = <LR20XX_RX_BOOST_NONE>;
+		front-end-calibration-frequencies-hz = <470000000 897500000 2441000000>;
+	};
+};

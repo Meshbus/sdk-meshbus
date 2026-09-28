@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+name: Cargo cache
+description: Reuse compiler inputs; candidate binaries are always built afresh
+inputs:
+  target:
+    required: true
+    description: Target triple or host-test profile
+  image:
+    required: true
+    description: Builder digest or Apple runner identity
+  candidate:
+    default: 'false'
+    description: Exclude compiled objects from candidate reuse
+runs:
+  using: composite
+  steps:
+    - id: paths
+      shell: bash
+      env:
+        CANDIDATE: ${{ inputs.candidate }}
+      run: |
+        cargo_root="${CARGO_HOME:-$HOME/.cargo}"
+        {
+          echo 'paths<<MESHBUS_CARGO_PATHS'
+          echo "$cargo_root/registry"
+          echo "$cargo_root/git"
+          echo "$GITHUB_WORKSPACE/xwin-cache"
+          if [[ "$CANDIDATE" != true ]]; then echo "$GITHUB_WORKSPACE/cargo-build"; fi
+          echo MESHBUS_CARGO_PATHS
+        } >> "$GITHUB_OUTPUT"
+        python - <<'PYTHON'
+        import hashlib, os, subprocess, sys
+        commands = [['rustc', '-vV']]
+        if sys.platform == 'darwin':
+            commands += [['sw_vers'], ['xcodebuild', '-version'], ['xcrun', '--show-sdk-version']]
+        digest = hashlib.sha256()
+        for command in commands:
+            digest.update(subprocess.check_output(command))
+        for key in ('RUSTFLAGS', 'CARGO_ENCODED_RUSTFLAGS', 'CFLAGS', 'CXXFLAGS'):
+            digest.update(key.encode() + b'\0' + os.environ.get(key, '').encode())
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+            output.write('tools=' + digest.hexdigest() + '\n')
+        PYTHON
+    - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: ${{ steps.paths.outputs.paths }}
+        key: cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.image }}-${{ inputs.target }}-${{ inputs.candidate }}-${{ steps.paths.outputs.tools }}-${{ hashFiles('meshbus/scripts/meshbus/Cargo.lock', 'snapshot/west-frozen.yml') }}-${{ github.sha }}
+        restore-keys: |
+          cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.image }}-${{ inputs.target }}-${{ inputs.candidate }}-${{ steps.paths.outputs.tools }}-${{ hashFiles('meshbus/scripts/meshbus/Cargo.lock', 'snapshot/west-frozen.yml') }}-

@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 22 * * 0' # Monday 06:00 Asia/Shanghai
+  workflow_dispatch:
+    inputs:
+      image:
+        description: Builder tag or sha256 digest for reproduction
+        type: string
+        default: stable
+permissions:
+  contents: read
+jobs:
+  validation:
+    uses: ./.github/workflows/validation.yml
+    with:
+      image: ${{ inputs.image || 'stable' }}

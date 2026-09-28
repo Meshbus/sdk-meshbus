@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+name: Set up west workspace
+description: Update pinned dependencies directly from this checkout's west.yml
+runs:
+  using: composite
+  steps:
+    - name: Reserve disk for dependencies and builds
+      if: runner.os == 'Linux'
+      shell: bash
+      run: bash meshbus/scripts/ci/prepare-disk.sh container
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      with:
+        name: source-snapshot
+        path: snapshot
+    - name: Update dependencies and check version records
+      shell: bash
+      run: python meshbus/scripts/ci/workspace.py --workspace "$GITHUB_WORKSPACE" --verify snapshot

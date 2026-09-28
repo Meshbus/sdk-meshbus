@@ -1,0 +1,21 @@
+# Copyright (c) 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+
+identifier: mesh_probe_r2/nrf54l15/cpuapp/ns
+name: Mesh Probe R2 Non-Secure
+type: mcu
+arch: arm
+toolchain:
+  - gnuarmemb
+  - zephyr
+sysbuild: true
+ram: 256
+flash: 1524
+supported:
+  - gpio
+  - i2c
+  - pwm
+  - spi
+  - uart
+  - watchdog
+vendor: fobe
