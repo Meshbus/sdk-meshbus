@@ -77,17 +77,32 @@ Bluetooth pairing, radio delivery or power consumption on hardware.
 Sound uses the same operation semantics, with an independent bounded scheduler.
 There is no acceptance sound. Peer ACK sounds follow the system buzzer preference.
 
+The single-voice melodies use compact G-major arpeggios and distinct rhythms
+for each event. Startup lasts 460 ms and shutdown lasts 440 ms.
+ACK and pairing success have distinct melodies. The tables specify nominal
+frequencies and durations; PWM timing quantization and workqueue delays may
+affect physical playback.
+
 | Meaning | Sound |
 | --- | --- |
-| Direct message received | 2400 Hz / 80 ms, rest 100 ms, 3000 Hz / 80 ms |
-| Channel message received | 2400 Hz / 80 ms |
-| Send API rejected submission | Three 2200 Hz / 80 ms notes, 100 ms gaps |
-| Confirmation deadline elapsed | Two 1400 Hz / 220 ms notes, 160 ms gap |
-| Pairing success / peer ACK | 2000 Hz / 80 ms, rest 60 ms, 3000 Hz / 100 ms |
-| Pairing failed | 3000 Hz / 100 ms, rest 60 ms, 1600 Hz / 120 ms |
-| Startup ready | Existing short ascending startup melody, after critical readiness |
-| Low battery | 1800 Hz / 150 ms, rest 120 ms, 1200 Hz / 200 ms |
-| Sustained fault | 1800 Hz / 150 ms twice, 100 ms gaps, 1200 Hz / 250 ms |
+| Direct message received | 988 Hz / 50 ms, rest 20 ms, 1175 Hz / 50 ms, rest 20 ms, 1568 Hz / 100 ms |
+| Channel message received | 1175 Hz / 60 ms |
+| Peer ACK | 1175 Hz / 40 ms, rest 20 ms, 1568 Hz / 80 ms |
+| Send API rejected submission | 784 Hz / 50 ms, rest 50 ms, 784 Hz / 50 ms, rest 50 ms, 784 Hz / 90 ms |
+| Confirmation deadline elapsed | 988 Hz / 130 ms, rest 180 ms, 988 Hz / 130 ms |
+| Pairing success | 784 Hz / 60 ms, rest 20 ms, 988 Hz / 60 ms, rest 20 ms, 1175 Hz / 60 ms, rest 60 ms, 1568 Hz / 160 ms |
+| Pairing failed | 988 Hz / 80 ms, rest 40 ms, 784 Hz / 140 ms |
+| Startup ready | 784 Hz / 60 ms, rest 20 ms, 988 Hz / 60 ms, rest 20 ms, 1175 Hz / 100 ms, rest 40 ms, 1568 Hz / 160 ms |
+| Shutdown | 1175 Hz / 90 ms, rest 30 ms, 988 Hz / 90 ms, rest 30 ms, 784 Hz / 200 ms |
+| Release BACK to shut down | 988 Hz / 40 ms, rest 20 ms, 784 Hz / 70 ms |
+| Low battery | 784 Hz / 100 ms, rest 120 ms, 587 Hz / 180 ms |
+| Sustained fault | 1175 Hz / 100 ms, rest 60 ms, 1175 Hz / 100 ms, rest 60 ms, 784 Hz / 200 ms |
+| Short press / encoder step | 1175 Hz / 10 ms |
+| Long press | 1175 Hz / 20 ms, rest 20 ms, 1175 Hz / 20 ms |
+| Confirm short press | 988 Hz / 20 ms, 1175 Hz / 30 ms |
+| Confirm long press | 988 Hz / 30 ms, rest 10 ms, 1175 Hz / 30 ms, rest 10 ms, 1568 Hz / 50 ms |
+| Back short press | 988 Hz / 20 ms, 784 Hz / 30 ms |
+| Back long press | 1175 Hz / 30 ms, rest 10 ms, 988 Hz / 30 ms, rest 10 ms, 784 Hz / 50 ms |
 
 Same-kind sounds merge within one second; each kind has one pending slot which
 expires after three seconds. Higher priority interrupts and discards the old
@@ -108,4 +123,6 @@ Sending does not change the recipient's indicator preferences.
 
 The buzzer scheduler owns only its own playback token, so completing or disabling
 a semantic sound does not stop an unrelated replacement melody. Explicit buzzer
-stop also drops pending semantic sounds. Shutdown retains its existing melody.
+stop also drops pending semantic sounds. Shutdown plays its closing melody
+synchronously before the buzzer is powered down. The dynamic BACK-hold countdown
+ticks belong to the Power service and are separate from the release cue above.

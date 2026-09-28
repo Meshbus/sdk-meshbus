@@ -286,10 +286,9 @@ ZTEST(mbs_indicator_contract, test_message_feedback_distinguishes_melody_with_so
 	rc = indicator_test_buzzer_wait_count(1U, &channel_capture);
 	zassert_ok(rc, "channel message feedback missing: %d", rc);
 	zassert_equal(channel_capture.last_melody_len, 1U);
-	zassert_equal(direct_capture.last_melody_len, 3U);
-	zassert_equal(channel_capture.last_first_freq_hz, direct_capture.last_first_freq_hz);
-	zassert_equal(channel_capture.last_first_duration_ms,
-		      direct_capture.last_first_duration_ms);
+	zassert_equal(direct_capture.last_melody_len, 5U);
+	zassert_not_equal(channel_capture.last_first_freq_hz, direct_capture.last_first_freq_hz);
+	zassert_not_equal(channel_capture.last_last_freq_hz, direct_capture.last_last_freq_hz);
 }
 
 ZTEST(mbs_indicator_contract, test_message_feedback_respects_message_category_switches)
@@ -341,9 +340,9 @@ ZTEST(mbs_indicator_contract, test_input_feedback_classifies_t9_dot_and_star)
 	rc = indicator_test_buzzer_wait_count(1U, &capture);
 	zassert_ok(rc, "KPDOT input feedback missing: %d", rc);
 	zassert_equal(capture.last_melody_len, 5U);
-	zassert_equal(capture.last_first_duration_ms, 45U);
-	zassert_equal(capture.last_last_freq_hz, 2000U);
-	zassert_equal(capture.last_last_duration_ms, 45U);
+	zassert_equal(capture.last_first_duration_ms, 30U);
+	zassert_equal(capture.last_last_freq_hz, 1568U);
+	zassert_equal(capture.last_last_duration_ms, 50U);
 
 	indicator_test_buzzer_capture_reset();
 
@@ -352,9 +351,9 @@ ZTEST(mbs_indicator_contract, test_input_feedback_classifies_t9_dot_and_star)
 	rc = indicator_test_buzzer_wait_count(1U, &capture);
 	zassert_ok(rc, "KPASTERISK input feedback missing: %d", rc);
 	zassert_equal(capture.last_melody_len, 5U);
-	zassert_equal(capture.last_first_duration_ms, 45U);
-	zassert_equal(capture.last_last_freq_hz, 1000U);
-	zassert_equal(capture.last_last_duration_ms, 45U);
+	zassert_equal(capture.last_first_duration_ms, 30U);
+	zassert_equal(capture.last_last_freq_hz, 784U);
+	zassert_equal(capture.last_last_duration_ms, 50U);
 }
 
 ZTEST(mbs_indicator_contract, test_system_preference_filters_all_send_result_sounds)

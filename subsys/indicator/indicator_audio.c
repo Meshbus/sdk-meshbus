@@ -8,16 +8,16 @@
 
 #if defined(CONFIG_MBS_INDICATOR_BUZZER)
 /* Immutable notes stay alive until the PWM player releases its owned token. */
-INDICATOR_BUZZER_TONE_DEFINE(audio_direct, {2400, 80}, {0, 100}, {3000, 80});
-INDICATOR_BUZZER_TONE_DEFINE(audio_channel, {2400, 80});
-INDICATOR_BUZZER_TONE_DEFINE(audio_success, {2000, 80}, {0, 60}, {3000, 100});
-INDICATOR_BUZZER_TONE_DEFINE(audio_pair_failed, {3000, 100}, {0, 60}, {1600, 120});
-INDICATOR_BUZZER_TONE_DEFINE(audio_failed,
-	{2200, 80}, {0, 100}, {2200, 80}, {0, 100}, {2200, 80});
-INDICATOR_BUZZER_TONE_DEFINE(audio_unconfirmed, {1400, 220}, {0, 160}, {1400, 220});
-INDICATOR_BUZZER_TONE_DEFINE(audio_battery, {1800, 150}, {0, 120}, {1200, 200});
-INDICATOR_BUZZER_TONE_DEFINE(audio_fault,
-	{1800, 150}, {0, 100}, {1800, 150}, {0, 100}, {1200, 250});
+INDICATOR_BUZZER_TONE_DEFINE(audio_direct, {988, 50}, {0, 20}, {1175, 50}, {0, 20}, {1568, 100});
+INDICATOR_BUZZER_TONE_DEFINE(audio_channel, {1175, 60});
+INDICATOR_BUZZER_TONE_DEFINE(audio_ack, {1175, 40}, {0, 20}, {1568, 80});
+INDICATOR_BUZZER_TONE_DEFINE(audio_pair_success,
+	{784, 60}, {0, 20}, {988, 60}, {0, 20}, {1175, 60}, {0, 60}, {1568, 160});
+INDICATOR_BUZZER_TONE_DEFINE(audio_pair_failed, {988, 80}, {0, 40}, {784, 140});
+INDICATOR_BUZZER_TONE_DEFINE(audio_failed, {784, 50}, {0, 50}, {784, 50}, {0, 50}, {784, 90});
+INDICATOR_BUZZER_TONE_DEFINE(audio_unconfirmed, {988, 130}, {0, 180}, {988, 130});
+INDICATOR_BUZZER_TONE_DEFINE(audio_battery, {784, 100}, {0, 120}, {587, 180});
+INDICATOR_BUZZER_TONE_DEFINE(audio_fault, {1175, 100}, {0, 60}, {1175, 100}, {0, 60}, {784, 200});
 
 struct audio_pattern {
 	const struct indicator_buzzer_melody *melody;
@@ -27,10 +27,10 @@ struct audio_pattern {
 static const struct audio_pattern audio_patterns[MBS_INDICATOR_FEEDBACK_COUNT] = {
 	[MBS_INDICATOR_FEEDBACK_RECEIVED] = {&audio_direct, INDICATOR_SOURCE_DIRECT_MSG, 3},
 	[MBS_INDICATOR_FEEDBACK_RECEIVED_CHANNEL] = {&audio_channel, INDICATOR_SOURCE_CHANNEL_MSG, 3},
-	[MBS_INDICATOR_FEEDBACK_ACK] = {&audio_success, INDICATOR_SOURCE_SYSTEM, 3},
+	[MBS_INDICATOR_FEEDBACK_ACK] = {&audio_ack, INDICATOR_SOURCE_SYSTEM, 3},
 	[MBS_INDICATOR_FEEDBACK_MESSAGE_FAILED] = {&audio_failed, INDICATOR_SOURCE_SYSTEM, 4},
 	[MBS_INDICATOR_FEEDBACK_UNCONFIRMED] = {&audio_unconfirmed, INDICATOR_SOURCE_SYSTEM, 4},
-	[MBS_INDICATOR_FEEDBACK_SYSTEM_SUCCESS] = {&audio_success, INDICATOR_SOURCE_SYSTEM, 3},
+	[MBS_INDICATOR_FEEDBACK_SYSTEM_SUCCESS] = {&audio_pair_success, INDICATOR_SOURCE_SYSTEM, 3},
 	[MBS_INDICATOR_FEEDBACK_SYSTEM_FAILED] = {&audio_pair_failed, INDICATOR_SOURCE_SYSTEM, 4},
 	[MBS_INDICATOR_FEEDBACK_STARTUP] = {&indicator_buzzer_startup_tone, INDICATOR_SOURCE_SYSTEM, 3},
 	[MBS_INDICATOR_FEEDBACK_LOW_BATTERY] = {&audio_battery, INDICATOR_SOURCE_SYSTEM, 2},

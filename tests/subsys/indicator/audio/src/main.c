@@ -66,10 +66,10 @@ ZTEST(indicator_audio, test_received_types_and_merge)
 	submit(MBS_INDICATOR_FEEDBACK_RECEIVED);
 	submit(MBS_INDICATOR_FEEDBACK_RECEIVED);
 	k_sleep(K_MSEC(400));
-	zassert_equal(atomic_get(&tones), 2);
+	zassert_equal(atomic_get(&tones), 3);
 	submit(MBS_INDICATOR_FEEDBACK_RECEIVED_CHANNEL);
 	k_sleep(K_MSEC(150));
-	zassert_equal(atomic_get(&tones), 3);
+	zassert_equal(atomic_get(&tones), 4);
 }
 ZTEST(indicator_audio, test_accepted_silent_ack_follows_system)
 {
@@ -100,9 +100,9 @@ ZTEST(indicator_audio, test_queue_delay_preserves_notes_before_next_feedback)
 	k_sem_reset(&queue_delay_done);
 	zassert_true(k_work_submit(&queue_delay_work) >= 0);
 	zassert_ok(k_sem_take(&queue_delay_done, K_SECONDS(1)));
-	/* RX still needs its rest and second note, then both success notes. */
-	k_sleep(K_MSEC(600));
-	zassert_equal(atomic_get(&tones), 4, "queue delay truncated a melody");
+	/* RX still needs two notes, then the four-note pairing success melody. */
+	k_sleep(K_MSEC(900));
+	zassert_equal(atomic_get(&tones), 7, "queue delay truncated a melody");
 	zassert_equal(atomic_get(&output_period), 0);
 }
 
@@ -117,7 +117,7 @@ ZTEST(indicator_audio, test_failure_preempts_and_drops_received_tail)
 ZTEST(indicator_audio, test_unconfirmed_and_system_switch)
 {
 	submit(MBS_INDICATOR_FEEDBACK_UNCONFIRMED);
-	zassert_within(atomic_get(&output_period), 714, 2); /* 1400 Hz */
+	zassert_within(atomic_get(&output_period), 1012, 2); /* 988 Hz */
 	k_sleep(K_MSEC(700));
 	zassert_equal(atomic_get(&tones), 2);
 	cfg.buzzer_feedback.system_enabled = false;
@@ -185,8 +185,9 @@ ZTEST(indicator_audio, test_equal_priority_waits_and_master_drops_pending)
 {
 	submit(MBS_INDICATOR_FEEDBACK_RECEIVED);
 	submit(MBS_INDICATOR_FEEDBACK_SYSTEM_SUCCESS);
-	k_sleep(K_MSEC(450));
-	zassert_equal(atomic_get(&tones), 4);
+	k_sleep(K_MSEC(900));
+	zassert_equal(atomic_get(&tones), 7);
+	zassert_equal(atomic_get(&output_period), 0);
 	k_sleep(K_MSEC(1100));
 	submit(MBS_INDICATOR_FEEDBACK_RECEIVED);
 	submit(MBS_INDICATOR_FEEDBACK_SYSTEM_SUCCESS);
