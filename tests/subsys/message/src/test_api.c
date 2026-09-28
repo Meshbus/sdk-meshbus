@@ -717,4 +717,80 @@ ZTEST(mbs_message_contract, test_ack_pending_table_uses_configured_capacity)
 	}
 }
 
+K_MSGQ_DEFINE(result_events, sizeof(struct mbs_message_send_result_event), 32, 8);
+static void result_listener_cb(const struct zbus_channel *chan)
+{
+	(void)k_msgq_put(&result_events, zbus_chan_const_msg(chan), K_NO_WAIT);
+}
+ZBUS_LISTENER_DEFINE(message_result_listener, result_listener_cb);
+ZBUS_CHAN_ADD_OBS(mbs_message_send_result_chan, message_result_listener, 1);
+
+static struct mbs_message_send_result_event wait_result(uint64_t token,
+						       enum mbs_message_send_result result)
+{
+	struct mbs_message_send_result_event event = {0};
+	int64_t deadline = k_uptime_get() + 1500;
+	while (k_uptime_get() < deadline) {
+		if (k_msgq_get(&result_events, &event, K_MSEC(50)) == 0 &&
+		    event.ack_token == token && event.result == result) {
+			return event;
+		}
+	}
+	zassert_unreachable("missing result %d for token %llu", result,
+		(unsigned long long)token);
+	return event;
+}
+
+ZTEST(mbs_message_contract, test_result_requires_matched_ack_and_rejects_wrong_peer)
+{
+	uint64_t token;
+	uint8_t wrong_peer[MBS_MESSAGE_TARGET_PREFIX_BYTES] = {0};
+	k_msgq_purge(&result_events);
+	zassert_ok(mbs_message_send_to_node(contact_public_key,
+		(const uint8_t *)"feedback", 8, false, 200, &token));
+	struct mbs_message_send_result_event event = wait_result(token, MBS_MESSAGE_SEND_ACCEPTED);
+	zassert_ok(message_publish_ack_response(wrong_peer, 200));
+	k_sleep(K_MSEC(30));
+	zassert_not_equal(k_msgq_get(&result_events, &event, K_NO_WAIT), 0);
+	zassert_ok(message_publish_ack_response(contact_public_key, 200));
+	event = wait_result(token, MBS_MESSAGE_SEND_CONFIRMED);
+	zassert_equal(event.status, 0);
+}
+
+ZTEST(mbs_message_contract, test_synchronous_rejection_emits_failed_result)
+{
+	uint64_t token = 1;
+	k_msgq_purge(&result_events);
+	zassert_equal(mbs_message_send_to_node(contact_public_key, NULL, 0,
+		false, 201, &token), -EINVAL);
+	zassert_equal(token, 0);
+	struct mbs_message_send_result_event event = wait_result(0, MBS_MESSAGE_SEND_FAILED);
+	zassert_equal(event.status, -EINVAL);
+}
+
+ZTEST(mbs_message_contract, test_channel_sends_do_not_reserve_confirmation_slots)
+{
+	for (int i = 0; i < CONFIG_MBS_MESSAGE_PENDING_SEND_COUNT + 2; i++) {
+		k_msgq_purge(&result_events);
+		zassert_ok(mbs_message_send_to_channel(0,
+			(const uint8_t *)"channel", 7));
+		(void)wait_result(0, MBS_MESSAGE_SEND_ACCEPTED);
+	}
+}
+
+ZTEST(mbs_message_contract, test_timeout_emits_unconfirmed_without_peer_delivery_claim)
+{
+	uint64_t token;
+	k_msgq_purge(&result_events);
+	zassert_ok(mbs_message_send_to_node(contact_public_key,
+		(const uint8_t *)"timeout", 7, false, 202, &token));
+	(void)wait_result(token, MBS_MESSAGE_SEND_ACCEPTED);
+	k_sleep(K_MSEC(CONFIG_MBS_CONTACT_REQUEST_TIMEOUT_MS));
+	struct mbs_message_send_result_event event = wait_result(token, MBS_MESSAGE_SEND_UNCONFIRMED);
+	zassert_equal(event.status, 0);
+	zassert_ok(message_publish_ack_response(contact_public_key, 202));
+	k_sleep(K_MSEC(30));
+	zassert_not_equal(k_msgq_get(&result_events, &event, K_NO_WAIT), 0);
+}
+
 ZTEST_SUITE(mbs_message_contract, NULL, suite_setup, test_before, NULL, NULL);

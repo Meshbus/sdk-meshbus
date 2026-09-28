@@ -94,6 +94,8 @@ ZBUS_CHAN_DECLARE(mbs_message_ack_response_chan);
 /**
  * @brief Request sending a text message to a node (async).
  *
+ * Indicator configuration controls feedback for sends and their results.
+ *
  * @param public_key_prefix Recipient public key prefix bytes.
  * @param payload Message payload bytes.
  * @param payload_len Payload length, limited by CONFIG_MBS_MESSAGE_TX_MAX_LEN.
@@ -114,6 +116,8 @@ int mbs_message_send_to_node(const uint8_t *public_key_prefix,
 /**
  * @brief Request sending a text message to a channel (async).
  *
+ * Indicator configuration controls feedback for channel sends.
+ *
  * @param channel_index Channel slot index.
  * @param payload Message payload bytes.
  * @param payload_len Payload length. The maximum accepted channel payload is
@@ -124,6 +128,26 @@ int mbs_message_send_to_node(const uint8_t *public_key_prefix,
  */
 int mbs_message_send_to_channel(size_t channel_index, const uint8_t *payload,
 				    size_t payload_len);
+
+enum mbs_message_send_result {
+	MBS_MESSAGE_SEND_ACCEPTED,
+	MBS_MESSAGE_SEND_CONFIRMED,
+	MBS_MESSAGE_SEND_UNCONFIRMED,
+	MBS_MESSAGE_SEND_FAILED,
+};
+/** Local send lifecycle. Confirmation is a matched peer ACK, not a read receipt.
+ * A zero token denotes an operation without direct-message ACK tracking.
+ * FAILED describes synchronous send-API rejection only; status is its negative
+ * errno. Other results have status zero. Async radio failures are not correlated.
+ */
+struct mbs_message_send_result_event {
+	uint64_t ack_token;
+	enum mbs_message_send_result result;
+	int status;
+};
+ZBUS_CHAN_DECLARE(mbs_message_send_result_chan);
+/** Whether message initialization and subscriptions succeeded. */
+bool mbs_message_is_ready(void);
 
 /**
  * @brief Read the next queued inbound message and remove it from the queue.

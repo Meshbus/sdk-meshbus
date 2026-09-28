@@ -78,8 +78,36 @@ struct message_pending_send_entry {
 	int64_t expires_at;
 	uint8_t attempt;
 	bool ack_pending;
+	bool accepted;
+	uint8_t target[MBS_CONTACT_PREFIX_BYTES];
 	uint64_t ack_token;
 };
+
+static bool message_ready;
+ZBUS_CHAN_DEFINE(mbs_message_send_result_chan, struct mbs_message_send_result_event,
+	NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
+K_MSGQ_DEFINE(message_results, sizeof(struct mbs_message_send_result_event),
+	CONFIG_MBS_MESSAGE_PENDING_SEND_COUNT + 8, 8);
+static void message_results_work_handler(struct k_work *work);
+K_WORK_DEFINE(message_results_work, message_results_work_handler);
+static void message_result_enqueue(uint64_t token,
+				   enum mbs_message_send_result result, int status)
+{
+	struct mbs_message_send_result_event event = {
+		.ack_token = token, .result = result, .status = status,
+	};
+	if (k_msgq_put(&message_results, &event, K_NO_WAIT) == 0) {
+		(void)k_work_submit(&message_results_work);
+	}
+}
+static void message_results_work_handler(struct k_work *work)
+{
+	ARG_UNUSED(work);
+	struct mbs_message_send_result_event event;
+	while (k_msgq_get(&message_results, &event, K_NO_WAIT) == 0) {
+		(void)zbus_chan_pub(&mbs_message_send_result_chan, &event, K_MSEC(20));
+	}
+}
 
 static struct k_spinlock message_state_lock;
 static struct k_spinlock message_pending_lock;
@@ -100,6 +128,8 @@ static bool message_ack_response_work_active;
 /* Declarations                                                               */
 /* -------------------------------------------------------------------------- */
 
+static void message_expiry_handler(struct k_work *work);
+K_WORK_DELAYABLE_DEFINE(message_expiry_work, message_expiry_handler);
 static void message_response_work_handler(struct k_work *work);
 static void message_ack_response_work_handler(struct k_work *work);
 static int message_subscribe_channel(const struct zbus_channel *chan,
@@ -414,10 +444,7 @@ static void message_pending_clear_entry(struct message_pending_send_entry *entry
 		return;
 	}
 
-	entry->expires_at = 0;
-	entry->attempt = 0U;
-	entry->ack_pending = false;
-	entry->ack_token = 0U;
+	memset(entry, 0, sizeof(*entry));
 }
 
 static struct message_pending_send_entry *message_pending_find_by_attempt_locked(
@@ -448,15 +475,17 @@ static void message_pending_cleanup_expired_locked(int64_t now_ms)
 {
 	for (size_t i = 0U; i < ARRAY_SIZE(pending_sends); i++) {
 		if (pending_sends[i].expires_at != 0 &&
-		    !pending_sends[i].ack_pending &&
+		    pending_sends[i].accepted && !pending_sends[i].ack_pending &&
 		    pending_sends[i].expires_at <= now_ms) {
+			message_result_enqueue(pending_sends[i].ack_token,
+				MBS_MESSAGE_SEND_UNCONFIRMED, 0);
 			message_pending_clear_entry(&pending_sends[i]);
 		}
 	}
 }
 
 static int message_pending_acquire_locked(uint8_t attempt, int64_t now_ms,
-					  uint64_t *ack_token_out)
+					  uint64_t *ack_token_out, const uint8_t *target)
 {
 	struct message_pending_send_entry *entry;
 
@@ -476,20 +505,22 @@ static int message_pending_acquire_locked(uint8_t attempt, int64_t now_ms,
 
 	entry->expires_at = now_ms + (int64_t)MBS_MESSAGE_ATTEMPT_TIMEOUT_MS;
 	entry->attempt = attempt;
+	memcpy(entry->target, target, sizeof(entry->target));
 	entry->ack_pending = false;
 	entry->ack_token = message_ack_token_next_locked();
 	*ack_token_out = entry->ack_token;
 	return 0;
 }
 
-static bool message_pending_mark_ack_locked(uint8_t attempt, int64_t now_ms,
+static bool message_pending_mark_ack_locked(uint8_t attempt, const uint8_t *target, int64_t now_ms,
 					    uint64_t *ack_token_out)
 {
 	struct message_pending_send_entry *entry;
 
 	message_pending_cleanup_expired_locked(now_ms);
 	entry = message_pending_find_by_attempt_locked(attempt);
-	if (entry == NULL || entry->ack_pending) {
+	if (entry == NULL || entry->ack_pending ||
+	    memcmp(entry->target, target, sizeof(entry->target)) != 0) {
 		return false;
 	}
 
@@ -500,27 +531,26 @@ static bool message_pending_mark_ack_locked(uint8_t attempt, int64_t now_ms,
 	return true;
 }
 
-static bool message_pending_cancel_locked(uint8_t attempt, int64_t now_ms)
+static void message_pending_cancel_locked(uint64_t token)
 {
-	struct message_pending_send_entry *entry;
-
-	message_pending_cleanup_expired_locked(now_ms);
-	entry = message_pending_find_by_attempt_locked(attempt);
-	if (entry == NULL) {
-		return false;
+	for (size_t i = 0; i < ARRAY_SIZE(pending_sends); i++) {
+		if (pending_sends[i].expires_at && pending_sends[i].ack_token == token) {
+			message_pending_clear_entry(&pending_sends[i]);
+			return;
+		}
 	}
-
-	message_pending_clear_entry(entry);
-	return true;
 }
 
 static bool message_pending_take_ack_notify_locked(uint64_t *ack_token_out)
 {
 	for (size_t i = 0U; i < ARRAY_SIZE(pending_sends); i++) {
-		if (pending_sends[i].expires_at != 0 && pending_sends[i].ack_pending) {
+		if (pending_sends[i].expires_at != 0 && pending_sends[i].accepted &&
+		    pending_sends[i].ack_pending) {
 			if (ack_token_out != NULL) {
 				*ack_token_out = pending_sends[i].ack_token;
 			}
+			message_result_enqueue(pending_sends[i].ack_token,
+				       MBS_MESSAGE_SEND_CONFIRMED, 0);
 			message_pending_clear_entry(&pending_sends[i]);
 			return true;
 		}
@@ -529,11 +559,29 @@ static bool message_pending_take_ack_notify_locked(uint64_t *ack_token_out)
 	return false;
 }
 
+static void message_pending_accepted(uint64_t token)
+{
+	k_spinlock_key_t key = k_spin_lock(&message_pending_lock);
+	for (size_t i = 0; i < ARRAY_SIZE(pending_sends); i++) {
+		struct message_pending_send_entry *entry = &pending_sends[i];
+		if (entry->expires_at && entry->ack_token == token) {
+			entry->accepted = true;
+			message_result_enqueue(token, MBS_MESSAGE_SEND_ACCEPTED, 0);
+			break;
+		}
+	}
+	/* An unusually fast ACK may have arrived before the API returned. */
+	message_ack_response_work_active = true;
+	k_spin_unlock(&message_pending_lock, key);
+	(void)k_work_submit(&message_ack_response_work);
+	(void)k_work_reschedule(&message_expiry_work, K_NO_WAIT);
+}
+
 /* -------------------------------------------------------------------------- */
 /* Public API                                                                 */
 /* -------------------------------------------------------------------------- */
 
-int mbs_message_send_to_node(const uint8_t *public_key_prefix, const uint8_t *payload,
+static int message_send_to_node(const uint8_t *public_key_prefix, const uint8_t *payload,
 				 size_t payload_len, bool flood, uint8_t attempt,
 				 uint64_t *out_ack_token)
 {
@@ -568,7 +616,8 @@ int mbs_message_send_to_node(const uint8_t *public_key_prefix, const uint8_t *pa
 
 	now_ms = (int64_t)message_monotonic_now_ms();
 	key = k_spin_lock(&message_pending_lock);
-	rc = message_pending_acquire_locked(attempt, now_ms, &ack_token);
+	rc = message_pending_acquire_locked(attempt, now_ms, &ack_token,
+					    public_key_prefix);
 	k_spin_unlock(&message_pending_lock, key);
 	if (rc != 0) {
 		return rc;
@@ -586,7 +635,7 @@ int mbs_message_send_to_node(const uint8_t *public_key_prefix, const uint8_t *pa
 	rc = zbus_chan_pub(&mbs_message_send_to_node_request_chan, &event, K_NO_WAIT);
 	if (rc != 0) {
 		key = k_spin_lock(&message_pending_lock);
-		(void)message_pending_cancel_locked(attempt, now_ms);
+		message_pending_cancel_locked(ack_token);
 		k_spin_unlock(&message_pending_lock, key);
 		LOG_WRN("Failed to publish node send-message request: rc=%d", rc);
 		return rc;
@@ -601,7 +650,7 @@ int mbs_message_send_to_node(const uint8_t *public_key_prefix, const uint8_t *pa
 	return 0;
 }
 
-int mbs_message_send_to_channel(size_t channel_index, const uint8_t *payload,
+static int message_send_to_channel(size_t channel_index, const uint8_t *payload,
 				    size_t payload_len)
 {
 	struct mbs_message_send_to_channel_request_event event = { 0 };
@@ -642,6 +691,55 @@ int mbs_message_send_to_channel(size_t channel_index, const uint8_t *payload,
 		(unsigned int)event.channel_index, channel.name,
 		(unsigned int)payload_len);
 	return 0;
+}
+
+int mbs_message_send_to_node(const uint8_t *prefix,
+	const uint8_t *payload, size_t len, bool flood, uint8_t attempt,
+	uint64_t *ack_token)
+{
+	uint64_t token = 0;
+	int rc = message_send_to_node(prefix, payload, len, flood, attempt, &token);
+	if (ack_token) {
+		*ack_token = token;
+	}
+	if (rc == 0) {
+		message_pending_accepted(token);
+	} else {
+		message_result_enqueue(0, MBS_MESSAGE_SEND_FAILED, rc);
+	}
+	return rc;
+}
+
+int mbs_message_send_to_channel(size_t index, const uint8_t *payload, size_t len)
+{
+	int rc = message_send_to_channel(index, payload, len);
+	message_result_enqueue(0,
+		rc == 0 ? MBS_MESSAGE_SEND_ACCEPTED : MBS_MESSAGE_SEND_FAILED, rc);
+	return rc;
+}
+
+static void message_expiry_handler(struct k_work *work)
+{
+	ARG_UNUSED(work);
+	k_spinlock_key_t key = k_spin_lock(&message_pending_lock);
+	int64_t now = k_uptime_get();
+	int64_t next = INT64_MAX;
+	message_pending_cleanup_expired_locked(now);
+	for (size_t i = 0; i < ARRAY_SIZE(pending_sends); i++) {
+		if (pending_sends[i].expires_at && pending_sends[i].accepted &&
+		    !pending_sends[i].ack_pending) {
+			next = MIN(next, pending_sends[i].expires_at);
+		}
+	}
+	k_spin_unlock(&message_pending_lock, key);
+	if (next != INT64_MAX) {
+		(void)k_work_schedule(&message_expiry_work, K_MSEC(MAX(1, next - now)));
+	}
+}
+
+bool mbs_message_is_ready(void)
+{
+	return message_ready;
 }
 
 static int message_queue_push_response(
@@ -812,7 +910,7 @@ static void mbs_message_ack_response_listener_cb(const struct zbus_channel *chan
 
 	now_ms = (int64_t)message_monotonic_now_ms();
 	key = k_spin_lock(&message_pending_lock);
-	ack_pending = message_pending_mark_ack_locked(event->attempt, now_ms, &ack_token);
+	ack_pending = message_pending_mark_ack_locked(event->attempt, event->target, now_ms, &ack_token);
 	if (ack_pending && !message_ack_response_work_active) {
 		message_ack_response_work_active = true;
 		submit_work = true;
@@ -893,12 +991,17 @@ static int mbs_message_init(void)
 		message_session_id = 1U;
 	}
 
-	(void)message_subscribe_channel(&mbs_message_response_chan,
+	int rc = message_subscribe_channel(&mbs_message_response_chan,
 					 &mbs_message_response_listener,
 					 "response");
-	(void)message_subscribe_channel(&mbs_message_ack_response_chan,
+	rc |= message_subscribe_channel(&mbs_message_ack_response_chan,
 					 &mbs_message_ack_response_listener,
 					 "ack_response");
+
+	if (rc != 0) {
+		return rc;
+	}
+	message_ready = true;
 
 	LOG_INF("Message service ready: store_count=%u timeout_ms=%u session_id=%u",
 		(unsigned int)CONFIG_MBS_MESSAGE_MAX_STORE_COUNT,
