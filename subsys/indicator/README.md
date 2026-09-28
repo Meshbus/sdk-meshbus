@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 FoBE Studio -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
 # Indicator feedback
 
 The product uses a single light to show recent user operations and persistent

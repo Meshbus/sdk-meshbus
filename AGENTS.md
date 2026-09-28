@@ -35,6 +35,14 @@ For dependency additions, updates, or feature/font selections, apply
 Third-party material entering compiled outputs requires a documented license
 path that does not require GPLv3 licensing of those outputs.
 
+When adding files, read `LICENSING.md` and ensure each new file has accurate
+`SPDX-FileCopyrightText` and `SPDX-License-Identifier` metadata in its native
+comment syntax or an applicable `REUSE.toml` annotation. This includes docs,
+tests, overlays, and bindings. Preserve third-party attribution. Before
+completion, run `python scripts/ci/license_policy.py --output <task-output-dir>` with
+the development Python environment and resolve all repository-policy findings;
+build and Twister results do not cover this check.
+
 Read these local rules only when the task enters their scope:
 
 - `apps/meshbus/AGENTS.md` for product composition and sysbuild policy.

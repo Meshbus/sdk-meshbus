@@ -1,3 +1,6 @@
+/* SPDX-FileCopyrightText: 2026 FoBE Studio */
+/* SPDX-License-Identifier: Apache-2.0 */
+
 #include <zephyr/dt-bindings/gpio/gpio.h>
 / {
     chosen { meshbus,indicator-light-active = &test_led; };

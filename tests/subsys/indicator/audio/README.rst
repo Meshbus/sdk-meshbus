@@ -1,3 +1,6 @@
+.. SPDX-FileCopyrightText: 2026 FoBE Studio
+.. SPDX-License-Identifier: Apache-2.0
+
 Indicator audio contract
 ########################
 
