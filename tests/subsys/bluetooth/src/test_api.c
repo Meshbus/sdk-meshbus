@@ -117,15 +117,18 @@ int __wrap_bt_enable(bt_ready_cb_t cb)
 	return 0;
 }
 
+static const struct bt_conn_auth_cb *captured_auth_cb;
+static struct bt_conn_auth_info_cb *captured_auth_info_cb;
+
 int __wrap_bt_conn_auth_cb_register(const struct bt_conn_auth_cb *cb)
 {
-	ARG_UNUSED(cb);
+	captured_auth_cb = cb;
 	return 0;
 }
 
 int __wrap_bt_conn_auth_info_cb_register(struct bt_conn_auth_info_cb *cb)
 {
-	ARG_UNUSED(cb);
+	captured_auth_info_cb = cb;
 	return 0;
 }
 
@@ -1390,6 +1393,53 @@ ZTEST(mbs_bluetooth_contract, test_companion_bluetooth_drops_oversize_tx_for_cur
 		      "oversize NUS TX should not increment sent count");
 	zassert_true(mbs_meshcore_test_companion_bluetooth_drop_count() > 0U,
 		     "NUS drop count should increase");
+}
+
+K_MSGQ_DEFINE(pairing_feedback_events, sizeof(struct mbs_bluetooth_pairing_result_event), 8, 4);
+static void pairing_result_cb(const struct zbus_channel *chan)
+{
+	(void)k_msgq_put(&pairing_feedback_events, zbus_chan_const_msg(chan), K_NO_WAIT);
+}
+ZBUS_LISTENER_DEFINE(test_pairing_result_listener, pairing_result_cb);
+ZBUS_CHAN_ADD_OBS(mbs_bluetooth_pairing_result_chan, test_pairing_result_listener, 1);
+
+ZTEST(mbs_bluetooth_contract, test_pairing_feedback_only_for_displayed_passkey_session)
+{
+	struct mbs_bluetooth_pairing_result_event event;
+	bluetooth_test_apply_enabled(true);
+	k_msgq_purge(&pairing_feedback_events);
+	bluetooth_test_conn_connected();
+	zassert_not_equal(k_msgq_get(&pairing_feedback_events, &event, K_NO_WAIT), 0);
+	zassert_not_null(captured_auth_cb);
+	zassert_not_null(captured_auth_info_cb);
+	captured_auth_cb->passkey_display(fake_conn, 123456);
+	captured_auth_info_cb->pairing_complete(fake_conn, true);
+	zassert_ok(k_msgq_get(&pairing_feedback_events, &event, K_MSEC(300)));
+	zassert_equal(event.result, MBS_BLUETOOTH_PAIRING_SUCCESS);
+	bluetooth_test_conn_disconnected();
+	zassert_not_equal(k_msgq_get(&pairing_feedback_events, &event, K_NO_WAIT), 0);
+}
+
+ZTEST(mbs_bluetooth_contract, test_pairing_cancel_and_disconnect_are_single_terminal_results)
+{
+	struct mbs_bluetooth_pairing_result_event event;
+	bluetooth_test_apply_enabled(true);
+	bluetooth_test_conn_started();
+	k_msgq_purge(&pairing_feedback_events);
+	captured_auth_cb->passkey_display(fake_conn, 123456);
+	captured_auth_cb->cancel(fake_conn);
+	zassert_ok(k_msgq_get(&pairing_feedback_events, &event, K_MSEC(300)));
+	zassert_equal(event.result, MBS_BLUETOOTH_PAIRING_CANCELLED);
+	bluetooth_test_conn_disconnected();
+	zassert_not_equal(k_msgq_get(&pairing_feedback_events, &event, K_NO_WAIT), 0);
+	bluetooth_test_conn_started();
+	captured_auth_cb->passkey_display(fake_conn, 123456);
+	bluetooth_test_conn_disconnected();
+	zassert_ok(k_msgq_get(&pairing_feedback_events, &event, K_MSEC(300)));
+	zassert_equal(event.result, MBS_BLUETOOTH_PAIRING_FAILED);
+	captured_auth_info_cb->pairing_failed(fake_conn, BT_SECURITY_ERR_AUTH_FAIL);
+	k_sleep(K_MSEC(30));
+	zassert_not_equal(k_msgq_get(&pairing_feedback_events, &event, K_NO_WAIT), 0);
 }
 
 ZTEST_SUITE(mbs_bluetooth_contract, NULL, NULL, test_before, NULL, NULL);

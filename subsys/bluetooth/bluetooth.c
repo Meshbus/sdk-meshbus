@@ -1055,8 +1055,44 @@ static bool any_le_connection_connected(void)
 /* Bluetooth Auth Callbacks                                                   */
 /* -------------------------------------------------------------------------- */
 
+ZBUS_CHAN_DEFINE(mbs_bluetooth_pairing_result_chan,
+	struct mbs_bluetooth_pairing_result_event, NULL, NULL,
+	ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
+static struct k_spinlock pairing_feedback_lock;
+static struct bt_conn *pairing_feedback_conn;
+K_MSGQ_DEFINE(pairing_results, sizeof(struct mbs_bluetooth_pairing_result_event), 4, 4);
+static void pairing_results_handler(struct k_work *work);
+K_WORK_DEFINE(pairing_results_work, pairing_results_handler);
+static void pairing_results_handler(struct k_work *work)
+{
+	ARG_UNUSED(work);
+	struct mbs_bluetooth_pairing_result_event event;
+	while (k_msgq_get(&pairing_results, &event, K_NO_WAIT) == 0) {
+		(void)zbus_chan_pub(&mbs_bluetooth_pairing_result_chan, &event, K_MSEC(20));
+	}
+}
+static void pairing_feedback_finish(struct bt_conn *conn,
+				    enum mbs_bluetooth_pairing_result result)
+{
+	k_spinlock_key_t key = k_spin_lock(&pairing_feedback_lock);
+	bool matched = pairing_feedback_conn == conn;
+	if (matched) {
+		pairing_feedback_conn = NULL;
+	}
+	k_spin_unlock(&pairing_feedback_lock, key);
+	if (matched) {
+		struct mbs_bluetooth_pairing_result_event event = {.result = result};
+		if (k_msgq_put(&pairing_results, &event, K_NO_WAIT) == 0) {
+			(void)k_work_submit(&pairing_results_work);
+		}
+	}
+}
+
 static void auth_passkey_display(struct bt_conn *conn, unsigned int passkey)
 {
+	k_spinlock_key_t key = k_spin_lock(&pairing_feedback_lock);
+	pairing_feedback_conn = conn;
+	k_spin_unlock(&pairing_feedback_lock, key);
 	char addr[BT_ADDR_LE_STR_LEN];
 
 	conn_addr_to_str(conn, addr, sizeof(addr));
@@ -1069,6 +1105,7 @@ static void auth_passkey_display(struct bt_conn *conn, unsigned int passkey)
 
 static void auth_cancel(struct bt_conn *conn)
 {
+	pairing_feedback_finish(conn, MBS_BLUETOOTH_PAIRING_CANCELLED);
 	char addr[BT_ADDR_LE_STR_LEN];
 
 	conn_addr_to_str(conn, addr, sizeof(addr));
@@ -1077,12 +1114,14 @@ static void auth_cancel(struct bt_conn *conn)
 
 static void pairing_complete(struct bt_conn *conn, bool bonded)
 {
+	pairing_feedback_finish(conn, MBS_BLUETOOTH_PAIRING_SUCCESS);
 	ARG_UNUSED(conn);
 	LOG_INF("Pairing complete (bonded=%d)", (int)bonded);
 }
 
 static void pairing_failed(struct bt_conn *conn, enum bt_security_err reason)
 {
+	pairing_feedback_finish(conn, MBS_BLUETOOTH_PAIRING_FAILED);
 	LOG_WRN("Pairing failed (%d), disconnecting", reason);
 
 	/* Defer disconnect out of BT RX WQ context. */
@@ -1338,6 +1377,7 @@ static void connected(struct bt_conn *conn, uint8_t err)
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
+	pairing_feedback_finish(conn, MBS_BLUETOOTH_PAIRING_FAILED);
 	char addr[BT_ADDR_LE_STR_LEN];
 	bool was_active_conn = false;
 

@@ -67,6 +67,19 @@ struct mbs_bluetooth_pairing_event {
 	uint32_t passkey;
 };
 
+enum mbs_bluetooth_pairing_result {
+	MBS_BLUETOOTH_PAIRING_SUCCESS,
+	MBS_BLUETOOTH_PAIRING_FAILED,
+	MBS_BLUETOOTH_PAIRING_CANCELLED,
+};
+/** Exactly one terminal result per passkey-display pairing session.
+ * Ordinary bonded reconnections do not produce this event; no secrets included.
+ */
+struct mbs_bluetooth_pairing_result_event {
+	enum mbs_bluetooth_pairing_result result;
+};
+ZBUS_CHAN_DECLARE(mbs_bluetooth_pairing_result_chan);
+
 /**
  * @brief Bluetooth state event.
  *
