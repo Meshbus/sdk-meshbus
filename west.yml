@@ -16,7 +16,7 @@ manifest:
     - name: meshbus-protobufs
       path: modules/lib/meshbus-protobufs
       repo-path: meshbus-protobufs
-      revision: bcd91e626174b2a2a83105c2f43fc96a35ad7fa3
+      revision: ddf1d462fbc243925d209cad9625636397deab1a
     - name: meshcore
       path: modules/lib/meshcore
       repo-path: sdk-meshcore
