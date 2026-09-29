@@ -91,7 +91,7 @@ static int clock_config_validate(const mbs_clock_config *cfg)
 
 static int clock_unix_ms_to_timespec(uint64_t unix_time_ms, struct timespec *out)
 {
-	if (unix_time_ms == 0U || out == NULL) {
+	if (unix_time_ms == 0U) {
 		return -EINVAL;
 	}
 
@@ -109,8 +109,7 @@ static int clock_unix_ms_to_timespec(uint64_t unix_time_ms, struct timespec *out
 
 static int clock_timespec_to_unix_ms(const struct timespec *ts, uint64_t *unix_time_ms)
 {
-	if (ts == NULL || unix_time_ms == NULL || ts->tv_sec < 0 ||
-	    ts->tv_nsec < 0 || ts->tv_nsec >= 1000000000L) {
+	if (ts->tv_sec < 0 || ts->tv_nsec < 0 || ts->tv_nsec >= 1000000000L) {
 		return -EINVAL;
 	}
 
