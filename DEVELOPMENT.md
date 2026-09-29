@@ -4,16 +4,49 @@ The Meshbus repository owns the reusable Zephyr module, product application,
 and host tools. Start agent sessions at this repository root. Its parent is a
 local west workspace; dependency projects retain their independent Git state.
 
-Local specifications and issues live under `.scratch/` according to
-`docs/agents/issue-tracker.md`. Domain vocabulary and architectural decisions
-are consumed according to `docs/agents/domain.md`. Installed engineering skills
-are user-level tools; reload the session if newly installed skills are absent.
+Shared specifications and change plans use [OpenSpec](openspec/README.md).
+Install its pinned CLI with `npm ci --ignore-scripts --no-audit --no-fund` at
+the Git root. Node.js 20.19.0 or newer is needed for this development workflow;
+firmware builds do not depend on Node.js. Codex skills are versioned under
+`.agents/skills/`; reload the session if newly added skills are absent.
 
-Use the tracker or ticket location already established for the task, including
-when working on reusable SDK code. Missing tracker configuration does not
-block work that needs no tracker write. Small, clear changes can be implemented
-and validated directly; create specifications and tickets when their scope or
-coordination needs warrant them.
+`CONTEXT.md` defines domain vocabulary and `docs/adr/` records durable design
+decisions. Keep temporary notes, experiments and raw evidence in `.scratch/`.
+
+## Engineering contracts
+
+Implement the current requirement with existing facilities. New abstractions,
+configuration switches, recovery paths or compatibility layers need a concrete
+consumer or reachable failure to justify them. Similar-looking code across
+independent owners does not automatically need a shared framework.
+
+Validate untrusted inputs at public, protocol, persistence and device boundaries.
+Within a private call chain, rely on established preconditions; avoid repeating
+checks for impossible arguments or silently recovering from programming errors.
+Keep overflow, resource, authorization and asynchronous-lifetime protections.
+
+Public APIs live in `include/<module>/<module>.h`, with narrow capability
+headers beside them. Services use `mbs_` / `MBS_` and `CONFIG_MBS_*`; protobuf
+names, persisted keys and protocol values retain their owning contracts.
+Repository-owned header guards use `MESHBUS_INCLUDE_<PATH>_H_`. Keep private
+state and transport helpers out of public headers. Document ownership, units,
+buffer sizes, persistence, errors and ZBus payload direction/lifetime. Update
+affected consumers together when public layouts or identifiers change.
+For exported extension symbols, follow [MBA metadata](subsys/llext/METADATA.md).
+
+Services own state, synchronization, persistence and device policy. Keep state
+locks out of driver calls, I/O, sleeps, callbacks and work cancellation; define
+lock ordering and expose copied or immutable snapshots. Keep listeners bounded
+and hand blocking work to the owner. Stage settings loads, apply at commit,
+coalesce writes and remove owned keys on reset. Treat missing optional hardware
+as an unavailable capability and preserve configuration when hardware apply fails.
+Shell and MCUmgr adapters reuse public service behavior.
+
+Desktop uses public ZUI APIs. Apps and widgets own their behavior; reusable
+components belong in ZUI. Draw callbacks only render prepared state, while
+service queries and updates happen outside rendering. Stop observations and
+callbacks, wait for in-flight access and cancel work before freeing state.
+Keep UI text in the central English text contract with matching format arguments.
 
 ## Workspace Discovery
 
@@ -68,9 +101,11 @@ the board defaults; to select a fragment explicitly with sysbuild, append
 cd "$west_root"
 board_target='<qualified-board-target>'
 build_dir="$west_root/build/<task>-<target>"
-west build -p always --sysbuild -b "$board_target" \
+west build -p auto --sysbuild -b "$board_target" \
   "$repo_root/apps/meshbus" -d "$build_dir"
 ```
+
+Reuse the task's valid build directory for ordinary source edits.
 
 Public SDK MCUboot builds default to hash-only validation and need no key.
 The generated bootloader and APP retain their configured layout and recovery
@@ -150,25 +185,32 @@ cd "$west_root"
 west build -p auto -d "$west_root/build/<task>-sdk" \
   -b '<platform-from-metadata>' "$sdk_root/<sample-or-test>"
 west twister -T "$sdk_root/tests/<leaf>" -p '<platform-from-YAML>' \
-  -O "$west_root/twister-out/<task>" --inline-logs -v -c
+  -s '<scenario-from-YAML>' -O "$west_root/twister-out/<task>" --inline-logs
 ```
 
-For a runnable test app, use `west build -d <its-build-dir> -t run`. Keep each
-task's outputs distinct. Use the shared Zephyr Python for Twister and report
+For repeated source edits, rebuild the selected test with
+`west build -d <its-build-dir>` and execute it with
+`west build -d <its-build-dir> -t run` when its runner supports that target.
+Return to Twister when scenario metadata/configuration changes or for the final
+recorded regression. Keep each task's outputs distinct, but reuse its own valid
+build instead of creating a clean matrix for every Red/Green cycle.
+Use the shared Zephyr Python for Twister and report
 the first relevant error; a setup failure is not automatically a firmware bug.
 
-For Meshbus service tests, use the [test rules](tests/subsys/AGENTS.md)
+For Meshbus service tests, use the [testing guide](docs/testing.md)
 for public-contract boundaries and evidence classification. Tests live directly
 in `tests/subsys/<service>/`, with specialized scenarios under their owner.
 Use `-T meshbus/tests/subsys -t meshbus` to select Meshbus tests without adding
 the neighboring DFU suites. ZUI's own tests live in its independent module.
 
-If a parallel Twister run fails with generated configuration or setup noise,
-rerun the same narrow path serially before classifying it as a product defect:
+If logs implicate parallel setup or generated-file races, a serial retry can
+distinguish infrastructure from a product defect. Do not retry deterministic
+compiler errors or assertions without addressing their cause:
 
 ```sh
 west twister -T "$sdk_root/tests/<leaf>" -p '<platform-from-YAML>' \
-  -O "$west_root/twister-out/<task>-serial" --inline-logs -v -c -j 1
+  -s '<scenario-from-YAML>' \
+  -O "$west_root/twister-out/<task>-serial" --inline-logs -j 1
 ```
 
 On failure, inspect the first relevant build log, runtime log, or assertion.
@@ -182,7 +224,7 @@ For standalone MBA build/install/run/watch workflows, see
 ## Serial and Remote Tools
 
 For tool selection and evidence boundaries, see
-[validation tools](docs/agents/testing.md). For a complete UART OLED screenshot,
+[validation tools](docs/testing.md). For a complete UART OLED screenshot,
 use [Display capture](scripts/meshbus/README.md#display-capture); it assembles
 chunks and exports PNGs without extra Python packages.
 
@@ -242,11 +284,12 @@ to resolve a named acceptance gap. Work is complete when its acceptance criteria
 pass. If blocked, report the exact unmet criteria and blocker without marking
 them complete; keep optional follow-ups separate.
 
-For tracked work, state acceptance criteria in the local specification or
-ticket before implementation. Record actual outcomes, dates, revisions,
-command or log locations, and limitations in that ticket. Raw output stays
-ignored. Required missing acceptance remains open and distinct from separately
-scoped platform, physical-device, upgrade, or release qualification.
+OpenSpec scenarios and tasks state acceptance before implementation. Follow the
+[implementation and review loop](openspec/README.md#implementation-and-review),
+and keep concise outcomes, source/build identity and limitations with the change.
+Shared results must be understandable without a contributor's private logs.
+Raw output stays ignored. Required missing acceptance remains open and distinct
+from separately scoped platform, physical-device, upgrade or release qualification.
 
 Classify blocked evidence honestly. Missing fixtures, unavailable devices,
 workspace discovery failures, pending authorization, and pending manual

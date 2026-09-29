@@ -16,8 +16,7 @@ Sources of truth
 
 Use the existing Zephyr surfaces directly:
 
-* The nearest ``tests/subsys/AGENTS.md`` defines public-contract,
-  hardware, and claim boundaries.
+* ``docs/testing.md`` describes public-contract, hardware, and claim boundaries.
 * The nearest ``testcase.yaml`` defines runnable scenarios, platforms,
   fixtures, harnesses, and configuration variants.
 * ``CMakeLists.txt``, ``prj.conf``, overlays, and test sources define the

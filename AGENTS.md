@@ -1,87 +1,34 @@
-# Meshbus Repository Entry
+# Meshbus
 
-This repository owns both the reusable Meshbus Zephyr module and the product
-firmware at `apps/meshbus/`. Product composition, boot/release policy, the host
-CLI, and distribution are maintained here. The parent directory is a local
-Zephyr west workspace, not a product source repository.
+This repository owns the reusable Zephyr module, product firmware in
+`apps/meshbus/`, and host tools in `scripts/`. The parent is a local west
+workspace; sibling projects retain their own ownership and Git history.
 
-Before substantive changes, review, or validation, read this root `AGENTS.md`
-and applicable local rules along each target path. Reuse instructions already
-read in this task unless their content or the task scope changes.
-Public headers, schemas,
-Kconfig, CMake, devicetree, test metadata, source, and tests remain the technical
-sources of truth.
+Use the standard OpenSpec workflow in [openspec/README.md](openspec/README.md).
+Project context and artifact rules live in `openspec/config.yaml`; Codex
+workflows are generated in `.agents/skills/`. Run the pinned CLI from the Git
+root as `npm run openspec -- <arguments>`. Keep generated skills unchanged;
+customize project context through OpenSpec configuration.
 
-Services and public headers are flat under `subsys/<module>/` and
-`include/<module>/`. Service identifiers use `mbs_` / `MBS_`; the product and
-west module remain Meshbus. For public APIs and namespace boundaries,
-read [the SDK integration guide](README.md#zephyr-integration) and the scoped
-include/subsys rules before renaming identifiers or configuration.
+Read documentation according to the work:
 
-Use `git rev-parse --show-toplevel` from this repository for the source root
-and `west topdir` for the workspace. Discover the active manifest with
-`west config manifest.path` and `west manifest --path`; this repository provides
-`west.yml`, and consuming workspaces may select another manifest.
-`apps/meshbus/` consumes this same module. Firmware and SDK changes share one
-Git history. Treat sibling west projects, toolchains, and shared caches as
-read-only build context unless the user requests changes there.
+- [README.md](README.md): module integration and public namespaces.
+- [DEVELOPMENT.md](DEVELOPMENT.md): engineering contracts, workspace, builds and tests.
+- [docs/testing.md](docs/testing.md): test boundaries, tool selection and evidence.
+- [DISTRIBUTION.md](DISTRIBUTION.md): packaging, signing and release qualification.
+- [CONTEXT.md](CONTEXT.md) and [ADRs](docs/adr/README.md): vocabulary and design decisions.
+- [LICENSING.md](LICENSING.md): attribution and dependency license requirements.
 
-Read `DEVELOPMENT.md` for environment, workspace, build, or test work, and
-`DISTRIBUTION.md` for packaging, signing, update, or release work.
-For selecting validation tools or collecting device evidence, read
-`docs/agents/testing.md`.
-For dependency additions, updates, or feature/font selections, apply
-[the compiled-dependency license policy](docs/adr/0012-restrict-compiled-third-party-licenses.md).
-Third-party material entering compiled outputs requires a documented license
-path that does not require GPLv3 licensing of those outputs.
+Preserve unrelated work. Continue authorized local implementation and validation
+without repeated approval. Dependency/manifest changes, remote or device access,
+signing and publication require explicit authorization; stage, commit and push
+only when requested. An OpenSpec task or generated skill does not grant it.
+Review-only requests remain read-only. Keep secrets out of tracked artifacts.
 
-When adding files, read `LICENSING.md` and ensure each new file has accurate
-`SPDX-FileCopyrightText` and `SPDX-License-Identifier` metadata in its native
-comment syntax or an applicable `REUSE.toml` annotation. This includes docs,
-tests, overlays, and bindings. Preserve third-party attribution. Before
-completion, run `python scripts/ci/license_policy.py --output <task-output-dir>` with
-the development Python environment and resolve all repository-policy findings;
-build and Twister results do not cover this check.
-
-Read these local rules only when the task enters their scope:
-
-- `apps/meshbus/AGENTS.md` for product composition and sysbuild policy.
-- `apps/meshbus/boards/AGENTS.md` for product device profiles and partitions.
-- `include/AGENTS.md` for public Meshbus API and ABI.
-- `subsys/AGENTS.md` for service runtime and persistence.
-- `subsys/desktop/AGENTS.md` for Desktop and ZUI integration.
-- `tests/subsys/AGENTS.md` for tests and evidence boundaries.
-
-Preserve unrelated changes and keep patches narrow. Local source/log inspection,
-offline debugging, and device-free tests are within the requested development
-scope; continue through in-scope fixes and affected checks without asking again.
-Obtain explicit authorization for dependency or manifest changes, remote access,
-device access or control (including flash, reset, and probe/debug connections),
-signing, and publication. Stage, commit, or push only when requested. Keep
-secrets out of source, logs, and responses.
-
-Continue work already authorized by the user without requesting the same
-approval again. Skill workflows must respect the user's requested scope and
-this repository's authorization boundaries. For review-only requests, inspect
-and propose changes without editing. Ask only when a missing decision materially
-changes scope, acceptance, or an action requiring explicit authorization;
-continue independent work while that decision is pending.
-
-Treat existing generated artifacts as evidence; do not edit them by hand.
-For authorized validation, generate outputs in a task-specific directory and
-preserve unrelated build outputs.
-
-Local specifications and tickets live under the ignored `.scratch/` directory.
-Use the tracker or ticket location already established for the task. Missing
-tracker configuration does not block work independent of tracker writes.
-Read `docs/agents/issue-tracker.md` when writing or fetching tickets and
-`docs/agents/triage-labels.md` when setting their category, triage, or progress.
-For domain terminology or architectural decisions, follow
-`docs/agents/domain.md`, root `CONTEXT.md`, and relevant `docs/adr/` entries.
-
-Select the smallest build or test that proves the affected behavior. Read the
-nearest `sample.yaml` or `testcase.yaml` for supported targets and scenarios,
-run Zephyr commands from `west topdir`, and report the exact commands and
-results. Once required checks pass, expand validation only for new changes,
-failures, or unresolved concerns. Lead the final response with the outcome and
-state unverified hardware and higher-level qualification relevant to the task.
+Keep shared requirements and change artifacts in `openspec/`; keep temporary
+reports, experiments and raw logs in ignored `.scratch/<task>/`. Specs describe
+intended behavior; source and test results establish implemented behavior.
+Surface discrepancies and update the agreed change rather than weakening its
+acceptance criteria. Select the smallest relevant checks and report their actual
+results. For repository changes, run the license policy in the development
+Python environment; fix in-scope findings and report unrelated blockers.

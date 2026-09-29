@@ -38,21 +38,26 @@ matched components and paths that required broader SDK coverage.
 | Change | Daily checks beyond source checks |
 | --- | --- |
 | Ordinary Markdown/RST, including CI/CLI documentation | None: no builder resolution, west workspace, firmware or CLI build. |
-| Mapped service or driver implementation/binding | Twister roots for the component and its known consumers, plus all discovered product sysbuilds; no unrelated CLI packages. |
+| OpenSpec artifacts, generated skills and root npm tool configuration | Source checks validate OpenSpec; no firmware or Rust builds. |
+| Mapped service implementation/header or driver implementation/binding | Declared Twister roots and integration consumers, plus product sysbuilds; no unrelated CLI packages. |
 | Boards, product configuration, common firmware helpers or unmapped firmware paths | All SDK runtime/build checks and all product sysbuilds. |
 | Direct test changes | Both Twister layers use the nearest test metadata directory; no products or CLI. Deleted suites and shared fixtures without a local metadata owner fall back to the tests root. |
 | Direct sample changes | Compile the nearest sample metadata directory; no runtime layer, products or CLI. Unresolved/deleted sample roots and samples without Twister metadata expand to all SDK and product checks. |
 | CLI code | Python/Rust checks, three representative CLI targets and native artifact execution. |
-| Host Python tools | Python tests without restoring the firmware workspace or running Rust. |
+| Host and CI Python tools | Python tests without restoring the firmware workspace or running Rust. |
+| Root `LICENSE` and `LICENSES/Apache-2.0.txt` | CLI/Rust checks and representative CLI targets because EDK validation and export consume these texts; no firmware builds. |
+| Other license texts and metadata | Source license/metadata checks; no firmware or CLI builds. |
 | Release tools / product inventory tooling | Python/Rust checks, representative CLI packaging and native checks, product sysbuilds. Firmware package/EDK qualification runs in candidate preparation. |
-| Public headers, manifest, shared build/module files, CI implementation, license policy, unknown paths | Full matrix. |
+| Manifest, shared build/module files, workflow/impact-policy changes, unknown paths | Full matrix. |
 
 [ci-impact.toml](ci-impact.toml) records component paths and their test/sample
-roots, including consumers across components. Reverse dependencies are followed
-transitively, including conditional consumers, with cycles visited only once.
-For example, Clock implementation
+roots, including the integration consumers relevant to each component. These
+are explicit selections: selecting a consumer's tests does not recursively
+select the consumer as though its source changed. Clock implementation/header
 changes include management configuration handlers, MeshCore and LLEXT tests;
 the TCA8418 input driver and MFD binding select the same driver contract tests.
+Power implementation/header changes include the Indicator audio and feedback
+test roots that consume its fuel-gauge events.
 Multiple changes union their selections, and ancestor roots absorb nested roots.
 Scenarios and platforms remain owned by `testcase.yaml` and `sample.yaml`.
 
@@ -63,8 +68,9 @@ test roots fail planning. Common settings/management/shell helpers and
 changes also expand because they can alter dependencies; build files inside a
 directly changed test/sample stay within that metadata root. Unmapped firmware
 paths actually select all SDK roots, rather than merely setting an advisory flag.
-Renames include both the old and new paths. Public API changes retain the full
-matrix, and scheduled/manual runs bypass narrowing.
+Renames include both the old and new paths. Mapped public headers share their
+component scope; unmapped headers expand SDK/product checks. Scheduled/manual
+runs bypass narrowing and include every supported configuration.
 
 Products remain broad for service, driver, board and application changes until
 their configuration/devicetree consumer relationships are explicitly established.
@@ -81,8 +87,11 @@ pipeline; these references describe selection mechanisms, not identical gates.
 
 All runs perform source metadata, local documentation references, secret scanning,
 repository license policy, workflow syntax, changed Python style and PR commit
-style in one job with separate steps. It runs on Ubuntu with existing pinned
-Python tools plus byte-verified actionlint/gitleaks, without the Zephyr image.
+style in one job with separate steps. OpenSpec checks validate specs/changes and
+unfinished tasks in archives. These are structural checks, not proof of runtime
+behavior, TDD execution or review approval. The job uses Node.js 24 with
+`npm ci --ignore-scripts`, pinned Python tools and byte-verified actionlint/gitleaks,
+without the Zephyr image.
 C/C++ patch checks use the pinned Zephyr checkout. Font checks use pinned U8g2.
 Workspace checks use the same direct dependency setup as build jobs.
 
@@ -159,7 +168,12 @@ reuse downloads only and compile fresh binaries. Caches never certify checks.
 ## Test and security evidence
 
 Twister owns scenarios and integration platforms; CI maintains no second scenario
-matrix. Prepare freezes exact runtime and compilation inventories. Runtime builds
+matrix. Daily runs omit scenarios tagged `shuffle` or `performance` from indirect
+component selections. Directly changed test roots retain their extended scenarios;
+settings implementation changes retain the settings performance root. Full runs
+include all variants. Filtering happens before Prepare freezes the runtime and
+compilation inventories; the raw discovery reports remain in its task output.
+Runtime builds
 are removed from the compilation inventory only for the same scenario, platform
 and toolchain. Each nonempty layer has up to four deterministic shards. A focused
 selection may need only one layer; a completely empty selection fails. Per-shard
@@ -259,8 +273,8 @@ All workspace checks require full SHAs throughout the manifest graph.
 Candidate preparation additionally requires successful strict validation and
 assembly. Local checks and pinned revisions do not
 establish a successful hosted run; rerun CI on the submitted changes before
-claiming completion. Hardware, production signing, notarization and public
-release are outside this validation.
+claiming hosted CI or candidate validation complete. Hardware, production signing,
+notarization and public release are outside this validation.
 
 ## First activation and reproduction
 

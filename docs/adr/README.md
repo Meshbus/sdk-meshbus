@@ -23,5 +23,5 @@ ADR identifiers are stable references and need not be consecutive.
 - [Domain vocabulary](../../CONTEXT.md)
 - [Product composition](../../apps/meshbus/README.md)
 - [Build and distribution procedures](../../DISTRIBUTION.md)
-- [Public API and ABI rules](../../include/AGENTS.md)
+- [Engineering contracts](../../DEVELOPMENT.md#engineering-contracts)
 - [Third-party notices](../../LICENSING.md)

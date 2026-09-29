@@ -74,7 +74,9 @@ symbols.
 - `scripts/`: Rust CLI and meshbus/release/mklfs/remote west extensions
 - [CONTEXT.md](CONTEXT.md) and [architecture decisions](docs/adr/README.md):
   domain vocabulary and current design constraints
-- `.scratch/`: ignored local specifications, tickets, and historical evidence
+- [openspec/](openspec/README.md): shared specifications and change plans
+- `.agents/skills/`: generated OpenSpec workflows for Codex
+- `.scratch/`: ignored temporary notes, experiments and raw evidence
 
 Run Zephyr commands from the west workspace root. Replace `<task>` with a unique
 name for the current run to preserve other build and test outputs. For example:
@@ -142,9 +144,10 @@ as a fallback.
 
 ## Development workflow
 
-Read the [agent entry guide](AGENTS.md) and the nearest local `AGENTS.md` before
-changing an owned area. Product and SDK work share root guidance and Git history. Local `sample.yaml` and `testcase.yaml`
-files define supported build and test surfaces.
+Use the [OpenSpec workflow](openspec/README.md) to propose, review, implement
+and archive shared changes. [AGENTS.md](AGENTS.md) is the agent entry point;
+[DEVELOPMENT.md](DEVELOPMENT.md) describes engineering and build practices.
+Local `sample.yaml` and `testcase.yaml` files define supported build and test surfaces.
 
 The serial console helper is an ordinary SDK tool at `scripts/serial_use.py`;
 its device-free regression tests are in `scripts/tests/test_serial_use.py`.

@@ -64,9 +64,11 @@ unless one of these fragments is explicitly selected.
 
 Select a registered target whose profile enables MCUboot for these commands.
 Replace the target, task and key-path placeholders before running them.
+Reuse a valid task build directory for ordinary source edits; use a fresh
+directory when changing the target or authentication mode.
 
 ```sh
-west build -p always --sysbuild \
+west build -p auto --sysbuild \
   -b '<qualified-board-target>' \
   meshbus/apps/meshbus -d 'build/<task>-unsigned'
 ```
@@ -89,7 +91,7 @@ header and hash. MCUboot validates integrity on every boot without authenticatin
 the publisher. For an authenticated downstream build, select Ed25519 and a key:
 
 ```sh
-west build -p always --sysbuild \
+west build -p auto --sysbuild \
   -b '<qualified-board-target>' \
   meshbus/apps/meshbus -d 'build/<task>-signed' -- \
   -DSB_CONFIG_BOOT_SIGNATURE_TYPE_ED25519=y \
