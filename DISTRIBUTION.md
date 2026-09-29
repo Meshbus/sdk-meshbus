@@ -11,6 +11,12 @@ CLI versions without bundling them as one product. Assembly may need a verified
 CLI executable, but does not require publishing all supported CLI archives.
 CLI code signing, notarization and platform coverage belong to the CLI release.
 
+A GA Release is production-qualified firmware made available for supported
+Product Targets. A Release Candidate or Engineering Candidate is not a GA
+Release. An Engineering Candidate is a non-publishable firmware build used to
+collect engineering evidence before GA; it may be authorized by a Production
+Image Key without carrying a production qualification claim.
+
 Start with [workspace setup](README.md#workspace-setup) and
 [development prerequisites](DEVELOPMENT.md). Commands below run from
 `west topdir`, with this repository at `meshbus/`. Replace angle-bracket
@@ -132,12 +138,21 @@ use that key. Missing, invalid or mismatched keys fail rather than falling back
 to an unsigned build. MCUboot repository example keys are rejected. Private PEM
 contents are not accepted through an environment variable.
 
-The caller owns this trust root. Sharing a Production Image Key across boards
-means a compromise affects every board trusting it. A signature identifies a
-publisher, not a compatible board, layout or individual device; target and
-partition checks remain necessary. Authenticated MCUboot validates the primary
+The Production Image Key is the trust root selected by an authenticated MCUboot
+product to authorize application images for execution. The caller owns it;
+sharing it across boards means a compromise affects every board trusting it.
+A signature identifies a publisher, not a compatible board, layout or individual
+device; target and partition checks remain necessary. Authenticated MCUboot validates the primary
 image on every boot. Native sysbuild/MCUboot signing avoids a separate
 build-to-signer handoff while trusting the reviewed build inputs with the key.
+
+For products adopting this signed boot policy, the official firmware trust
+boundary extends from MCUboot through the verified base application. It ends
+when the owner launches an MBA or replaces the boot chain, and does not
+establish the integrity of retained user data. Signed rollback means executing
+an older official application still authorized by the Production Image Key;
+it is distinct from automatic recovery after a failed update. Whether rollback
+is permitted depends on the [product policy](apps/meshbus/README.md#product-policy-and-release-qualification).
 
 Authentication is independent of `--development`, which controls source and
 build-profile checks. Clean, pinned unsigned builds can be packaged without
@@ -208,6 +223,12 @@ checksums identify a completed part.
 
 ## Firmware archive contents
 
+A Factory Image is the complete first-install firmware set for a Product Target,
+including required boot components and the application. It differs from an
+application-only update and is not a backup of per-device data. The archive
+contents depend on the boot profile; UF2 archives require separately supplied
+boot components as described above.
+
 | Format | Images |
 | --- | --- |
 | MCUboot | Bootloader and bootable APP BINs, available HEX files, merged `full.bin` / `full.hex`; public verification PEM only when authenticated |
@@ -222,7 +243,9 @@ the CLI does not maintain a separate product partition table. `full.bin` begins
 at its recorded address and fills gaps with
 `0xff`; it is not an application-slot image or a delta-package input.
 
-Each part retains the exact APP BIN for future delta input, together with
+The Release Baseline is the exact released application bytes and release
+identity retained for future update packages; authenticated formats require an
+appropriately signed baseline. Each part retains the exact APP BIN, together with
 target/version identity, final configuration and DTS hashes, compiler identity,
 and resolved source/dependency revisions. Records identify `authentication` as
 `none` or `ed25519`; only authenticated records include verified `signing`
@@ -323,9 +346,10 @@ requirements.
 ```
 
 The Firmware endpoint roles are `repeater`, `room` and `sensor`; choose the
-identity and layout fields to match the target. The image key and DFOTA
-manifest key are independent trust roots. The manifest private key stays behind
-an offline signing boundary. The explicit `--manifest-private-key`
+identity and layout fields to match the target. The DFOTA Manifest Key authorizes
+package metadata independently of the Production Image Key that authorizes
+application execution. The manifest private key stays behind an offline signing
+boundary. The explicit `--manifest-private-key`
 interface is available for offline engineering use; production workflows can
 import a detached signature as above. The signer owns private-key handling.
 Fixed campaign IDs and identical inputs permit reproducible package creation.

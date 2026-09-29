@@ -21,6 +21,11 @@ A device's firmware identity, partition layout and release artifacts are
 independent of its MeshCore role. Owners can change supported roles without
 replacing firmware.
 
+Device capabilities are the firmware's services and storage capacities, shared
+across its supported roles. A MeshCore role selects CHAT, REPEATER, ROOM or
+SENSOR protocol behavior. The configured role is the owner's saved selection;
+the active role governs the current session.
+
 SDK board definitions own physical peripherals. Application profiles select
 services, capacities, boot policy and partition overrides under
 `apps/meshbus/boards/<vendor>/<board>/`. APP profiles are the sole product target inventory:
@@ -195,6 +200,10 @@ Hardware evidence must be recorded separately from build and Twister results.
 
 ## Product policy and release qualification
 
+A Product Target is a device firmware identity covered by a GA Release's support
+and qualification contract, independent of the selected MeshCore role. A
+Qualification Fixture is a board and role configuration used to collect
+engineering evidence without that GA support coverage.
 SDK board support, product registration and a successful build do not establish
 hardware qualification. Each release qualifies its Product Targets and actual
 capabilities; a Qualification Fixture does not qualify another target.

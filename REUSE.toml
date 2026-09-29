@@ -23,7 +23,7 @@ path = [
     "scripts/meshbus/tests/**", "scripts/meshbus/build.rs", "scripts/meshbus/Cargo.*",
     "README.md", "DEVELOPMENT.md", "LICENSING.md",
     "west.yml",
-    "CONTEXT.md", "DISTRIBUTION.md",
+    "DISTRIBUTION.md",
     ".gitattributes",
     "docs/licensing/**",
     "tests/**/testcase.yaml",

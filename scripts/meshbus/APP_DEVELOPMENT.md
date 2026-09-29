@@ -16,8 +16,10 @@ exported and verified, but cannot be used by these MBA build commands.
 
 ## Execution and trust model
 
+An MBA is a loadable, owner-trusted native application package built against an
+EDK and run in Desktop, independently of the current MeshCore role.
 Desktop profiles with LLEXT let owners install and explicitly launch compatible
-MBAs without a FoBE signature, publisher approval or developer mode. This permits
+MBAs without a package signature, publisher approval or developer mode. This permits
 independent application authorship. The supported contract is a foreground MBA
 and its App EDK; resident MBS services and a Service EDK need a separate host
 design and qualification.
@@ -158,6 +160,11 @@ Build success proves a package was produced for that EDK; it does not prove
 installed firmware identity, physical display behavior, audio or device execution.
 
 ## Select a compatible connected device and manage a Session
+
+An MBA Session is one attempt to run an MBA in Desktop, including resources
+retained after loading or execution fails. It ends only when all host-owned
+resources have been reclaimed; returning from the application alone does not
+end the Session.
 
 Identity-capable firmware reports a stable hardware ID and the SHA256 of its
 actual MCUboot image (header, payload and TLVs, excluding slot padding). The

@@ -38,6 +38,12 @@ not establish hardware or release qualification.
 
 ## Zephyr integration
 
+The Meshbus SDK provides reusable services, public APIs, hardware support and
+UI components for product firmware and other Zephyr applications. An Extension
+Development Kit (EDK) instead contains release-matched public compiler inputs
+for building Desktop MBA applications for one product target; see
+[EDK distribution](DISTRIBUTION.md#edk-and-extension-packages).
+
 The module descriptor at `zephyr/module.yml` exports this repository as a
 Zephyr CMake/Kconfig module and contributes its board, devicetree, and module
 extension roots. A consuming west workspace must make `meshbus` visible as
@@ -72,7 +78,6 @@ symbols.
 - `samples/` and `tests/`: reusable SDK validation surfaces
 - `apps/meshbus/`: product composition, device profiles, and sysbuild policy
 - `scripts/`: Rust CLI and meshbus/release/mklfs/remote west extensions
-- [CONTEXT.md](CONTEXT.md): domain vocabulary when terms need clarification
 - [openspec/](openspec/README.md): shared specifications and change plans
 - `.agents/skills/`: generated OpenSpec workflows for Codex
 

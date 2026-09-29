@@ -4,14 +4,10 @@ The Meshbus repository owns the reusable Zephyr module, product application,
 and host tools. Start agent sessions at this repository root. Its parent is a
 local west workspace; dependency projects retain their independent Git state.
 
-Shared specifications and change plans use [OpenSpec](openspec/README.md).
-Install its pinned CLI with `npm ci --ignore-scripts --no-audit --no-fund` at
-the Git root. Node.js 20.19.0 or newer is needed for this development workflow;
-firmware builds do not depend on Node.js. Codex skills are versioned under
-`.agents/skills/`; reload the session if newly added skills are absent.
+See the [OpenSpec workflow](openspec/README.md) for tooling setup, shared
+specifications and change plans.
 
 Use the task-specific links in [AGENTS.md](AGENTS.md) to locate current contracts.
-Consult [domain vocabulary](CONTEXT.md) when a term is ambiguous.
 
 ## Engineering contracts
 

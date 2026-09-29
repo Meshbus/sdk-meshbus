@@ -13,7 +13,6 @@ Read only the sections needed for the task, alongside relevant source and tests:
 - Packaging, signing or release: [distribution](DISTRIBUTION.md).
 - MBA execution: [trust model](scripts/meshbus/APP_DEVELOPMENT.md#execution-and-trust-model).
 - Dependency admission or attribution: [licensing](LICENSING.md).
-- Ambiguous domain terms: [vocabulary](CONTEXT.md).
 
 Use [OpenSpec](openspec/README.md) for shared requirements and planned changes;
 small corrections need no new change. Read the relevant active change, not all
