@@ -461,22 +461,44 @@ fn indicator_message_and_system_routing_are_independent() {
     let runtime = Runtime::load().unwrap();
     let mut current = runtime.new_message("IndicatorConfig").unwrap();
     set(&mut current, "light_enabled", Value::Bool(true));
-    let mut buzzer = runtime.new_message("IndicatorConfig.BuzzerFeedback").unwrap();
+    let mut buzzer = runtime
+        .new_message("IndicatorConfig.BuzzerFeedback")
+        .unwrap();
     set(&mut buzzer, "direct_message_enabled", Value::Bool(true));
     set(&mut current, "buzzer_feedback", Value::Message(buzzer));
-    let mut light = runtime.new_message("IndicatorConfig.LightFeedback").unwrap();
+    let mut light = runtime
+        .new_message("IndicatorConfig.LightFeedback")
+        .unwrap();
     set(&mut light, "heartbeat_enabled", Value::Bool(true));
     set(&mut light, "message_enabled", Value::Bool(true));
     set(&mut light, "system_enabled", Value::Bool(true));
-    set(&mut current, "light_feedback", Value::Message(light.clone()));
+    set(
+        &mut current,
+        "light_feedback",
+        Value::Message(light.clone()),
+    );
     let mut expected = current.clone();
     set(&mut light, "message_enabled", Value::Bool(false));
     set(&mut expected, "light_feedback", Value::Message(light));
-    let mut exchange = MemoryExchange::new(&runtime, vec![
-        ("indicator config", Ok(response(&runtime, "IndicatorConfigGetResponse", &current))),
-        ("indicator config set", Ok(response(&runtime, "IndicatorConfigSetResponse", &expected))),
-    ]);
-    execute(&runtime, &mut exchange,
-        "indicator config --light-feedback-message-enabled off", false).unwrap();
+    let mut exchange = MemoryExchange::new(
+        &runtime,
+        vec![
+            (
+                "indicator config",
+                Ok(response(&runtime, "IndicatorConfigGetResponse", &current)),
+            ),
+            (
+                "indicator config set",
+                Ok(response(&runtime, "IndicatorConfigSetResponse", &expected)),
+            ),
+        ],
+    );
+    execute(
+        &runtime,
+        &mut exchange,
+        "indicator config --light-feedback-message-enabled off",
+        false,
+    )
+    .unwrap();
     assert_config(&exchange.finish()[1], &expected);
 }
