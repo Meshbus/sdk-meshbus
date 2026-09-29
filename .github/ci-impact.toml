@@ -4,20 +4,12 @@
 # Roots select Twister metadata recursively, never duplicate scenarios/platforms.
 # Include known consumers as well as the component's own contract tests. Review
 # these relationships when adding a consumer, public API, or integration fixture.
-# Consumers are reverse dependencies, including conditional header/API users;
-# their roots and consumers are included transitively (cycles are supported).
+# Selecting a consumer's tests does not expand its component mapping.
 # Unmapped paths and source Kconfig/CMake changes select the entire SDK.
 shared = ["subsys/settings/*", "subsys/mgmt/*", "subsys/shell/*", "subsys/clock/time.c"]
 
 [components.clock]
-consumers = [
-    "contact",
-    "desktop",
-    "llext",
-    "meshcore",
-    "message",
-]
-paths = ["subsys/clock/*"]
+paths = ["include/clock/*", "subsys/clock/*"]
 roots = [
     "tests/subsys/clock",
     "tests/subsys/mgmt/config_handlers",
@@ -30,20 +22,11 @@ roots = [
 ]
 
 [components.gnss]
-consumers = [
-    "desktop",
-    "llext",
-    "meshcore",
-]
-paths = ["subsys/gnss/*"]
+paths = ["include/gnss/*", "subsys/gnss/*"]
 roots = ["tests/subsys/gnss", "tests/subsys/desktop", "tests/subsys/llext", "samples/subsys/gnss"]
 
 [components.telemetry]
-consumers = [
-    "desktop",
-    "llext",
-]
-paths = ["subsys/telemetry/*", "dts/bindings/meshbus/fobe,meshbus-telemetry.yaml"]
+paths = ["include/telemetry/*", "subsys/telemetry/*", "dts/bindings/meshbus/fobe,meshbus-telemetry.yaml"]
 roots = [
     "tests/subsys/telemetry",
     "tests/subsys/llext",
@@ -52,11 +35,7 @@ roots = [
 ]
 
 [components.display]
-consumers = [
-    "desktop",
-    "llext",
-]
-paths = ["subsys/display/*"]
+paths = ["include/display/*", "subsys/display/*"]
 roots = [
     "tests/subsys/display",
     "tests/subsys/mgmt/config_handlers",
@@ -66,14 +45,7 @@ roots = [
 ]
 
 [components.input]
-consumers = [
-    "desktop",
-    "display",
-    "indicator",
-    "llext",
-    "power",
-]
-paths = ["subsys/input/*"]
+paths = ["include/input/*", "subsys/input/*"]
 roots = [
     "tests/subsys/input",
     "tests/subsys/desktop",
@@ -86,11 +58,7 @@ roots = [
 ]
 
 [components.indicator]
-consumers = [
-    "desktop",
-    "llext",
-]
-paths = ["subsys/indicator/*"]
+paths = ["include/indicator/*", "subsys/indicator/*"]
 roots = [
     "tests/subsys/indicator",
     "tests/subsys/power",
@@ -101,23 +69,11 @@ roots = [
 ]
 
 [components.power]
-consumers = [
-    "bluetooth",
-    "contact",
-    "desktop",
-    "display",
-    "firmware",
-    "gnss",
-    "indicator",
-    "input",
-    "llext",
-    "meshcore",
-    "radio",
-    "telemetry",
-]
-paths = ["subsys/power/*"]
+paths = ["include/power/*", "subsys/power/*"]
 roots = [
     "tests/subsys/power",
+    "tests/subsys/indicator/audio",
+    "tests/subsys/indicator/feedback",
     "tests/subsys/firmware",
     "tests/subsys/gnss",
     "tests/subsys/telemetry",
@@ -129,22 +85,11 @@ roots = [
 ]
 
 [components.bluetooth]
-consumers = [
-    "desktop",
-    "llext",
-    "meshcore",
-]
-paths = ["subsys/bluetooth/*"]
+paths = ["include/bluetooth/*", "subsys/bluetooth/*"]
 roots = ["tests/subsys/bluetooth", "tests/subsys/management", "samples/subsys/bluetooth"]
 
 [components.channel]
-consumers = [
-    "desktop",
-    "llext",
-    "meshcore",
-    "message",
-]
-paths = ["subsys/channel/*"]
+paths = ["include/channel/*", "subsys/channel/*"]
 roots = [
     "tests/subsys/channel",
     "tests/subsys/bluetooth",
@@ -158,14 +103,7 @@ roots = [
 ]
 
 [components.contact]
-consumers = [
-    "desktop",
-    "llext",
-    "management",
-    "meshcore",
-    "notify",
-]
-paths = ["subsys/contact/*"]
+paths = ["include/contact/*", "subsys/contact/*"]
 roots = [
     "tests/subsys/contact",
     "tests/subsys/bluetooth",
@@ -182,13 +120,7 @@ roots = [
 ]
 
 [components.message]
-consumers = [
-    "desktop",
-    "indicator",
-    "llext",
-    "meshcore",
-]
-paths = ["subsys/message/*"]
+paths = ["include/message/*", "subsys/message/*"]
 roots = [
     "tests/subsys/message",
     "tests/subsys/bluetooth",
@@ -201,16 +133,7 @@ roots = [
 ]
 
 [components.notify]
-consumers = [
-    "bluetooth",
-    "channel",
-    "contact",
-    "llext",
-    "management",
-    "meshcore",
-    "message",
-]
-paths = ["subsys/notify/*"]
+paths = ["include/notify/*", "subsys/notify/*"]
 roots = [
     "tests/subsys/notify",
     "tests/subsys/bluetooth",
@@ -229,13 +152,7 @@ roots = [
 ]
 
 [components.radio]
-consumers = [
-    "desktop",
-    "llext",
-    "meshcore",
-    "message",
-]
-paths = ["subsys/radio/*"]
+paths = ["include/radio/*", "subsys/radio/*"]
 roots = [
     "tests/subsys/radio",
     "tests/subsys/management",
@@ -246,14 +163,7 @@ roots = [
 ]
 
 [components.meshcore]
-consumers = [
-    "contact",
-    "desktop",
-    "llext",
-    "management",
-    "message",
-]
-paths = ["subsys/meshcore/*"]
+paths = ["include/meshcore/*", "subsys/meshcore/*"]
 roots = [
     "tests/subsys/meshcore",
     "tests/subsys/bluetooth",
@@ -272,10 +182,7 @@ roots = [
 ]
 
 [components.management]
-consumers = [
-    "meshcore",
-]
-paths = ["subsys/management/*"]
+paths = ["include/management/*", "subsys/management/*"]
 roots = [
     "tests/subsys/management",
     "tests/subsys/bluetooth",
@@ -284,11 +191,7 @@ roots = [
 ]
 
 [components.firmware]
-consumers = [
-    "llext",
-    "management",
-]
-paths = ["subsys/firmware/*"]
+paths = ["include/firmware/*", "subsys/firmware/*"]
 roots = [
     "tests/subsys/firmware",
     "tests/subsys/llext",
@@ -298,40 +201,22 @@ roots = [
 ]
 
 [components.dfu]
-consumers = [
-    "firmware",
-]
-paths = ["subsys/dfu/*"]
+paths = ["include/dfu/*", "subsys/dfu/*"]
 roots = ["tests/subsys/dfu", "tests/subsys/firmware"]
 
 [components.fs]
-consumers = [
-    "desktop",
-    "llext",
-]
-paths = ["subsys/fs/*"]
+paths = ["include/fs/*", "subsys/fs/*"]
 roots = ["tests/subsys/fs", "tests/subsys/llext", "tests/subsys/desktop"]
 
 [components.llext]
-consumers = [
-    "desktop",
-    "fs",
-]
-paths = ["subsys/llext/*"]
+paths = ["include/llext/*", "subsys/llext/*"]
 roots = ["tests/subsys/llext", "tests/subsys/fs", "tests/subsys/desktop"]
 
 [components.desktop]
-consumers = [
-    "indicator",
-    "llext",
-]
-paths = ["subsys/desktop/*"]
+paths = ["include/desktop/*", "subsys/desktop/*"]
 roots = ["tests/subsys/desktop"]
 
 [components.tca8418]
-consumers = [
-    "input",
-]
 paths = [
     "drivers/input/input_tca8418.*",
     "drivers/mfd/mfd_tca8418.*",
@@ -341,9 +226,6 @@ paths = [
 roots = ["tests/drivers/input/tca8418", "tests/subsys/input", "samples/subsys/input"]
 
 [components.modulino_led_matrix]
-consumers = [
-    "display",
-]
 paths = [
     "drivers/display/modulino_led_matrix.*",
     "dts/bindings/display/arduino,modulino-led-matrix.yaml",
@@ -356,16 +238,10 @@ roots = [
 ]
 
 [components.l76k]
-consumers = [
-    "gnss",
-]
 paths = ["drivers/gnss/gnss_quectel_l76k.*", "dts/bindings/gnss/quectel,l76k.yaml"]
 roots = ["tests/drivers/gnss/l76k", "tests/subsys/gnss", "samples/subsys/gnss"]
 
 [components.charger_composite]
-consumers = [
-    "power",
-]
 paths = [
     "drivers/charger/charger_composite.*",
     "dts/bindings/charger/zephyr,charger-composite.yaml",
@@ -373,10 +249,6 @@ paths = [
 roots = ["tests/drivers/charger/charger_composite", "tests/subsys/power", "samples/subsys/power"]
 
 [components.compass_composite]
-consumers = [
-    "gnss",
-    "telemetry",
-]
 paths = [
     "drivers/sensor/composite/compass_composite.*",
     "dts/bindings/sensor/zephyr,compass-composite.yaml",
@@ -391,9 +263,6 @@ roots = [
 ]
 
 [components.lsm6ds3_family]
-consumers = [
-    "compass_composite",
-]
 paths = ["drivers/sensor/st/lsm6ds3_family/*", "dts/bindings/sensor/fobe,lsm6ds3-family.yaml"]
 roots = [
     "tests/drivers/sensor/lsm6ds3_family",

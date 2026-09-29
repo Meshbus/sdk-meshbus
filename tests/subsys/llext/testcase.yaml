@@ -4,22 +4,6 @@ tests:
       - meshbus
       - llext
       - contract
-    harness: ztest
-    extra_configs:
-      - CONFIG_DISPLAY=y
-      - CONFIG_U8G2=y
-      - CONFIG_ZUI=y
-      - CONFIG_MBS_LLEXT_APP_HEAP_RESERVE_SIZE=32768
-      - CONFIG_MBS_LLEXT_APP_MAX_HEAP_SIZE=65536
-    platform_allow:
-      - qemu_x86
-    integration_platforms:
-      - qemu_x86
-  subsys.meshbus.llext.contract.edk_provenance:
-    tags:
-      - meshbus
-      - llext
-      - contract
       - compatibility
     harness: ztest
     extra_configs:

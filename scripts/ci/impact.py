@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 FoBE Studio
 # SPDX-License-Identifier: Apache-2.0
-"""Select metadata roots using reviewed component and consumer relationships."""
+"""Select explicit test owners and integration consumers for changed sources."""
 from fnmatch import fnmatchcase
 from pathlib import Path
 import tomllib
@@ -31,9 +31,6 @@ def load_policy(root):
     for name, component in policy['components'].items():
         if not component['paths'] or not component['roots']:
             raise ValueError(f'empty impact rule: {name}')
-        for consumer in component.get('consumers', []):
-            if consumer not in policy['components']:
-                raise ValueError(f'unknown impact consumer: {name} -> {consumer}')
         for target in component['roots']:
             path = Path(target)
             if path.is_absolute() or '..' in path.parts or path.parts[0] not in ('tests', 'samples'):
@@ -71,18 +68,10 @@ def select(paths, root=ROOT):
             fallback.append(name)
         for key in matches:
             components.add(key)
-    # Follow reviewed reverse dependencies, including conditional consumers.
-    # Cycles are normal (e.g. FS/LLEXT); each component is visited only once.
-    pending, affected = list(components), set()
-    while pending:
-        key = pending.pop()
-        if key in affected:
-            continue
-        affected.add(key)
-        rule = policy['components'][key]
-        roots.update(rule['roots'])
-        pending.extend(rule.get('consumers', []))
+    # Each mapping already names its integration consumers. A selected test
+    # does not imply that the consumer's implementation also changed.
+    for key in components:
+        roots.update(policy['components'][key]['roots'])
     return dict(test_roots=compact({r for r in roots if r.startswith('tests')}),
                 compile_roots=compact(roots),
-                sdk_selection=dict(components=sorted(components), consumers=sorted(affected - components),
-                                   fallback_paths=sorted(fallback)))
+                sdk_selection=dict(components=sorted(components), fallback_paths=sorted(fallback)))

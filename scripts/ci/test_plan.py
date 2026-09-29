@@ -7,6 +7,27 @@ import json
 from pathlib import Path
 import subprocess
 
+import yaml
+
+
+def filter_extended(report, selection, root):
+    """Keep extended cases only when requested by full or direct selection."""
+    if selection['full']:
+        return report
+    extended_roots = [root / path for path in selection.get('extended_roots', [])]
+    excluded = set()
+    for metadata in (root / 'tests').rglob('testcase.yaml'):
+        if any(metadata.is_relative_to(path) for path in extended_roots):
+            continue
+        data = yaml.safe_load(metadata.read_text())
+        common_tags = set(data.get('common', {}).get('tags', []))
+        for name, config in data['tests'].items():
+            tags = common_tags | set((config or {}).get('tags', []))
+            if tags & {'shuffle', 'performance'}:
+                excluded.add(name)
+    return dict(report, testsuites=[s for s in report['testsuites']
+                                   if s['name'].rsplit('/', 1)[-1] not in excluded])
+
 
 def key(suite):
     # A scenario uniquely owns its Kconfig/overlay/extra_args in this source tree.
@@ -59,6 +80,7 @@ def generate(workspace, snapshot):
         if roots:
             subprocess.run(command, cwd=workspace, check=True)
             report = json.loads((snapshot / f'{layer}.json').read_text())
+            report = filter_extended(report, selection, workspace / 'meshbus')
         else:
             # Without -T Twister searches its default tree, not an empty set.
             report = {'testsuites': []}

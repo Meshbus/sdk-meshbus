@@ -24,6 +24,82 @@ def suite(name, platform='native_sim/native', status='None'):
 
 
 class Planning(unittest.TestCase):
+    def test_component_selection_does_not_expand_test_consumers_recursively(self):
+        selected = plan.select(['subsys/clock/clock.c'])
+        self.assertIn('tests/subsys/clock', selected['test_roots'])
+        self.assertIn('tests/subsys/mgmt/config_handlers', selected['test_roots'])
+        self.assertNotIn('tests/subsys/settings/performance', selected['test_roots'])
+        self.assertNotIn('tests/subsys/fs', selected['test_roots'])
+        self.assertEqual(plan.select(['include/clock/clock.h'])['test_roots'],
+                         selected['test_roots'])
+
+    def test_metadata_and_ci_python_have_no_product_build_dependency(self):
+        for path in ('REUSE.toml', 'LICENSING.md', 'LICENSES/MIT.txt',
+                     '.github/license-policy.toml', 'scripts/ci/plan.py'):
+            with self.subTest(path=path):
+                selected = plan.select([path])
+                self.assertFalse(selected['full'])
+                self.assertFalse(selected['sdk'])
+                self.assertFalse(selected['products'])
+                self.assertFalse(selected['cli'])
+                self.assertEqual(selected['host'], path.endswith('.py'))
+
+    def test_cli_license_inputs_select_cli_without_firmware(self):
+        for path in ('LICENSE', 'LICENSES/Apache-2.0.txt'):
+            with self.subTest(path=path):
+                selected = plan.select([path])
+                for flag in ('host', 'rust', 'cli'):
+                    self.assertTrue(selected[flag], flag)
+                for flag in ('full', 'sdk', 'products'):
+                    self.assertFalse(selected[flag], flag)
+
+    def test_power_selects_direct_indicator_feedback_consumers(self):
+        expected = ['tests/subsys/indicator/audio', 'tests/subsys/indicator/feedback']
+        for path in ('subsys/power/power.c', 'include/power/power.h'):
+            with self.subTest(path=path):
+                selected = plan.select([path])
+                for layer in ('test_roots', 'compile_roots'):
+                    self.assertEqual([root for root in selected[layer]
+                                      if root.startswith('tests/subsys/indicator')], expected)
+                    self.assertNotIn('tests', selected[layer])
+                self.assertEqual(selected['sdk_selection']['components'], ['power'])
+
+    def test_extended_scenarios_are_selected_by_relevance(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            folder = root / 'tests/owner'
+            folder.mkdir(parents=True)
+            (folder / 'testcase.yaml').write_text(
+                'tests:\n  normal: {}\n  shuffled:\n    tags: [shuffle]\n'
+                '  benchmark:\n    tags: [performance]\n')
+            report = {'testsuites': [suite(n) for n in ('normal', 'shuffled', 'benchmark')]}
+            routine = {'full': False, 'extended_roots': []}
+            self.assertEqual([s['name'] for s in test_plan.filter_extended(report, routine, root)['testsuites']],
+                             ['normal'])
+            for selection in ({'full': True}, routine | {'extended_roots': ['tests/owner']}):
+                self.assertEqual(test_plan.filter_extended(report, selection, root), report)
+        self.assertEqual(plan.select(['tests/subsys/desktop/integration/src/test_input.c'])['extended_roots'],
+                         ['tests/subsys/desktop/integration'])
+        self.assertIn('tests/subsys/settings/performance',
+                      plan.select(['subsys/settings/settings.c'])['extended_roots'])
+
+    def test_openspec_changes_need_source_checks_without_firmware_builds(self):
+        for path in ('openspec/config.yaml', 'openspec/changes/add-clock/.openspec.yaml',
+                     'openspec/specs/development-workflow/spec.md',
+                     '.agents/skills/.openspec-target',
+                     '.agents/skills/openspec-propose/SKILL.md',
+                     '.agents/skills/OPENSPEC-LICENSE', 'package.json', 'package-lock.json'):
+            with self.subTest(path=path):
+                selected = plan.select([path])
+                for flag in ('full', 'host', 'sdk', 'products', 'cli', 'workspace', 'heavy'):
+                    self.assertFalse(selected[flag], flag)
+                self.assertEqual(checks.expected_jobs(selected), ['plan', 'lightweight'])
+        # A specification must not hide the runtime scope of a mixed change.
+        mixed = plan.select(['openspec/config.yaml', 'subsys/clock/clock.c'])
+        self.assertTrue(mixed['sdk'])
+        self.assertTrue(mixed['products'])
+        self.assertFalse(mixed['cli'])
+
     def test_docs_need_no_image_workspace_or_builds(self):
         for path in ('README.md', '.github/CI.md', 'scripts/meshbus/README.md'):
             selected = plan.select([path])
@@ -82,7 +158,7 @@ class Planning(unittest.TestCase):
         self.assertTrue(source['products'])
 
     def test_shared_and_unmapped_firmware_expand_sdk_not_cli(self):
-        for name in ('subsys/clock/time.c', 'subsys/settings/settings.c',
+        for name in ('include/unknown/header.h', 'subsys/clock/time.c', 'subsys/settings/settings.c',
                      'subsys/new_service/service.c', 'subsys/clock/Kconfig',
                      'drivers/CMakeLists.txt', 'boards/fobe/new_board/board.yml',
                      'apps/meshbus/prj.conf'):
@@ -132,26 +208,15 @@ class Planning(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'no test metadata'):
                 plan.select(['subsys/bad/bad.c'])
 
-    def test_transitive_consumers_and_cycles_preserve_coverage(self):
-        # DFU -> Firmware -> LLEXT -> Desktop, with FS/LLEXT cycles.
+    def test_direct_integration_owners_do_not_become_changed_components(self):
         selected = plan.select(['subsys/dfu/img_util/flash_img.c'])
-        for target in ('tests/subsys/dfu', 'tests/subsys/firmware',
-                       'tests/subsys/llext', 'tests/subsys/fs', 'tests/subsys/desktop'):
-            self.assertIn(target, selected['test_roots'])
-        self.assertIn('desktop', selected['sdk_selection']['consumers'])
-        self.assertEqual(len(selected['test_roots']), len(set(selected['test_roots'])))
-
-    def test_unknown_consumer_fails_policy_validation(self):
-        policy = {'shared': [], 'components': {
-            'clock': {'paths': ['subsys/clock/*'], 'roots': ['tests/subsys/clock'],
-                      'consumers': ['missing']}}}
-        with patch.object(impact.tomllib, 'loads', return_value=policy):
-            with self.assertRaisesRegex(ValueError, 'unknown impact consumer'):
-                plan.select(['subsys/clock/clock.c'])
+        self.assertEqual(selected['test_roots'], ['tests/subsys/dfu', 'tests/subsys/firmware'])
+        mixed = plan.select(['subsys/dfu/img_util/flash_img.c', 'subsys/fs/fs.c'])
+        self.assertIn('tests/subsys/llext', mixed['test_roots'])
+        self.assertEqual(mixed['sdk_selection']['components'], ['dfu', 'fs'])
 
     def test_shared_unknown_and_missing_diff_expand_to_full(self):
-        for paths in ([], ['unknown.file'], ['west.yml'], ['include/clock/clock.h'],
-                      ['.github/workflows/ci.yml'], ['LICENSING.md']):
+        for paths in ([], ['unknown.file'], ['west.yml'], ['.github/workflows/ci.yml']):
             selected = plan.select(paths)
             self.assertTrue(selected['full'], paths)
             self.assertTrue(selected['audit'], paths)

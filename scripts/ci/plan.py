@@ -13,11 +13,24 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def category(path):
-    if path.endswith(('.md', '.rst')) and path != 'LICENSING.md' and not path.startswith('docs/licensing/'):
+    # OpenSpec and the root npm package are development workflow inputs only.
+    # Source checks validate them without restoring a firmware workspace.
+    if path in ('package.json', 'package-lock.json', '.agents/skills/.openspec-target',
+                '.agents/skills/OPENSPEC-LICENSE') or path.startswith(
+            ('openspec/', '.agents/skills/openspec-')):
         return 'docs'
-    if path in ('LICENSING.md', 'west.yml', 'CMakeLists.txt', 'Kconfig', 'REUSE.toml') or path.startswith(
-            ('.github/', 'scripts/ci/', 'include/', 'zephyr/', 'cmake/', 'modules/',
-             'LICENSE', 'docs/licensing/')):
+    if path.endswith(('.md', '.rst')):
+        return 'docs'
+    # EDK validation embeds LICENSE; export and Rust tests consume both texts.
+    if path in ('LICENSE', 'LICENSES/Apache-2.0.txt'):
+        return 'cli'
+    if path in ('REUSE.toml', '.github/license-policy.toml') or path.startswith(
+            ('LICENSE', 'docs/licensing/')):
+        return 'docs'
+    if path.startswith('scripts/ci/') and path.endswith('.py'):
+        return 'tools'
+    if path in ('west.yml', 'CMakeLists.txt', 'Kconfig') or path.startswith(
+            ('.github/', 'scripts/ci/', 'zephyr/', 'cmake/', 'modules/')):
         return 'shared'
     if path.startswith('scripts/meshbus/') or path == 'scripts/meshbus_cli.py':
         return 'cli'
@@ -29,7 +42,7 @@ def category(path):
         return 'tests'
     if path.startswith('samples/'):
         return 'samples'
-    if path.startswith(('subsys/', 'drivers/', 'lib/', 'dts/', 'boards/', 'apps/')):
+    if path.startswith(('include/', 'subsys/', 'drivers/', 'lib/', 'dts/', 'boards/', 'apps/')):
         return 'firmware'
     return 'unknown'
 
@@ -46,8 +59,11 @@ def select(paths, full=False):
     cli = full or bool(categories & {'cli', 'release'})
     host = full or bool(categories & {'cli', 'release', 'tools'})
     selection = (dict(test_roots=['tests'], compile_roots=['tests', 'samples'],
-                      sdk_selection=dict(components=[], consumers=[], fallback_paths=[], full=True)) if full else
+                      sdk_selection=dict(components=[], fallback_paths=[], full=True)) if full else
                  impact.select([p for p in paths if category(p) in ('firmware', 'tests', 'samples')], ROOT))
+    extended_roots = {impact.direct_root(p, ROOT) for p in paths if category(p) == 'tests'}
+    if any(p.startswith('subsys/settings/') for p in paths):
+        extended_roots.add('tests/subsys/settings/performance')
     checkpatch = full or any(p.endswith(('.c', '.h', '.cpp', '.hpp')) for p in paths)
     # Full runs assess current findings, dependency changes are expanded above.
     audit = full or any(p in ('scripts/meshbus/Cargo.lock', 'scripts/meshbus/Cargo.toml') for p in paths)
@@ -65,7 +81,7 @@ def select(paths, full=False):
                 fonts=full or products, checkpatch=checkpatch,
                 workspace=sdk or products or cli or audit or checkpatch,
                 heavy=host or sdk or products or cli or audit or checkpatch,
-                **selection,
+                **selection, extended_roots=impact.compact(extended_roots),
                 linux_targets=linux, mac_targets=mac,
                 native_targets=[{'target': t, 'runner': runners[t]} for t in linux] + mac)
 

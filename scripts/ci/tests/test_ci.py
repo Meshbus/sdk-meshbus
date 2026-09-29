@@ -12,7 +12,6 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import checks
 import artifact
-import plan
 import quality
 import vulnerabilities
 import workspace
@@ -183,18 +182,6 @@ class Gates(unittest.TestCase):
             report.write_text(json.dumps({'testsuites': [suite]}))
             with self.assertRaises(ValueError):
                 checks.report_twister(report, True)
-
-    def test_selection_shared_full_and_docs(self):
-        self.assertFalse(plan.select(['README.md'])['sdk'])
-        self.assertFalse(plan.select(['scripts/meshbus/src/main.rs'])['sdk'])
-        self.assertTrue(plan.select(['include/meshbus.h'])['sdk'])
-        self.assertEqual(len(plan.select(['README.md'], full=True)['native_targets']), 6)
-        self.assertEqual(len(plan.select(['west.yml'])['native_targets']), 6)
-        for path in ('LICENSING.md', 'LICENSES/Apache-2.0.txt',
-                     'west.yml', 'docs/licensing/fonts.md'):
-            with self.subTest(path=path):
-                self.assertTrue(plan.select([path])['sdk'])
-                self.assertTrue(plan.select([path])['cli'])
 
     def test_west_advisory_delta_records_new_high_matches(self):
         report = {'matches': [{'artifact': {'name': 'mbedtls', 'version': '4.1.1'},
