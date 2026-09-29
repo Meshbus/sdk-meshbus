@@ -118,6 +118,7 @@ No bus overclock or change to the module firmware is made by this scene.
 Immediately after flashing, from `west topdir`:
 
 ```sh
+capture_tmp="$(mktemp -d "${TMPDIR:-/tmp}/meshbus-modulino.XXXXXX")"
 python meshbus/scripts/serial_use.py monitor '<serial-port>' \
   --baudrate 115200 --timeout 60 \
   --wait MODULINO_SAMPLE_API_PASS \
@@ -126,9 +127,9 @@ python meshbus/scripts/serial_use.py monitor '<serial-port>' \
   --wait 'MODULINO_SAMPLE_REFRESH_PASS format=L_4' \
   --wait 'MODULINO_SAMPLE_CYCLE_COMPLETE cycle=1' --wait-all \
   --fail-pattern MODULINO_SAMPLE_FAIL --post-wait-seconds 1 \
-  --transcript meshbus/.scratch/modulino-led-matrix/refresh-runtime.log
+  --transcript "$capture_tmp/refresh-runtime.log"
 python meshbus/scripts/serial_use.py check-log \
-  --file meshbus/.scratch/modulino-led-matrix/refresh-runtime.log \
+  --file "$capture_tmp/refresh-runtime.log" \
   --fail-pattern MODULINO_SAMPLE_FAIL
 ```
 

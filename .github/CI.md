@@ -185,7 +185,7 @@ can explicitly use QEMU, without `--integration` for clock:
 
 ```sh
 west twister -T meshbus/tests/subsys/clock -p qemu_x86 --inline-logs \
-  -O meshbus/.scratch/clock-qemu
+  -O 'twister-out/<task>-clock-qemu'
 ```
 
 Run from `west topdir`. Simulation is contract evidence, not hardware qualification.
@@ -259,7 +259,8 @@ the three `license-*.txt` path lists make the remaining and exempted files easy 
 inspect in the uploaded source-check artifact. Run the same policy locally with:
 
 ```sh
-python scripts/ci/license_policy.py --output .scratch/license-review
+license_tmp="$(mktemp -d "${TMPDIR:-/tmp}/meshbus-license.XXXXXX")"
+python scripts/ci/license_policy.py --output "$license_tmp"
 ```
 
 ## Interpreting validation results

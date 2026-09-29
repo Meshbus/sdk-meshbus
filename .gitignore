@@ -104,7 +104,7 @@ node_modules
 
 scripts/__pycache__/
 
-# Local agent specifications, tickets, and evidence
+# Retained local artifacts from earlier tasks
 /.scratch/
 
 # Reproducible standalone host CLI dependencies

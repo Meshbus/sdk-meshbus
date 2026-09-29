@@ -7,7 +7,24 @@ scenario. [DEVELOPMENT.md](../DEVELOPMENT.md#sdk-builds-and-tests) owns environm
 setup and commands. Run the smallest check that proves the changed behavior;
 expand only to resolve a specific failure or acceptance gap.
 
+## Implementation loop
+
+For testable behavior changes, use Red -> Green -> Refactor: run the smallest
+public-behavior test, confirm failure from the missing behavior, implement it,
+then refactor with affected checks passing. Environment and fixture failures
+are not Red evidence. Derive expectations from the agreed scenarios, not private
+implementation details; do not weaken assertions to fit an incorrect result.
+Configuration, documentation and hardware-only work use appropriate checks
+specified for the change. Pure refactors reuse relevant regressions.
+
 ## Choosing coverage
+
+Use the requested target when one is named; otherwise select the scenario's
+declared platform. Do not invent a board matrix or substitute another simulation
+platform. Add a product build when product composition matters. Documentation-only
+changes normally need reference, syntax and consistency checks, not firmware builds.
+Existing approved test boundaries remain valid; clarify a new boundary only when
+it changes the public contract, acceptance coverage or side effects.
 
 Add a test for an agreed behavior, a reachable failure with meaningful impact,
 or a known defect. Reuse a matching test application and configuration first.

@@ -4,31 +4,36 @@ This repository owns the reusable Zephyr module, product firmware in
 `apps/meshbus/`, and host tools in `scripts/`. The parent is a local west
 workspace; sibling projects retain their own ownership and Git history.
 
-Use the standard OpenSpec workflow in [openspec/README.md](openspec/README.md).
-Project context and artifact rules live in `openspec/config.yaml`; Codex
-workflows are generated in `.agents/skills/`. Run the pinned CLI from the Git
-root as `npm run openspec -- <arguments>`. Keep generated skills unchanged;
-customize project context through OpenSpec configuration.
+Read only the sections needed for the task, alongside relevant source and tests:
 
-Read documentation according to the work:
+- Integration or naming: [SDK guide](README.md#zephyr-integration).
+- Engineering, environment or builds: [development](DEVELOPMENT.md).
+- Test selection or evidence: [testing](docs/testing.md).
+- Product roles or recovery: [product guide](apps/meshbus/README.md).
+- Packaging, signing or release: [distribution](DISTRIBUTION.md).
+- MBA execution: [trust model](scripts/meshbus/APP_DEVELOPMENT.md#execution-and-trust-model).
+- Dependency admission or attribution: [licensing](LICENSING.md).
+- Ambiguous domain terms: [vocabulary](CONTEXT.md).
 
-- [README.md](README.md): module integration and public namespaces.
-- [DEVELOPMENT.md](DEVELOPMENT.md): engineering contracts, workspace, builds and tests.
-- [docs/testing.md](docs/testing.md): test boundaries, tool selection and evidence.
-- [DISTRIBUTION.md](DISTRIBUTION.md): packaging, signing and release qualification.
-- [CONTEXT.md](CONTEXT.md) and [ADRs](docs/adr/README.md): vocabulary and design decisions.
-- [LICENSING.md](LICENSING.md): attribution and dependency license requirements.
+Use [OpenSpec](openspec/README.md) for shared requirements and planned changes;
+small corrections need no new change. Read the relevant active change, not all
+changes. Run `npm run openspec -- <arguments>` from the Git root. Keep generated
+skills unchanged; project customization belongs in `openspec/config.yaml`.
+
+For design reasons, regressions or earlier work, use
+[targeted history retrieval](DEVELOPMENT.md#history-retrieval). Ordinary searches
+exclude archives, build outputs and temporary records; expand when evidence or
+an explicit audit calls for them. History and specs do not prove current behavior.
 
 Preserve unrelated work. Continue authorized local implementation and validation
 without repeated approval. Dependency/manifest changes, remote or device access,
-signing and publication require explicit authorization; stage, commit and push
-only when requested. An OpenSpec task or generated skill does not grant it.
+signing, publication and history rewriting require explicit authorization;
+stage, commit and push only when requested. An OpenSpec task or generated skill
+does not grant it.
 Review-only requests remain read-only. Keep secrets out of tracked artifacts.
 
-Keep shared requirements and change artifacts in `openspec/`; keep temporary
-reports, experiments and raw logs in ignored `.scratch/<task>/`. Specs describe
-intended behavior; source and test results establish implemented behavior.
-Surface discrepancies and update the agreed change rather than weakening its
-acceptance criteria. Select the smallest relevant checks and report their actual
-results. For repository changes, run the license policy in the development
-Python environment; fix in-scope findings and report unrelated blockers.
+Report routine findings in conversation. Keep formal acceptance in the change's
+existing task record; follow [output handling](DEVELOPMENT.md#outputs-and-records)
+when files are needed. Report actual checks and unmet acceptance without weakening
+the agreed criteria. For repository changes, run the license policy in the
+development Python environment; fix in-scope findings and report unrelated blockers.

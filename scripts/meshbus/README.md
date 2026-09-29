@@ -281,12 +281,15 @@ complete software frame. From this repository's root, with the development
 environment active:
 
 ```sh
+capture_tmp="$(mktemp -d "${TMPDIR:-/tmp}/meshbus-display.XXXXXX")"
 python scripts/display_capture.py --port '<serial-port>' \
-  --output-dir '.scratch/<task>/display-capture'
+  --output-dir "$capture_tmp/display-capture"
 ```
 
-Use a new output directory. The helper assembles and validates one frozen
-snapshot, then writes `frame.bin`, `frame.png`, enlarged `preview.png` and
+For a requested screenshot deliverable, replace the temporary output with its
+explicit destination and retain it. Use a new output directory. The helper
+assembles and validates one frozen snapshot, then writes `frame.bin`, `frame.png`,
+enlarged `preview.png` and
 `result.json`. Only `result.json` records a completed capture; failures write
 `failure.json`. The helper uses Python's standard library and resolves/builds
 the repository CLI once; `MESHBUS_CLI` selects an existing executable instead.

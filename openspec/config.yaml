@@ -3,40 +3,31 @@
 schema: spec-driven
 
 context: |
-  Meshbus is a Zephyr module and firmware product, with a Rust host CLI and Python tooling.
-  Product composition is in apps/meshbus; public APIs are in include/<module>;
-  service implementations are in subsys/<module>. Services use mbs_/MBS_ and CONFIG_MBS_*.
-  Read README.md for integration, DEVELOPMENT.md for engineering/build guidance,
-  docs/testing.md for evidence boundaries, and DISTRIBUTION.md for release work.
-  CONTEXT.md defines vocabulary; docs/adr records durable architectural decisions.
-  OpenSpec specs define intended observable behavior, not proof of current implementation.
-  Use source, schemas and test metadata to establish the current state before proposing changes.
-  Shared artifacts use English; discuss the work in the user's language.
-  AGENTS.md defines repository authorization and ownership boundaries.
-  Run the pinned CLI with npm run openspec -- <arguments> from the Git root.
+  Meshbus contains a Zephyr module/product, a Rust CLI and Python tools.
+  AGENTS.md owns authorization and task-specific reading routes; follow only relevant sections.
+  DEVELOPMENT.md owns engineering practices; docs/testing.md owns check selection and evidence.
+  Specs describe agreed behavior; use current source and tests to establish implementation.
+  Shared artifacts use English; discuss work in the user's language.
+  Use npm run openspec -- <arguments> from the Git root.
 
 rules:
   proposal:
-    - State the observable outcome, scope and non-goals; identify affected modules and consumers.
+    - State the observable outcome, affected consumers, scope and non-goals.
   specs:
-    - Specify observable behavior and relevant reachable failures through testable WHEN/THEN scenarios; do not enumerate hypothetical internal failures.
-    - Do not infer hardware or release qualification from simulation, builds or structural validation.
+    - Express observable behavior and relevant reachable failures through testable WHEN/THEN scenarios.
   design:
-    - Explain relevant API, persistence, lifecycle and dependency decisions without duplicating the specs.
-    - Prefer existing facilities; justify new abstractions, configuration switches or recovery paths by a concrete consumer or failure. Preserve public compatibility and security boundaries.
-    - Resolve questions that change scope or acceptance before implementation.
+    - Explain the relevant trade-offs without repeating specs; apply DEVELOPMENT.md engineering contracts.
+    - Resolve decisions that change scope or acceptance before implementation.
   tasks:
-    - Group tasks by deliverable and include a concrete verification method in each task.
-    - For testable behavior changes, order work as failing public-behavior test, minimal implementation, then refactor and affected regression checks.
-    - Reuse existing tests for refactors; new tests or scenario/platform variants need distinct behavioral coverage. Select one focused local scenario before broadening.
-    - Identify required device or release evidence separately; document an appropriate alternative for changes that do not benefit from TDD.
+    - Group tasks by deliverable with a verification method; use the implementation loop and evidence boundaries in docs/testing.md.
+    - Identify required device or release acceptance separately; use appropriate document/configuration checks where runtime TDD does not apply.
 
 operations:
   apply:
     guidance:
-      - Verify that Red is caused by missing behavior, not a broken environment. Do not weaken assertions to match an incorrect implementation.
-      - Mark tasks complete only when their stated acceptance passes; record concise results and remaining gaps in tasks.md.
-      - Stop expanding tests after acceptance passes unless a concrete unresolved risk remains; do not add production abstractions or defensive branches solely to satisfy tests.
+      - Record concise actual outcomes, source/build identity and remaining gaps in the existing tasks.md; mark complete only after the stated acceptance passes.
+      - Surface source/spec discrepancies and revise the agreed change rather than weakening acceptance.
   archive:
     guidance:
       - Archive only after required tasks and acceptance pass; structural validation does not substitute for implementation evidence or review.
+      - Retain completed records for targeted historical retrieval; do not rewrite their evidence or original paths.

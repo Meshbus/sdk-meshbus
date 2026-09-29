@@ -62,16 +62,12 @@ shared plan or requirement change is needed.
 
 ## Implementation and review
 
-Use Red -> Green -> Refactor for testable behavior changes. First run the
-smallest public-behavior test and confirm the expected failure, implement the
-behavior, then refactor while keeping relevant tests green. Environment and
-fixture failures are not Red evidence. Tests derive expectations from the
-agreed scenarios, not private implementation details. Configuration, docs and
-hardware-only work use the appropriate checks described in the change.
-Pure refactors reuse relevant regressions. Additional tests or scenarios must
-cover a requirement, reachable risk or known defect. Follow the
-[coverage selection guide](../docs/testing.md#choosing-coverage); avoid exhaustive
-internal failure catalogs and production abstractions created only for tests.
+Specs describe agreed behavior, not proof of current implementation. Establish
+acceptance before implementation and follow the
+[implementation loop](../docs/testing.md#implementation-loop) and
+[coverage selection](../docs/testing.md#choosing-coverage) for the relevant work.
+Resolve source/spec discrepancies by revising the agreed change, not weakening
+its acceptance to match an incorrect implementation.
 
 Coordinate one owner per active change through the team's issue or PR. Split
 independent tasks explicitly and avoid concurrent edits to the same files.
@@ -80,15 +76,25 @@ mechanism. Review overlapping spec deltas against the latest shared baseline
 before synchronization and integration.
 
 Review the proposal, scenarios, tests and actual diff together. Record concise
-verification outcomes and unresolved acceptance under `## Validation` in
-`tasks.md`, using shareable CI/artifact references when available. Keep raw logs,
-private device mappings and experiments in `.scratch/<change>/`. A private log
-path alone is insufficient for team review. Commit, push and publication still
-follow repository authorization; neither a skill nor a checked task grants it.
+verification outcomes, source/build identity and unresolved acceptance under
+`## Validation` in the existing `tasks.md`, using shareable CI/artifact references
+when available. Records must be understandable without private logs; follow
+[output handling](../DEVELOPMENT.md#outputs-and-records) for raw data and deliverables.
+Repository operations follow [AGENTS.md](../AGENTS.md); a checked task grants no
+additional authorization.
 
 Build, simulation, physical-device and release claims remain separate. Follow
 [testing guidance](../docs/testing.md) for the evidence each claim needs.
-Archive only completed work; pending required acceptance remains open.
+Mark a task complete only after its stated acceptance passes. Fix in-scope
+failures, rerun affected checks, and reuse valid evidence; optional follow-ups
+remain separate. If blocked, report the exact unmet criteria and blocker without
+marking them complete. Archive only completed work; pending required acceptance
+remains open.
+
+Retain completed change folders for [targeted history retrieval](../DEVELOPMENT.md#history-retrieval).
+Do not read all archives during ordinary work or rewrite past results and paths
+to match current guidance. Current domain guides hold lasting constraints and
+their necessary rationale; archives preserve how a particular change arrived there.
 
 ## Validation
 

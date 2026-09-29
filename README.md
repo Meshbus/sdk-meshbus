@@ -72,11 +72,9 @@ symbols.
 - `samples/` and `tests/`: reusable SDK validation surfaces
 - `apps/meshbus/`: product composition, device profiles, and sysbuild policy
 - `scripts/`: Rust CLI and meshbus/release/mklfs/remote west extensions
-- [CONTEXT.md](CONTEXT.md) and [architecture decisions](docs/adr/README.md):
-  domain vocabulary and current design constraints
+- [CONTEXT.md](CONTEXT.md): domain vocabulary when terms need clarification
 - [openspec/](openspec/README.md): shared specifications and change plans
 - `.agents/skills/`: generated OpenSpec workflows for Codex
-- `.scratch/`: ignored temporary notes, experiments and raw evidence
 
 Run Zephyr commands from the west workspace root. Replace `<task>` with a unique
 name for the current run to preserve other build and test outputs. For example:
@@ -148,6 +146,10 @@ Use the [OpenSpec workflow](openspec/README.md) to propose, review, implement
 and archive shared changes. [AGENTS.md](AGENTS.md) is the agent entry point;
 [DEVELOPMENT.md](DEVELOPMENT.md) describes engineering and build practices.
 Local `sample.yaml` and `testcase.yaml` files define supported build and test surfaces.
+Small corrections can use focused checks without a new change. Current guides
+own their contracts; use [history retrieval](DEVELOPMENT.md#history-retrieval)
+only when tracing earlier decisions or work. Follow
+[output handling](DEVELOPMENT.md#outputs-and-records) for temporary files and deliverables.
 
 The serial console helper is an ordinary SDK tool at `scripts/serial_use.py`;
 its device-free regression tests are in `scripts/tests/test_serial_use.py`.
@@ -162,7 +164,7 @@ their retained notices are documented in
 [LICENSING.md](LICENSING.md).
 
 Compiled third-party dependencies follow the
-[dependency license policy](docs/adr/0012-restrict-compiled-third-party-licenses.md).
+[dependency license policy](LICENSING.md#compiled-dependency-admission).
 Dependency changes and newly enabled features require review of the actual
 license path, including embedded fonts and generated material. This policy
 does not replace the Apache-2.0 license of Meshbus-owned code or the individual

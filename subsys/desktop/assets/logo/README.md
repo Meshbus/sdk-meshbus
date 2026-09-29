@@ -18,14 +18,15 @@ with unused row bits cleared. Foreground bits are 1; the ZUI/U8G2
 adapter handles display byte order and the configured output inversion.
 
 Regenerate from the repository root using Python with Pillow installed.
-Keep previews and verification outputs in a task directory:
+Keep previews and verification outputs in an external task directory:
 
 ```sh
+logo_tmp="$(mktemp -d "${TMPDIR:-/tmp}/meshbus-logo.XXXXXX")"
 python3 \
   subsys/desktop/assets/logo/generate.py \
-  --output-dir .scratch/boot-logo/generated
-cp .scratch/boot-logo/generated/meshbus_logo.h \
-   .scratch/boot-logo/generated/meshbus_84x56.png \
+  --output-dir "$logo_tmp/generated"
+cp "$logo_tmp/generated/meshbus_logo.h" \
+   "$logo_tmp/generated/meshbus_84x56.png" \
    subsys/desktop/assets/logo/
 ```
 

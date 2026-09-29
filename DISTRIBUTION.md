@@ -5,6 +5,12 @@ Meshbus CLI. Firmware and CLI have independent versions in
 `apps/meshbus/VERSION` and `scripts/meshbus/Cargo.toml`. A version in source
 does not establish that a release is published or qualified on hardware.
 
+Device qualification and host-platform packaging have different constraints,
+so their release cycles are independent. Each firmware release records compatible
+CLI versions without bundling them as one product. Assembly may need a verified
+CLI executable, but does not require publishing all supported CLI archives.
+CLI code signing, notarization and platform coverage belong to the CLI release.
+
 Start with [workspace setup](README.md#workspace-setup) and
 [development prerequisites](DEVELOPMENT.md). Commands below run from
 `west topdir`, with this repository at `meshbus/`. Replace angle-bracket
@@ -101,6 +107,8 @@ The public SDK defaults to MCUboot without signature authentication. A build
 needs no private key; MCUboot still checks image structure and hash on every
 boot. Mesh Probe R2 retains its single-application layout and physical UART recovery.
 Hash verification detects corruption, not the identity of a publisher.
+Downstream users can build and distribute firmware without adopting a
+Meshbus-controlled trust root, retaining the native image format and recovery.
 
 ```sh
 west release build --workspace "$PWD" \
@@ -124,6 +132,13 @@ use that key. Missing, invalid or mismatched keys fail rather than falling back
 to an unsigned build. MCUboot repository example keys are rejected. Private PEM
 contents are not accepted through an environment variable.
 
+The caller owns this trust root. Sharing a Production Image Key across boards
+means a compromise affects every board trusting it. A signature identifies a
+publisher, not a compatible board, layout or individual device; target and
+partition checks remain necessary. Authenticated MCUboot validates the primary
+image on every boot. Native sysbuild/MCUboot signing avoids a separate
+build-to-signer handoff while trusting the reviewed build inputs with the key.
+
 Authentication is independent of `--development`, which controls source and
 build-profile checks. Clean, pinned unsigned builds can be packaged without
 that flag. Signed builds retain full verification even in development mode.
@@ -146,6 +161,8 @@ Install a matching MCUboot/application pair for the selected authentication
 mode. An Ed25519 MCUboot requires an authenticated APP. Plan physical
 programming and retained-data handling separately. See the
 [application build instructions](apps/meshbus/README.md) for native sysbuild use.
+Hashing and signing do not qualify hardware, authorize publication or authenticate
+[owner-supplied MBA code](scripts/meshbus/APP_DEVELOPMENT.md#execution-and-trust-model).
 
 ### UF2 products
 
@@ -276,11 +293,10 @@ configuration and verification rejects retained paths. `--force` replaces only
 the same development identity. Formal export requires clean committed inputs;
 an EDK's export status is not product release approval.
 
-MBA loading checks structure, metadata, target and resource limits, but does
-not require a publisher signature or allowlist. Authenticated BLE peers and
-users with physical UART access can install native code. These apps have no
-MPU/userspace isolation. Firmware image authentication does not authenticate or
-sandbox MBA code; document this boundary with any distributed product.
+Distributed products must explain the
+[MBA execution and trust model](scripts/meshbus/APP_DEVELOPMENT.md#execution-and-trust-model).
+Loader compatibility checks and base-image authentication do not create an
+application isolation boundary.
 
 ## DFOTA
 
@@ -290,6 +306,8 @@ executable is required. Source and target must be signed MCUboot APP images;
 UF2 and merged `full.*` images are not inputs. The target version must increase,
 and its protected security counter must not decrease and must match
 `--security-counter`. The complete NEWP patch is limited to 24 KiB.
+The public firmware's hash-only default does not relax these signed-image
+requirements.
 
 ```sh
 "$MESHBUS_CLI" firmware package create old.signed.bin new.signed.bin build/delta \
@@ -306,7 +324,8 @@ and its protected security counter must not decrease and must match
 
 The Firmware endpoint roles are `repeater`, `room` and `sensor`; choose the
 identity and layout fields to match the target. The image key and DFOTA
-manifest key serve separate purposes. The explicit `--manifest-private-key`
+manifest key are independent trust roots. The manifest private key stays behind
+an offline signing boundary. The explicit `--manifest-private-key`
 interface is available for offline engineering use; production workflows can
 import a detached signature as above. The signer owns private-key handling.
 Fixed campaign IDs and identical inputs permit reproducible package creation.
@@ -383,7 +402,7 @@ exceptions described in [third-party notices](LICENSING.md). Review
 the applicable source and notice obligations for every delivered component;
 binary packaging does not replace that review.
 
-Apply the [compiled-dependency license policy](docs/adr/0012-restrict-compiled-third-party-licenses.md)
+Apply the [compiled-dependency license policy](LICENSING.md#compiled-dependency-admission)
 to each delivered target's actual inputs, including runtime libraries, generated
 code and fonts. Record selected permissive alternatives and applicable
 exceptions; uncompiled tools still retain their own redistribution obligations.

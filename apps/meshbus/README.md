@@ -17,6 +17,10 @@ west projects, and release artifacts record their resolved SHAs and toolchain.
 
 ## Device firmware and MeshCore role
 
+A device's firmware identity, partition layout and release artifacts are
+independent of its MeshCore role. Owners can change supported roles without
+replacing firmware.
+
 SDK board definitions own physical peripherals. Application profiles select
 services, capacities, boot policy and partition overrides under
 `apps/meshbus/boards/<vendor>/<board>/`. APP profiles are the sole product target inventory:
@@ -78,8 +82,9 @@ For builds with MeshCore enabled, inspect the configured default role. Change it
 desktop, Management, or the CLI command `meshcore config --role meshcore_role_chat`
 (with `chat`, `repeater`, `room`, or `sensor` as the role suffix).
 Settings calls wait for the protocol runtime to apply changes, then update the
-configuration and schedule persistence. Failed changes preserve the prior
-configuration and attempt to restore its runtime. Unsupported roles are rejected
+configuration and schedule persistence, without promising immediate flash
+durability. Role changes do not reboot the device. Failed changes preserve the
+prior configuration and attempt to restore its runtime. Unsupported roles are rejected
 according to compiled services. Same-role settings updates apply directly;
 role or identity changes rebuild the engine and discard queued protocol work.
 MeshCore reset applies defaults with a new identity without rebooting the device.
@@ -190,6 +195,10 @@ Hardware evidence must be recorded separately from build and Twister results.
 
 ## Product policy and release qualification
 
+SDK board support, product registration and a successful build do not establish
+hardware qualification. Each release qualifies its Product Targets and actual
+capabilities; a Qualification Fixture does not qualify another target.
+
 Review the selected profile's bootloader and application configuration together.
 For authenticated MCUboot profiles, verify the configured signature algorithm,
 public key, primary-slot validation and permitted recovery transports. Recovery
@@ -199,6 +208,40 @@ before a rejected image is detected; check the final recovery partition bounds.
 Persistence, rollback and owner replacement are profile-level policies. Inspect
 the final Kconfig and devicetree for retained data, image slots, recovery ranges
 and debug access rather than assuming identical behavior on every target.
+
+### Mesh Probe R2 owner control and recovery
+
+The R2 MCUboot profile favors owner control and physical recovery over preventing
+physical modification or enforcing a minimum firmware version. Programming and
+debug access stay available: an owner can erase and replace the bootloader and
+application over SWD. Other profiles define their own policies; SDK board support
+alone does not adopt this one.
+
+R2 MCUboot provides UART serial recovery, without BLE recovery. Normal boot
+checks the image hash, and an explicitly authenticated build also verifies its
+signature with the selected Production Image Key. Signing prevents unauthorized
+execution, not physical recovery writes before validation. Recovery can destroy
+application or user data. Authenticated application-level BLE management remains
+separate and available where configured. See the
+[image authentication contract](../../DISTRIBUTION.md#mcuboot-products).
+
+Older target- and layout-compatible applications are allowed; authenticated
+images must also retain an accepted signature and key. There is no monotonic
+anti-rollback counter, so a version check alone cannot revoke an old vulnerability.
+Changing the boot trust root requires replacing MCUboot. Signature acceptance
+does not establish downgrade compatibility for settings, filesystems or other
+user data; signed rollback differs from automatic recovery after a failed update.
+
+Signing does not stop physical owners from copying firmware or installing their
+own trust root. Replacing an authenticated boot chain ends its official assurance;
+the default hash-only build makes no publisher-authentication claim. Restoring
+factory images does not prove the integrity of retained data or installed MBAs.
+
+The [DFOTA format](../../DISTRIBUTION.md#dfota) has separate version and
+security-counter checks. This boot policy neither enables DFOTA for R2 nor
+relaxes those checks; adding it requires reconciling both policies.
+
+### Qualification evidence
 
 Normal boot, configured recovery paths, rejected-image behavior, factory
 programming and retained settings require qualification on each target.

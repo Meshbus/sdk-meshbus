@@ -42,4 +42,4 @@ Device paths, pin mappings and driver behavior are part of the selected target
 configuration.
 
 Metadata validation does not sign applications or sandbox their code. MBA
-applications follow the [owner-trusted execution model](../../docs/adr/0004-owner-trusted-mba-applications.md).
+applications follow the [execution and trust model](../../scripts/meshbus/APP_DEVELOPMENT.md#execution-and-trust-model).

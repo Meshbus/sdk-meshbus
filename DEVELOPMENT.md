@@ -10,8 +10,8 @@ the Git root. Node.js 20.19.0 or newer is needed for this development workflow;
 firmware builds do not depend on Node.js. Codex skills are versioned under
 `.agents/skills/`; reload the session if newly added skills are absent.
 
-`CONTEXT.md` defines domain vocabulary and `docs/adr/` records durable design
-decisions. Keep temporary notes, experiments and raw evidence in `.scratch/`.
+Use the task-specific links in [AGENTS.md](AGENTS.md) to locate current contracts.
+Consult [domain vocabulary](CONTEXT.md) when a term is ambiguous.
 
 ## Engineering contracts
 
@@ -168,17 +168,9 @@ is `<west-workspace>/build-meshbus-cli`; `CARGO_TARGET_DIR` overrides it, with
 relative paths resolved from the workspace. This also applies to `--help` and
 `--version`. Cargo output goes to stderr; a failed build prevents CLI execution.
 
-Use the requested target when one is named. Otherwise read the nearest
-`testcase.yaml` or `sample.yaml`, select its declared platform, and run the
-smallest consumer of the changed behavior. Do not invent a board matrix or
-default to another simulation platform. Add a product build only when product
-composition matters.
-
-Once required checks pass, broaden or repeat validation only for new changes,
-failures, or unresolved concerns. Documentation-only changes normally need
-reference, syntax, and consistency checks rather than firmware builds. Existing
-approved test boundaries remain valid; ask about a new boundary only when it
-materially changes the public contract, acceptance coverage, or side effects.
+Select the scenario, platform and check scope using
+[coverage guidance](docs/testing.md#choosing-coverage) and the nearest test/sample
+metadata. Then run the relevant command from the discovered workspace:
 
 ```sh
 cd "$west_root"
@@ -275,26 +267,53 @@ For requested remote work, read the SDK's `scripts/remote/README.md` and selecte
 command help. `west remote` forwards GDB/serial; build and Twister run normally
 on the development host. Missing tools are reported, not installed globally.
 
+## History retrieval
+
+Establish current behavior from the relevant contract, source and tests. Retrieve
+history when tracing a decision, regression or specific unfinished work:
+
+1. Locate Git or OpenSpec records by path, symbol, requirement or change name.
+   Use `git log --oneline -- <path>` or `git log -S '<symbol>' -- <path>` for
+   code history, and `rg -l '<topic>' openspec/changes/archive` for archived work.
+2. Read matching summaries before opening a specific design, task record or
+   `git show <commit> -- <path>`. Do not load the entire archive.
+3. Cite the commit or change identity and recheck its conclusions against the
+   current version. Say when evidence is missing; an old plan is not implementation.
+
+Start ordinary searches in relevant source and current guides, excluding
+archives, build outputs and temporary records. Expand deliberately for missing
+evidence, historical investigations or explicit complete-file audits. Preserve
+completed OpenSpec records and their original commands and paths; they describe
+past work, not current operating instructions. Fix a broken historical locator
+only when necessary, without rewriting the recorded result.
+
+## Outputs and records
+
+Report routine investigations and verification in conversation. For a formal
+change, use its existing task record as described in
+[OpenSpec acceptance](openspec/README.md#implementation-and-review); do not add
+another report, checklist, daily memory or progress document. Durable findings
+update the owning current guide. Repeated workflows may justify a skill later.
+
+Builds and Twister keep their native output directories, isolated by task and
+configuration, and reuse valid caches. For raw logs, one-off checks and generated
+intermediates, explicitly create an external task directory, for example:
+
+```sh
+task_tmp="$(mktemp -d "${TMPDIR:-/tmp}/meshbus-task.XXXXXX")"
+```
+
+Use a named output destination for requested screenshots, prototypes and other
+deliverables; do not automatically delete them or existing local experiments.
+Keep private paths and raw logs out of tracked documents. A private log path
+alone is insufficient evidence for shared review.
+
 ## Acceptance Records
 
-Deliver the agreed behavior or artifact within scope. Run the relevant
-implementation and required checks where applicable; fix in-scope failures and
-rerun the affected checks. Reuse valid evidence and expand investigation only
-to resolve a named acceptance gap. Work is complete when its acceptance criteria
-pass. If blocked, report the exact unmet criteria and blocker without marking
-them complete; keep optional follow-ups separate.
-
-OpenSpec scenarios and tasks state acceptance before implementation. Follow the
-[implementation and review loop](openspec/README.md#implementation-and-review),
-and keep concise outcomes, source/build identity and limitations with the change.
-Shared results must be understandable without a contributor's private logs.
-Raw output stays ignored. Required missing acceptance remains open and distinct
-from separately scoped platform, physical-device, upgrade or release qualification.
-
-Classify blocked evidence honestly. Missing fixtures, unavailable devices,
-workspace discovery failures, pending authorization, and pending manual
-observations are not passes. Distinguish product failures from test defects,
-flaky results, infrastructure blocks, and unavailable capabilities.
+Use the [OpenSpec review and completion rules](openspec/README.md#implementation-and-review)
+for planned work, and the [testing guide](docs/testing.md) for check selection
+and evidence boundaries. Report product failures, test defects, flaky results,
+infrastructure blocks and unavailable capabilities distinctly.
 
 ## Automated validation
 

@@ -14,6 +14,31 @@ headers. Both direct and managed MBA builds require a named `exported-symbols`
 inventory. SLID hosts export an explicit null inventory; their EDKs can be
 exported and verified, but cannot be used by these MBA build commands.
 
+## Execution and trust model
+
+Desktop profiles with LLEXT let owners install and explicitly launch compatible
+MBAs without a FoBE signature, publisher approval or developer mode. This permits
+independent application authorship. The supported contract is a foreground MBA
+and its App EDK; resident MBS services and a Service EDK need a separate host
+design and qualification.
+
+An MBA executes native code with the same practical trust as the base application.
+It has no application isolation boundary, even when hardware provides stack or
+memory protection. It can access memory and exported capabilities, alter state,
+crash the device or cause data loss. Base-image authentication does not
+authenticate MBA authors or establish runtime integrity after an MBA starts.
+
+Remotely reachable installation transports still require authentication;
+physical UART is a separate owner-access path. Package hashes and EDK provenance
+check integrity and compatibility, not publisher approval. Qualification covers
+loader admission, explicit launch, resource cleanup and failure recovery, not
+arbitrary third-party application behavior. Follow the
+[metadata contract](../../subsys/llext/METADATA.md) for admission and required
+symbols, and [device sessions](#select-a-compatible-connected-device-and-manage-a-session)
+for lifecycle handling.
+
+## Build and install workflow
+
 Create an index from an EDK directory or `.tar.xz` archive and the installations
 on this host. Omit `--sdk` for native projects:
 
