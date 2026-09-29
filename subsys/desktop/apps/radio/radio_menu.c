@@ -76,10 +76,10 @@ static bool radio_menu_input(const struct zui_input_event *event, void *user_dat
 	if (app == NULL || event == NULL) {
 		return false;
 	}
-	if (radio_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (radio_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		app->exit_requested = true;
 		(void)zui_host_detach_router(app->host, ZUI_LAYER_FULLSCREEN);
 		k_sem_give(&app->exit_sem);

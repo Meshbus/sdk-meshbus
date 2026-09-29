@@ -510,15 +510,15 @@ static bool radio_capture_input(const struct zui_input_event *event, void *user_
 		}
 		return true;
 	}
-	if (radio_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (radio_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		radio_capture_set_running(app, false);
 		radio_switch(app, RADIO_SCREEN_PACKET);
 		return true;
 	}
-	if (radio_is_click(event) &&
+	if (desktop_app_input_is_click(event) &&
 	    (event->code == ZUI_INPUT_CODE_UP || event->code == ZUI_INPUT_CODE_DOWN)) {
 		max_scroll = (app->capture_model.hex_total_lines > app->capture_model.hex_visible_lines) ?
 				     (app->capture_model.hex_total_lines -
@@ -533,7 +533,7 @@ static bool radio_capture_input(const struct zui_input_event *event, void *user_
 		radio_request_redraw(app);
 		return true;
 	}
-	if (!radio_is_click(event)) {
+	if (!desktop_app_input_is_click(event)) {
 		return false;
 	}
 	if (event->code == ZUI_INPUT_CODE_RIGHT) {

@@ -196,14 +196,14 @@ static bool radio_noise_input(const struct zui_input_event *event, void *user_da
 	if (app == NULL || event == NULL) {
 		return false;
 	}
-	if (radio_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (radio_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		radio_switch(app, RADIO_SCREEN_MENU);
 		return true;
 	}
-	if (!radio_is_click(event)) {
+	if (!desktop_app_input_is_click(event)) {
 		return false;
 	}
 	if (event->code == ZUI_INPUT_CODE_RIGHT) {

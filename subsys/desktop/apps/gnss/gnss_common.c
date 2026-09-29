@@ -15,36 +15,6 @@ void gnss_request_redraw(struct gnss_app *app)
 	}
 }
 
-bool gnss_is_click(const struct zui_input_event *event)
-{
-	return event != NULL && event->action == ZUI_INPUT_ACTION_CLICK;
-}
-
-bool gnss_is_long(const struct zui_input_event *event)
-{
-	return event != NULL && event->action == ZUI_INPUT_ACTION_LONG_PRESS;
-}
-
-bool gnss_should_consume_edge(const struct zui_input_event *event)
-{
-	if (event == NULL ||
-	    (event->action != ZUI_INPUT_ACTION_PRESS && event->action != ZUI_INPUT_ACTION_RELEASE)) {
-		return false;
-	}
-
-	switch (event->code) {
-	case ZUI_INPUT_CODE_UP:
-	case ZUI_INPUT_CODE_DOWN:
-	case ZUI_INPUT_CODE_LEFT:
-	case ZUI_INPUT_CODE_RIGHT:
-	case ZUI_INPUT_CODE_SELECT:
-	case ZUI_INPUT_CODE_BACK:
-		return true;
-	default:
-		return false;
-	}
-}
-
 void gnss_switch(struct gnss_app *app, uint32_t screen_id)
 {
 	if (app == NULL || app->router == NULL) {
@@ -86,14 +56,14 @@ bool gnss_back_to_menu_input(const struct zui_input_event *event, struct gnss_ap
 {
 	int ret;
 
-	if (gnss_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (gnss_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		gnss_switch(app, GNSS_APP_SCREEN_MENU);
 		return true;
 	}
-	if (gnss_is_click(event) && event->code == ZUI_INPUT_CODE_SELECT && screen ==
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_SELECT && screen ==
 	    zui_sublist_get_screen(app->satellites)) {
 		if (zui_sublist_activate(app->satellites, event) == 0) {
 			gnss_request_redraw(app);

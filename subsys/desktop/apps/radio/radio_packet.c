@@ -153,10 +153,10 @@ static bool radio_packet_input(const struct zui_input_event *event, void *user_d
 	if (app == NULL || event == NULL) {
 		return false;
 	}
-	if (radio_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (radio_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		radio_switch(app, RADIO_SCREEN_MENU);
 		return true;
 	}
@@ -199,10 +199,10 @@ static bool radio_text_input(const struct zui_input_event *event, void *user_dat
 	if (app == NULL || event == NULL) {
 		return false;
 	}
-	if (radio_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (radio_is_long(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_long_press(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		radio_switch(app, RADIO_SCREEN_PACKET);
 		return true;
 	}
@@ -246,10 +246,10 @@ static bool radio_hex_input(const struct zui_input_event *event, void *user_data
 	if (app == NULL || event == NULL) {
 		return false;
 	}
-	if (radio_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (radio_is_long(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_long_press(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		radio_switch(app, RADIO_SCREEN_PACKET);
 		return true;
 	}

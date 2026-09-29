@@ -306,10 +306,10 @@ static bool gnss_detail_input(const struct zui_input_event *event, void *user_da
 	if (app == NULL || event == NULL) {
 		return false;
 	}
-	if (gnss_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (gnss_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		gnss_switch(app, GNSS_APP_SCREEN_SATELLITES);
 		return true;
 	}

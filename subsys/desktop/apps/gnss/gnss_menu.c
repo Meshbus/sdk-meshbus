@@ -60,14 +60,14 @@ static bool gnss_menu_input(const struct zui_input_event *event, void *user_data
 	if (app == NULL || event == NULL) {
 		return false;
 	}
-	if (gnss_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (gnss_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		gnss_exit(app);
 		return true;
 	}
-	if (gnss_is_click(event) && event->code == ZUI_INPUT_CODE_SELECT) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_SELECT) {
 		if (zui_sublist_activate(app->menu, event) == 0) {
 			gnss_request_redraw(app);
 		}

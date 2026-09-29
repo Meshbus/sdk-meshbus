@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "apps/app_common.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -196,9 +198,6 @@ extern const struct zui_screen_ops gnss_number_ops;
 extern const struct zui_screen_ops gnss_reset_ops;
 
 void gnss_request_redraw(struct gnss_app *app);
-bool gnss_is_click(const struct zui_input_event *event);
-bool gnss_is_long(const struct zui_input_event *event);
-bool gnss_should_consume_edge(const struct zui_input_event *event);
 void gnss_switch(struct gnss_app *app, uint32_t screen_id);
 void gnss_exit(struct gnss_app *app);
 void gnss_toast(struct gnss_app *app, const char *text, const struct zui_icon *icon,

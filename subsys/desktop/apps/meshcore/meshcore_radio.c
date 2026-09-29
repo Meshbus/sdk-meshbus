@@ -155,10 +155,10 @@ static bool meshcore_radio_input(const struct zui_input_event *event, void *user
 	if (app == NULL) {
 		return false;
 	}
-	if (meshcore_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (meshcore_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		meshcore_switch(app, MESHCORE_SCREEN_MENU);
 		return true;
 	}

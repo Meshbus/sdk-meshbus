@@ -10,36 +10,6 @@
 #include "desktop_private.h"
 #include "text/desktop_text.h"
 
-bool meshcore_is_click(const struct zui_input_event *event)
-{
-	return event != NULL && event->action == ZUI_INPUT_ACTION_CLICK;
-}
-
-bool meshcore_is_long(const struct zui_input_event *event)
-{
-	return event != NULL && event->action == ZUI_INPUT_ACTION_LONG_PRESS;
-}
-
-bool meshcore_should_consume_edge(const struct zui_input_event *event)
-{
-	if (event == NULL || (event->action != ZUI_INPUT_ACTION_PRESS &&
-			      event->action != ZUI_INPUT_ACTION_RELEASE)) {
-		return false;
-	}
-
-	switch (event->code) {
-	case ZUI_INPUT_CODE_UP:
-	case ZUI_INPUT_CODE_DOWN:
-	case ZUI_INPUT_CODE_LEFT:
-	case ZUI_INPUT_CODE_RIGHT:
-	case ZUI_INPUT_CODE_SELECT:
-	case ZUI_INPUT_CODE_BACK:
-		return true;
-	default:
-		return false;
-	}
-}
-
 void meshcore_request_redraw(struct meshcore_app *app)
 {
 	if (app != NULL && app->host != NULL) {
@@ -432,10 +402,10 @@ static bool meshcore_text_input(const struct zui_input_event *event, void *user_
 	if (app == NULL) {
 		return false;
 	}
-	if (meshcore_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (meshcore_is_long(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_long_press(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		meshcore_switch(app, app->return_screen);
 		return true;
 	}
@@ -479,10 +449,10 @@ static bool meshcore_number_input(const struct zui_input_event *event, void *use
 	if (app == NULL) {
 		return false;
 	}
-	if (meshcore_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (meshcore_is_long(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_long_press(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		meshcore_switch(app, app->return_screen);
 		return true;
 	}
@@ -613,15 +583,15 @@ static bool meshcore_detail_input(const struct zui_input_event *event, void *use
 		meshcore_request_redraw(app);
 		return true;
 	}
-	if (meshcore_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (meshcore_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		meshcore_switch(app, app->return_screen != 0U ? app->return_screen
 							      : MESHCORE_SCREEN_SETTINGS);
 		return true;
 	}
-	if (meshcore_is_click(event) && event->code == ZUI_INPUT_CODE_SELECT &&
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_SELECT &&
 	    app->detail_kind == MESHCORE_DETAIL_CHANNEL_SECRET && app->detail_qr_valid) {
 		app->detail_qr_visible = true;
 		meshcore_request_redraw(app);
@@ -664,10 +634,10 @@ static bool meshcore_modal_input(const struct zui_input_event *event, void *user
 	if (app == NULL) {
 		return false;
 	}
-	if (meshcore_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (meshcore_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		meshcore_modal_result(app->modal, ZUI_MODAL_RESULT_CENTER, event, app);
 		return true;
 	}

@@ -10,7 +10,8 @@ project(mbs_desktop_boot_logo_test)
 set(MBS_ROOT "${ZEPHYR_MESHBUS_MODULE_DIR}")
 set(DESKTOP_DIR ${MBS_ROOT}/subsys/desktop)
 set(BOOT_LOGO_DURATION_MS 1000 CACHE STRING "Boot logo hold for this scenario")
-target_sources(app PRIVATE src/main.c ${DESKTOP_DIR}/runtime.c)
+target_sources(app PRIVATE src/main.c ${DESKTOP_DIR}/runtime.c
+  ${DESKTOP_DIR}/apps/app_common.c)
 target_include_directories(app PRIVATE ${DESKTOP_DIR})
 target_compile_definitions(app PRIVATE
 	CONFIG_MBS_DESKTOP_LOG_LEVEL=3

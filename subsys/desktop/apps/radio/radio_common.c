@@ -19,36 +19,6 @@ void radio_request_redraw(struct radio_app *app)
 	}
 }
 
-bool radio_is_click(const struct zui_input_event *event)
-{
-	return event != NULL && event->action == ZUI_INPUT_ACTION_CLICK;
-}
-
-bool radio_is_long(const struct zui_input_event *event)
-{
-	return event != NULL && event->action == ZUI_INPUT_ACTION_LONG_PRESS;
-}
-
-bool radio_should_consume_edge(const struct zui_input_event *event)
-{
-	if (event == NULL ||
-	    (event->action != ZUI_INPUT_ACTION_PRESS && event->action != ZUI_INPUT_ACTION_RELEASE)) {
-		return false;
-	}
-
-	switch (event->code) {
-	case ZUI_INPUT_CODE_UP:
-	case ZUI_INPUT_CODE_DOWN:
-	case ZUI_INPUT_CODE_LEFT:
-	case ZUI_INPUT_CODE_RIGHT:
-	case ZUI_INPUT_CODE_SELECT:
-	case ZUI_INPUT_CODE_BACK:
-		return true;
-	default:
-		return false;
-	}
-}
-
 void radio_toast(struct radio_app *app, const char *title, const char *text,
 			const struct zui_icon *icon, uint32_t timeout_ms)
 {

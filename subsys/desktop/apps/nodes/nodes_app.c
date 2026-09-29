@@ -17,6 +17,7 @@
 #include <zephyr/zbus/zbus.h>
 #include <zui/zui.h>
 
+#include "apps/app_common.h"
 #include "apps/app_ids.h"
 #include "assets/assets_icons.h"
 #include "text/desktop_text.h"
@@ -247,31 +248,6 @@ static void nodes_update_flag(uint32_t *flags, uint32_t bit, size_t option_index
 		*flags |= bit;
 	} else {
 		*flags &= ~bit;
-	}
-}
-
-static bool nodes_is_click(const struct zui_input_event *event)
-{
-	return event != NULL && event->action == ZUI_INPUT_ACTION_CLICK;
-}
-
-static bool nodes_should_consume_edge(const struct zui_input_event *event)
-{
-	if (event == NULL ||
-	    (event->action != ZUI_INPUT_ACTION_PRESS && event->action != ZUI_INPUT_ACTION_RELEASE)) {
-		return false;
-	}
-
-	switch (event->code) {
-	case ZUI_INPUT_CODE_UP:
-	case ZUI_INPUT_CODE_DOWN:
-	case ZUI_INPUT_CODE_LEFT:
-	case ZUI_INPUT_CODE_RIGHT:
-	case ZUI_INPUT_CODE_SELECT:
-	case ZUI_INPUT_CODE_BACK:
-		return true;
-	default:
-		return false;
 	}
 }
 
@@ -1652,7 +1628,7 @@ static void nodes_list_selected(struct zui_sublist *list, uint32_t id, size_t in
 
 	ARG_UNUSED(list);
 
-	if (app == NULL || !nodes_is_click(event) || id == NODES_LIST_ITEM_EMPTY ||
+	if (app == NULL || !desktop_app_input_is_click(event) || id == NODES_LIST_ITEM_EMPTY ||
 	    index >= app->contact_count) {
 		return;
 	}
@@ -1679,7 +1655,7 @@ static void nodes_menu_activated(struct zui_form *form, uint32_t id,
 
 	ARG_UNUSED(form);
 
-	if (app == NULL || !nodes_is_click(event)) {
+	if (app == NULL || !desktop_app_input_is_click(event)) {
 		return;
 	}
 
@@ -1852,10 +1828,10 @@ static bool nodes_list_input(const struct zui_input_event *event, void *user_dat
 	if (app == NULL) {
 		return false;
 	}
-	if (nodes_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (nodes_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		nodes_exit(app);
 		return true;
 	}
@@ -1901,10 +1877,10 @@ static bool nodes_menu_input(const struct zui_input_event *event, void *user_dat
 	if (app == NULL) {
 		return false;
 	}
-	if (nodes_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (nodes_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		if (app->menu_page == NODES_MENU_PAGE_PERMISSION) {
 			nodes_return_to_root_menu(app);
 			return true;
@@ -1955,7 +1931,7 @@ static bool nodes_alias_input(const struct zui_input_event *event, void *user_da
 	if (app == NULL) {
 		return false;
 	}
-	if (nodes_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
 	if (event != NULL && event->action == ZUI_INPUT_ACTION_LONG_PRESS &&
@@ -2023,14 +1999,14 @@ static bool nodes_detail_input(const struct zui_input_event *event, void *user_d
 	if (app == NULL) {
 		return false;
 	}
-	if (nodes_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (nodes_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		nodes_switch(app, NODES_SCREEN_MENU);
 		return true;
 	}
-	if (nodes_is_click(event) && event->code == ZUI_INPUT_CODE_SELECT) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_SELECT) {
 		if (app->detail_kind == NODES_DETAIL_DISCOVER_PATH) {
 			if (!app->discover_req_pending) {
 				nodes_send_discover_request(app);
@@ -2088,10 +2064,10 @@ static bool nodes_modal_input(const struct zui_input_event *event, void *user_da
 	if (app == NULL) {
 		return false;
 	}
-	if (nodes_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (nodes_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		nodes_modal_result(app->modal, ZUI_MODAL_RESULT_LEFT, event, app);
 		return true;
 	}

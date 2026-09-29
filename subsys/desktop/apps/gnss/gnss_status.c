@@ -191,7 +191,7 @@ static bool gnss_status_input(const struct zui_input_event *event, void *user_da
 	if (app == NULL || event == NULL) {
 		return false;
 	}
-	if (gnss_is_long(event) && event->code == ZUI_INPUT_CODE_SELECT) {
+	if (desktop_app_input_is_long_press(event) && event->code == ZUI_INPUT_CODE_SELECT) {
 		gnss_status_refresh(app, true);
 		gnss_request_redraw(app);
 		return true;

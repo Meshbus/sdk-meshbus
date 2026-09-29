@@ -480,15 +480,15 @@ static bool gnss_settings_input(const struct zui_input_event *event, void *user_
 	if (app == NULL || event == NULL) {
 		return false;
 	}
-	if (gnss_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (gnss_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		app->editing = app->applied;
 		gnss_switch(app, GNSS_APP_SCREEN_MENU);
 		return true;
 	}
-	if (gnss_is_long(event) && event->code == ZUI_INPUT_CODE_SELECT) {
+	if (desktop_app_input_is_long_press(event) && event->code == ZUI_INPUT_CODE_SELECT) {
 		gnss_apply_settings(app);
 		return true;
 	}
@@ -537,10 +537,10 @@ static bool gnss_number_input(const struct zui_input_event *event, void *user_da
 	if (app == NULL || event == NULL) {
 		return false;
 	}
-	if (gnss_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (gnss_is_long(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_long_press(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		gnss_switch(app, GNSS_APP_SCREEN_SETTINGS);
 		return true;
 	}
@@ -587,10 +587,10 @@ static bool gnss_reset_input(const struct zui_input_event *event, void *user_dat
 	if (app == NULL || event == NULL) {
 		return false;
 	}
-	if (gnss_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (gnss_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		gnss_reset_modal_result(app->reset_modal, ZUI_MODAL_RESULT_LEFT, event, app);
 		return true;
 	}

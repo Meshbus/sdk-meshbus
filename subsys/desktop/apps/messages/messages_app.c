@@ -20,6 +20,7 @@
 #include <zephyr/zbus/zbus.h>
 #include <zui/zui.h>
 
+#include "apps/app_common.h"
 #include "apps/app_ids.h"
 #include "assets/assets_icons.h"
 #include "desktop_private.h"
@@ -172,31 +173,6 @@ static void messages_send_activate(struct messages_app *app);
 static atomic_ptr_t messages_active_app;
 static atomic_t messages_response_inflight;
 K_SEM_DEFINE(messages_response_idle, 0, K_SEM_MAX_LIMIT);
-
-static bool messages_is_click(const struct zui_input_event *event)
-{
-	return event != NULL && event->action == ZUI_INPUT_ACTION_CLICK;
-}
-
-static bool messages_should_consume_edge(const struct zui_input_event *event)
-{
-	if (event == NULL ||
-	    (event->action != ZUI_INPUT_ACTION_PRESS && event->action != ZUI_INPUT_ACTION_RELEASE)) {
-		return false;
-	}
-
-	switch (event->code) {
-	case ZUI_INPUT_CODE_UP:
-	case ZUI_INPUT_CODE_DOWN:
-	case ZUI_INPUT_CODE_LEFT:
-	case ZUI_INPUT_CODE_RIGHT:
-	case ZUI_INPUT_CODE_SELECT:
-	case ZUI_INPUT_CODE_BACK:
-		return true;
-	default:
-		return false;
-	}
-}
 
 static void messages_request_redraw(struct messages_app *app)
 {
@@ -1640,7 +1616,7 @@ static void messages_menu_selected(struct zui_sublist *list, uint32_t id, size_t
 	ARG_UNUSED(list);
 	ARG_UNUSED(index);
 
-	if (app == NULL || !messages_is_click(event)) {
+	if (app == NULL || !desktop_app_input_is_click(event)) {
 		return;
 	}
 
@@ -1668,7 +1644,7 @@ static void messages_inbox_selected(struct zui_sublist *list, uint32_t id, size_
 	ARG_UNUSED(list);
 	ARG_UNUSED(id);
 
-	if (app == NULL || !messages_is_click(event) || app->entry_count == 0U ||
+	if (app == NULL || !desktop_app_input_is_click(event) || app->entry_count == 0U ||
 	    index >= app->entry_count) {
 		return;
 	}
@@ -1689,7 +1665,7 @@ static void messages_target_selected(struct zui_sublist *list, uint32_t id, size
 	ARG_UNUSED(list);
 	ARG_UNUSED(id);
 
-	if (app == NULL || !messages_is_click(event) || app->target_count == 0U ||
+	if (app == NULL || !desktop_app_input_is_click(event) || app->target_count == 0U ||
 	    (app->target_loading && app->target_count < MESSAGES_TARGET_VISIBLE_MAX) ||
 	    index >= app->target_count) {
 		return;
@@ -1743,7 +1719,7 @@ static void messages_compose_activated(struct zui_form *form, uint32_t id,
 
 	ARG_UNUSED(form);
 
-	if (app == NULL || !messages_is_click(event)) {
+	if (app == NULL || !desktop_app_input_is_click(event)) {
 		return;
 	}
 
@@ -1861,10 +1837,10 @@ static bool messages_menu_input(const struct zui_input_event *event, void *user_
 	if (event == NULL) {
 		return false;
 	}
-	if (messages_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (messages_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		messages_exit(app);
 		return true;
 	}
@@ -1913,10 +1889,10 @@ static bool messages_inbox_input(const struct zui_input_event *event, void *user
 	if (event == NULL) {
 		return false;
 	}
-	if (messages_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (messages_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		messages_switch(app, MESSAGES_SCREEN_MENU);
 		return true;
 	}
@@ -2040,18 +2016,18 @@ static bool messages_detail_input(const struct zui_input_event *event, void *use
 	if (event == NULL) {
 		return false;
 	}
-	if (messages_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (messages_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		messages_switch(app, MESSAGES_SCREEN_INBOX);
 		return true;
 	}
-	if (messages_is_click(event) && event->code == ZUI_INPUT_CODE_SELECT) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_SELECT) {
 		messages_open_reply(app);
 		return true;
 	}
-	if (messages_is_click(event)) {
+	if (desktop_app_input_is_click(event)) {
 		if ((event->code == ZUI_INPUT_CODE_DOWN || event->code == ZUI_INPUT_CODE_RIGHT) &&
 		    app->detail_scroll < app->detail_max_scroll) {
 			app->detail_scroll++;
@@ -2095,10 +2071,10 @@ static bool messages_compose_input(const struct zui_input_event *event, void *us
 	if (app == NULL) {
 		return false;
 	}
-	if (messages_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (messages_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		messages_switch(app, MESSAGES_SCREEN_MENU);
 		return true;
 	}
@@ -2146,14 +2122,14 @@ static bool messages_target_input(const struct zui_input_event *event, void *use
 	if (app == NULL) {
 		return false;
 	}
-	if (messages_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (messages_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		messages_switch(app, MESSAGES_SCREEN_COMPOSE);
 		return true;
 	}
-	if (messages_is_click(event) && app->target_count > 0U) {
+	if (desktop_app_input_is_click(event) && app->target_count > 0U) {
 		selected = zui_sublist_selected(app->targets);
 		if (event->code == ZUI_INPUT_CODE_DOWN && selected + 1U >= app->target_count) {
 			if (messages_target_start_next_load(app)) {
@@ -2217,7 +2193,7 @@ static bool messages_content_input(const struct zui_input_event *event, void *us
 	if (app == NULL) {
 		return false;
 	}
-	if (messages_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
 	if (event != NULL && event->action == ZUI_INPUT_ACTION_LONG_PRESS &&

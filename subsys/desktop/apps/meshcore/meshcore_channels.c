@@ -263,15 +263,15 @@ static bool meshcore_channel_form_input(const struct zui_input_event *event, voi
 	if (app == NULL) {
 		return false;
 	}
-	if (meshcore_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (meshcore_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		app->channel_editing = app->channel_applied;
 		meshcore_switch(app, MESHCORE_SCREEN_CHANNELS);
 		return true;
 	}
-	if (meshcore_is_long(event) && event->code == ZUI_INPUT_CODE_SELECT) {
+	if (desktop_app_input_is_long_press(event) && event->code == ZUI_INPUT_CODE_SELECT) {
 		meshcore_apply_channel(app);
 		return true;
 	}
@@ -315,10 +315,10 @@ static bool meshcore_channels_input(const struct zui_input_event *event, void *u
 	if (app == NULL) {
 		return false;
 	}
-	if (meshcore_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (meshcore_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		meshcore_switch(app, MESHCORE_SCREEN_MENU);
 		return true;
 	}

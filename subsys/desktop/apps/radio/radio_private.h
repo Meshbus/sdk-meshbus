@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "apps/app_common.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -237,9 +239,6 @@ extern const struct zui_screen_ops radio_hex_ops;
 extern const struct zui_screen_ops radio_reset_ops;
 
 void radio_request_redraw(struct radio_app *app);
-bool radio_is_click(const struct zui_input_event *event);
-bool radio_is_long(const struct zui_input_event *event);
-bool radio_should_consume_edge(const struct zui_input_event *event);
 void radio_toast(struct radio_app *app, const char *title, const char *text,
                  const struct zui_icon *icon, uint32_t timeout_ms);
 void radio_format_freq_mhz(char *buf, size_t size, uint32_t hz);

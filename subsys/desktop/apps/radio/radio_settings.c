@@ -482,15 +482,15 @@ static bool radio_form_input(const struct zui_input_event *event, void *user_dat
 	if (app == NULL || event == NULL) {
 		return false;
 	}
-	if (radio_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (radio_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		app->editing = app->applied;
 		radio_switch(app, RADIO_SCREEN_MENU);
 		return true;
 	}
-	if (radio_is_long(event) && event->code == ZUI_INPUT_CODE_SELECT) {
+	if (desktop_app_input_is_long_press(event) && event->code == ZUI_INPUT_CODE_SELECT) {
 		radio_apply_settings(app);
 		return true;
 	}
@@ -533,10 +533,10 @@ static bool radio_number_input(const struct zui_input_event *event, void *user_d
 	if (app == NULL || event == NULL) {
 		return false;
 	}
-	if (radio_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (radio_is_long(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_long_press(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		radio_switch(app, app->number_field == RADIO_NUMBER_CW_FREQUENCY ?
 					  RADIO_SCREEN_CW :
 					  RADIO_SCREEN_SETTINGS);
@@ -601,10 +601,10 @@ static bool radio_reset_input(const struct zui_input_event *event, void *user_da
 	if (app == NULL || event == NULL) {
 		return false;
 	}
-	if (radio_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (radio_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		radio_reset_modal_result(app->reset_modal, ZUI_MODAL_RESULT_LEFT, event, app);
 		return true;
 	}

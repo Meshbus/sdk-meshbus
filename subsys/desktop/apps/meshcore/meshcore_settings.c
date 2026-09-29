@@ -694,7 +694,8 @@ void meshcore_settings_activated(struct zui_form *form, uint32_t id,
 				    DESKTOP_TEXT_COMMON_CANCEL, DESKTOP_TEXT_COMMON_OK);
 		break;
 	default:
-		if (app->settings_page == MESHCORE_SETTINGS_PAGE_ROOT && meshcore_is_long(event)) {
+		if (app->settings_page == MESHCORE_SETTINGS_PAGE_ROOT &&
+		    desktop_app_input_is_long_press(event)) {
 			meshcore_apply_settings(app);
 		}
 		break;
@@ -716,10 +717,10 @@ static bool meshcore_form_input(const struct zui_input_event *event, void *user_
 	if (app == NULL) {
 		return false;
 	}
-	if (meshcore_should_consume_edge(event)) {
+	if (desktop_app_input_should_consume_edge(event)) {
 		return true;
 	}
-	if (meshcore_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
+	if (desktop_app_input_is_click(event) && event->code == ZUI_INPUT_CODE_BACK) {
 		meshcore_sync_settings_from_form(app);
 		if (app->settings_page == MESHCORE_SETTINGS_PAGE_ROOT) {
 			app->editing = app->applied;
@@ -732,8 +733,8 @@ static bool meshcore_form_input(const struct zui_input_event *event, void *user_
 		}
 		return true;
 	}
-	if (app->settings_page == MESHCORE_SETTINGS_PAGE_ROOT && meshcore_is_long(event) &&
-	    event->code == ZUI_INPUT_CODE_SELECT) {
+	if (app->settings_page == MESHCORE_SETTINGS_PAGE_ROOT &&
+	    desktop_app_input_is_long_press(event) && event->code == ZUI_INPUT_CODE_SELECT) {
 		meshcore_apply_settings(app);
 		return true;
 	}

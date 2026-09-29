@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "apps/app_common.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -200,9 +202,6 @@ extern const struct zui_screen_ops meshcore_number_ops;
 extern const struct zui_screen_ops meshcore_detail_ops;
 extern const struct zui_screen_ops meshcore_modal_ops;
 
-bool meshcore_is_click(const struct zui_input_event *event);
-bool meshcore_is_long(const struct zui_input_event *event);
-bool meshcore_should_consume_edge(const struct zui_input_event *event);
 void meshcore_request_redraw(struct meshcore_app *app);
 void meshcore_switch(struct meshcore_app *app, uint32_t screen_id);
 void meshcore_exit(struct meshcore_app *app);

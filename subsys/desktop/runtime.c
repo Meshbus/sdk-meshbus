@@ -2,6 +2,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 
 #include "desktop_private.h"
+#include "apps/app_common.h"
 
 #include "registry/apps_registry_prvi.h"
 
@@ -303,32 +304,17 @@ ZBUS_CHAN_ADD_OBS(mbs_power_fuel_gauge_data_chan, mbs_desktop_power_data_listene
 
 bool desktop_input_is_click(const struct zui_input_event *event)
 {
-	return event != NULL && event->action == ZUI_INPUT_ACTION_CLICK;
+	return desktop_app_input_is_click(event);
 }
 
 bool desktop_input_is_long(const struct zui_input_event *event)
 {
-	return event != NULL && event->action == ZUI_INPUT_ACTION_LONG_PRESS;
+	return desktop_app_input_is_long_press(event);
 }
 
 bool desktop_shell_should_consume_edge_event(const struct zui_input_event *event)
 {
-	if (event == NULL ||
-	    (event->action != ZUI_INPUT_ACTION_PRESS && event->action != ZUI_INPUT_ACTION_RELEASE)) {
-		return false;
-	}
-
-	switch (event->code) {
-	case ZUI_INPUT_CODE_UP:
-	case ZUI_INPUT_CODE_DOWN:
-	case ZUI_INPUT_CODE_LEFT:
-	case ZUI_INPUT_CODE_RIGHT:
-	case ZUI_INPUT_CODE_SELECT:
-	case ZUI_INPUT_CODE_BACK:
-		return true;
-	default:
-		return false;
-	}
+	return desktop_app_input_should_consume_edge(event);
 }
 
 static const struct device *zui_desktop_display_device(void)
