@@ -164,7 +164,9 @@ def main():
     if output := os.environ.get('GITHUB_OUTPUT'):
         with open(output, 'a') as stream:
             for key, value in plan.items():
-                stream.write(f'{key}={json.dumps(value, separators=(",", ":"))}\n')
+                # Actions scalar outputs are passed directly to shell arguments.
+                encoded = value if isinstance(value, str) else json.dumps(value, separators=(",", ":"))
+                stream.write(f'{key}={encoded}\n')
     if summary := os.environ.get('GITHUB_STEP_SUMMARY'):
         with open(summary, 'a') as stream:
             stream.write('### Validation scope\n\n```json\n' + json.dumps(plan, indent=2) + '\n```\n')

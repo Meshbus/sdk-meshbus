@@ -41,3 +41,22 @@
   conflicts, dirty inputs and unsafe paths without initializing west.
 - Hosted timing and complete inventory acceptance remain pending the combined
   commit. New Cargo cache keys make its first run a cold-cache observation.
+
+### First hosted run and correction
+
+- Run 36761673956 at cbffabe: 17 jobs passed and 13 failed. All four products,
+  eight Twister shards (60 runtime and 52 compile instances), host checks,
+  source checks, workspace checks and preparation passed.
+- All six CLI jobs failed before compilation because the planner JSON-quoted
+  its scalar profile output. Six native jobs then had no archives to download;
+  Required checks correctly rejected the incomplete result.
+- The new boundary regression reproduces both daily and full-profile failures
+  by passing the actual Actions output to the CLI argument parser. Scalar
+  strings now remain unquoted; booleans and matrix objects retain JSON output.
+- Prepare took 204 seconds versus 290 in baseline 36749625503. CLI schema
+  setup took one second. These step observations do not establish complete
+  pipeline or Rust build speed because CLI compilation never started.
+- Complete acceptance remains pending a corrective commit and successful run.
+- After the correction, all 132 CI tests passed, including both previously
+  failing profile cases. Ruff, strict OpenSpec and repository license policy
+  also passed; workflow structure and build implementation are unchanged.

@@ -1,7 +1,9 @@
 # SPDX-FileCopyrightText: 2026 FoBE Studio
 # SPDX-License-Identifier: Apache-2.0
-from contextlib import chdir
+from contextlib import chdir, redirect_stdout
+import io
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -15,6 +17,7 @@ import subprocess
 import metadata
 import impact
 import plan
+import run as ci_run
 import test_plan
 import yaml
 
@@ -293,6 +296,30 @@ class Planning(unittest.TestCase):
         self.assertEqual(selected['cli_profile'], 'release')
         self.assertEqual(selected['compile_roots'], ['tests', 'samples'])
         self.assertEqual(plan.select(['scripts/meshbus/src/main.rs'])['cli_profile'], 'ci')
+
+    def test_actions_profile_output_reaches_cli_argument_parser(self):
+        for full, profile in ((False, 'ci'), (True, 'release')):
+            with self.subTest(full=full), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                output = root / 'actions-output'
+                argv = ['plan.py', '--output', str(root / 'plan.json')]
+                if full:
+                    argv.append('--full')
+                with patch.object(sys, 'argv', argv), \
+                        patch.object(plan, 'changed_paths', return_value=['scripts/meshbus/src/main.rs']), \
+                        patch.dict(os.environ, GITHUB_OUTPUT=str(output), GITHUB_STEP_SUMMARY=''), \
+                        redirect_stdout(io.StringIO()):
+                    plan.main()
+                outputs = dict(line.split('=', 1) for line in output.read_text().splitlines())
+                self.assertEqual(outputs['cli'], 'true')
+                self.assertEqual(json.loads(outputs['linux_targets'])[0], 'x86_64-unknown-linux-gnu')
+                # Actions passes scalar outputs unchanged through PROFILE to --profile.
+                argv = ['run.py', 'cli', '--target', 'x86_64-unknown-linux-gnu',
+                        '--profile', outputs['cli_profile']]
+                with patch.object(sys, 'argv', argv), patch.object(ci_run, 'OUT', root / 'out'), \
+                        patch.object(ci_run, 'cli') as build:
+                    ci_run.main()
+                build.assert_called_once_with('x86_64-unknown-linux-gnu', False, profile)
 
     def test_shards_are_disjoint_nonempty_and_complete(self):
         report = {'testsuites': [suite(str(i)) for i in range(9)]}
