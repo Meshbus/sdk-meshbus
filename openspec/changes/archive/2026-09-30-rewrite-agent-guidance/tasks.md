@@ -24,7 +24,7 @@
 | 0001 | apps/meshbus/README.md: Device firmware and MeshCore role; Product policy and release qualification | Reviewed identity, synchronous role application, deferred durability, rollback attempt, static RAM and target qualification. |
 | 0002 | DISTRIBUTION.md: introduction | Reviewed independent cycles, compatible CLI records, assembly executable versus platform publication. |
 | 0003 | DISTRIBUTION.md: MCUboot products; Firmware archive contents; DFOTA | Reviewed hash-only defaults, caller-owned/shared keys, native signing trust, primary-slot checks, independent offline manifest key and exact baselines. |
-| 0004 | scripts/meshbus/APP_DEVELOPMENT.md: Execution and trust model; device Session section | Reviewed independent foreground apps, no sandbox, transport authentication, integrity/provenance and resource cleanup. |
+| 0004 | scripts/meshbus/APP_DEVELOPMENT.md: Execution and trust model; device Session section | Reviewed independent foreground apps, no sandbox, transport authentication, integrity and provenance, and resource cleanup. |
 | 0007 | apps/meshbus/README.md: Mesh Probe R2 owner control and recovery | Reviewed SWD ownership, UART-only boot recovery, destructive writes, no monotonic rollback counter, trust replacement and independent DFOTA checks. |
 | 0012 | LICENSING.md: Compiled dependency admission | Preserved all six admission clauses, exact-input checks, uncertain provenance, font and redistribution boundaries. |
 | 0013 | LICENSING.md: introduction; Source, EDK and firmware distributions | Reviewed owned Apache-2.0 scope, third-party attribution, metadata/generator consistency, EDK materials and authorization. |

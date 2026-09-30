@@ -38,7 +38,7 @@ Meshbus excludes WenQuanYi and Unifont arrays from its font selections,
 including non-Chinese Unifont subsets. Desktop uses the configured fonts without
 a Chinese font fallback. Generic UTF-8 drawing is available for independently
 reviewed fonts. Additional Meshbus font selections must satisfy
-the [compiled dependency policy](../adr/0012-restrict-compiled-third-party-licenses.md).
+the [compiled dependency policy](../../LICENSING.md#compiled-dependency-admission).
 
 Both excluded families have GPL-2.0-or-later terms with font embedding
 exceptions. These exclusions are a deliberate SDK dependency choice, not a
