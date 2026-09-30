@@ -6,6 +6,7 @@ on:
     tags: ['v*-alpha.*']
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: alpha-release-${{ github.ref }}
   cancel-in-progress: false

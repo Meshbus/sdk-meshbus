@@ -400,6 +400,12 @@ restricted/review-required fonts. Missing records or changed notice hashes fail
 packaging. Custom predictive dictionaries must carry adjacent license/notice
 files or a `<dictionary>.license` sidecar with the applicable standard texts.
 
+For SDK GCC builds, packaging records the SDK version and final link map's
+runtime archive paths/digests. It retains installed GCC runtime exception terms
+and Picolibc/Newlib copyright/permission materials under `licenses/toolchain-*`.
+Missing configured archives or installed notices fail collection. This binds
+review to the actual SDK inputs without inferring grants from a compiler name.
+
 Development builds without SPDX carry `partial-no-spdx` notice selection.
 Collected component materials do not resolve every toolchain runtime, generated
 input, license choice or source-delivery obligation. Review these and unresolved
@@ -461,7 +467,8 @@ the next Alpha number. CLI `Cargo.toml` versioning is independent. The six CLI
 packages remain CI validation/tool inputs rather than public pilot downloads.
 
 An Engineering Candidate remains unpublished and records `publishable: false`.
-An eligible public Alpha adds a separate publication manifest: full strict CI,
+An eligible public Alpha adds a separate publication manifest: full CI Twister
+evidence for the exact source/Builder and fresh strict candidate validation,
 production-profile packaging for the complete product matrix, license/SPDX
 collection, EDK compiler qualification, assembly and the selected distribution
 review must pass. Hardware validation stays `not-run`, production qualification
@@ -539,6 +546,10 @@ physical recovery, production signing or public-release qualification.
 
 The manual [Candidate preparation workflow](.github/CI.md) requires full
 commit SHAs throughout the manifest graph and successful strict validation.
+It reuses successful full main CI Twister evidence only for the same source,
+resolved manifest graph and immutable Builder digest. Missing or conflicting
+evidence blocks preparation; run full **CI** first with that commit and image.
+The snapshot and public manifest retain the reused baseline run identity.
 It builds six CLI targets, checks the produced bytes on native hosts, assembles
 all discovered firmware products and compiles C/C++ samples against every
 exported LLEXT EDK.

@@ -201,6 +201,7 @@ class Collection(unittest.TestCase):
         self.candidate = self.root / 'candidate'
         self.snapshot = self.root / 'snapshot'
         self.snapshot.mkdir()
+        alpha.art.write_json(self.snapshot / 'plan.json', {'full': True, 'sdk': True})
         alpha.art.write_json(self.snapshot / 'source.json', {'source_revision': SHA, 'manifest_sha256': 'd' * 64})
         (self.snapshot / 'west-frozen.yml').write_text('manifest:\n  projects:\n  - name: zephyr\n    revision: ' + 'b' * 40 + '\n')
         (self.snapshot / 'image.txt').write_text('ghcr.io/meshbus/sdk-meshbus-builder@sha256:' + 'c' * 64)
@@ -238,7 +239,21 @@ class Collection(unittest.TestCase):
         (self.firmware / 'licenses/meshbus').mkdir(parents=True)
         (self.firmware / 'licenses/meshbus/LICENSE').write_text('Apache-2.0 license fixture')
         alpha.art.write_json(self.firmware / 'license-materials.json', {'selection': 'spdx-source-components',
-            'components': [{'component': 'meshbus', 'materials': ['licenses/meshbus/LICENSE']}], 'fonts': []})
+            'components': [{'component': 'meshbus', 'materials': ['licenses/meshbus/LICENSE']}], 'fonts': [],
+            'toolchain_runtimes': [{'domain': 'app', 'sdk_version': '1.0.1',
+                'components': ['toolchain-gcc-runtime', 'toolchain-picolibc'],
+                'libraries': [{'path': 'lib/' + name, 'sha256': 'f' * 64} for name in ('libc.a', 'libgcc.a')]}]})
+        materials = json.loads((self.firmware / 'license-materials.json').read_text())
+        for component, filenames in (('toolchain-gcc-runtime', ('COPYING3', 'COPYING.RUNTIME')),
+                                     ('toolchain-picolibc', ('COPYING.picolibc', 'COPYING.NEWLIB', 'COPYING.GPL2'))):
+            paths = []
+            for name in filenames:
+                path = self.firmware / 'licenses' / component / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('runtime permission fixture')
+                paths.append(path.relative_to(self.firmware).as_posix())
+            materials['components'].append({'component': component, 'materials': paths})
+        alpha.art.write_json(self.firmware / 'license-materials.json', materials)
         (self.firmware / 'SBOM.spdx').write_text('SPDXVersion: SPDX-2.3\nPackageName: meshbus-firmware\n'
             'PackageVersion: 1.0.0-alpha.1\nPackageName: meshbus-sdk\nPackageVersion: ' + SHA + '\n'
             'PackageLicenseDeclared: Apache-2.0\nPackageLicenseConcluded: Apache-2.0\n')
@@ -310,6 +325,29 @@ class Collection(unittest.TestCase):
         self.assertTrue((self.evidence / 'license-review-input.json').is_file())
         self.assertFalse(self.output.exists())
 
+    def test_public_manifest_identifies_reused_twister_baseline(self):
+        self.approve()
+        source = json.loads((self.snapshot / 'source.json').read_text())
+        baseline = {'schema': 1, 'mode': 'reused', 'repository': alpha.REPOSITORY,
+                    'run_id': '456', 'run_attempt': 1,
+                    'run_url': f'https://github.com/{alpha.REPOSITORY}/actions/runs/456',
+                    'source_revision': SHA, 'manifest_sha256': source['manifest_sha256'],
+                    'builder_image': (self.snapshot / 'image.txt').read_text(),
+                    'frozen_manifest_sha256': alpha.art.digest((self.snapshot / 'west-frozen.yml').read_bytes()),
+                    'jobs': ['validation / Twister Run (1)', 'validation / Twister Build (1)']}
+        alpha.art.write_json(self.snapshot / 'twister-baseline.json', baseline)
+        alpha.art.write_json(self.snapshot / 'plan.json', {'full': True, 'sdk': False, 'twister_baseline': baseline})
+        self.collect()
+        manifest = json.loads((self.output / 'release-manifest.json').read_text())
+        self.assertEqual(manifest['sdk_validation'], baseline)
+        self.assertEqual(manifest['run_id'], '123')
+
+    def test_alpha_cannot_silently_omit_twister(self):
+        alpha.art.write_json(self.snapshot / 'plan.json', {'full': True, 'sdk': False})
+        with self.assertRaises(FileNotFoundError):
+            self.collect()
+        self.assertFalse(self.output.exists())
+
     def test_unreviewed_or_changed_license_materials_block_public_export(self):
         self.approve()
         (self.firmware / 'licenses/meshbus/LICENSE').write_text('changed notice')
@@ -317,6 +355,23 @@ class Collection(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'stale or unresolved'):
             self.collect()
         self.assertFalse(self.output.exists())
+
+    def test_candidate_without_runtime_notice_inventory_cannot_be_reviewed(self):
+        materials = json.loads((self.firmware / 'license-materials.json').read_text())
+        materials.pop('toolchain_runtimes')
+        alpha.art.write_json(self.firmware / 'license-materials.json', materials)
+        self.repack()
+        with self.assertRaisesRegex(ValueError, 'missing selected R1 toolchain runtime'):
+            self.collect()
+
+    def test_changed_linked_runtime_bytes_invalidate_existing_review(self):
+        self.approve()
+        materials = json.loads((self.firmware / 'license-materials.json').read_text())
+        materials['toolchain_runtimes'][0]['libraries'][0]['sha256'] = 'e' * 64
+        alpha.art.write_json(self.firmware / 'license-materials.json', materials)
+        self.repack()
+        with self.assertRaisesRegex(ValueError, 'stale or unresolved'):
+            self.collect()
 
     def test_missing_edk_notice_blocks_review_and_public_export(self):
         self.approve()
@@ -417,7 +472,7 @@ class Workflow(unittest.TestCase):
         import yaml
         root = Path(__file__).resolve().parents[3]
         workflow = yaml.safe_load((root / '.github/workflows/alpha-release.yml').read_text())
-        self.assertEqual(workflow['permissions'], {'contents': 'read'})
+        self.assertEqual(workflow['permissions'], {'contents': 'read', 'actions': 'read'})
         self.assertFalse(workflow['concurrency']['cancel-in-progress'])
         jobs = workflow['jobs']
         self.assertEqual([name for name, job in jobs.items() if job.get('permissions') == {'contents': 'write'}], ['publish'])
@@ -427,6 +482,7 @@ class Workflow(unittest.TestCase):
         self.assertIn('workflow_dispatch', candidate[True])
         self.assertEqual(candidate['jobs']['validation']['with']['full'], True)
         self.assertEqual(candidate['jobs']['validation']['with']['strict'], True)
+        self.assertEqual(candidate['jobs']['validation']['with']['reuse-twister'], True)
         self.assertEqual(set(candidate['jobs']['complete']['needs']), {'validation', 'products', 'assemble'})
 
 

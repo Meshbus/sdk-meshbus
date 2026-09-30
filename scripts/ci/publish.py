@@ -30,8 +30,8 @@ class GitHub:
         self.base = 'https://api.github.com/repos/' + alpha.REPOSITORY
         self.opener = urllib.request.build_opener(SafeRedirect())
 
-    def request(self, url, method='GET', value=None, binary=False, anonymous=False):
-        headers = {'Accept': 'application/octet-stream' if binary else 'application/vnd.github+json',
+    def request(self, url, method='GET', value=None, binary=False, anonymous=False, accept=None):
+        headers = {'Accept': accept or ('application/octet-stream' if binary else 'application/vnd.github+json'),
                    'User-Agent': 'meshbus-alpha-ci', 'X-GitHub-Api-Version': '2022-11-28'}
         if not anonymous:
             alpha.art.require(urllib.parse.urlsplit(url).hostname in ('api.github.com', 'uploads.github.com'),

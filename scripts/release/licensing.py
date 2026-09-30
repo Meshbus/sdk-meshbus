@@ -208,6 +208,53 @@ def linked_fonts(elf):
                 and symbol["st_info"]["type"] == "STT_OBJECT"}
 
 
+def toolchain_runtimes(domains, configs, cache_value, output):
+    """Retain installed SDK terms for the archives passed to the final linker."""
+    groups = {"libgcc.a": "gcc-runtime", "libstdc++.a": "gcc-runtime", "libsupc++.a": "gcc-runtime",
+              "libc.a": "picolibc", "libm.a": "picolibc"}
+    notices = {"gcc-runtime": ("gcc", ("COPYING3", "COPYING.RUNTIME")),
+               "picolibc": ("picolibc", ("COPYING.picolibc", "COPYING.NEWLIB", "COPYING.GPL2"))}
+    entries, inputs = {}, []
+    for domain, build in sorted(domains.items()):
+        conf = configs[domain]
+        if not any(conf.get(key) == "y" for key in ("CONFIG_LIBGCC_RTLIB", "CONFIG_PICOLIBC_USE_TOOLCHAIN")):
+            continue
+        compiler = Path(cache_value(build / "CMakeCache.txt", "CMAKE_C_COMPILER")).resolve(strict=True)
+        prefix = compiler.parent.parent
+        sdk_version = art.read(prefix.parent.parent / "sdk_version").decode().strip()
+        art.require(sdk_version, "missing toolchain SDK version")
+        text = art.read(build / "zephyr/zephyr.map", 64 * 1024 * 1024).decode()
+        archives = set()
+        for name in re.findall(r"^LOAD (\S+\.a)\s*$", text, re.M):
+            path = Path(name)
+            if path.is_absolute() and path.resolve().is_relative_to(prefix):
+                archives.add(path.resolve(strict=True))
+        names = {p.name for p in archives}
+        art.require(conf.get("CONFIG_LIBGCC_RTLIB") != "y" or "libgcc.a" in names,
+                    "missing configured libgcc linker input")
+        art.require(conf.get("CONFIG_PICOLIBC_USE_TOOLCHAIN") != "y" or "libc.a" in names,
+                    "missing configured Picolibc linker input")
+        art.require(names <= set(groups), "unreviewed toolchain runtime archive")
+        components = sorted({groups[name] for name in names})
+        for component in components:
+            owner, filenames = notices[component]
+            destination = output / "licenses" / ("toolchain-" + component)
+            destination.mkdir(parents=True, exist_ok=True)
+            for filename in filenames:
+                data = art.read(prefix / "share/licenses" / owner / filename)
+                art.require(data.strip(), "empty toolchain runtime notice")
+                target = destination / filename
+                art.require(not target.exists() or art.read(target) == data, "conflicting toolchain runtime terms")
+                target.write_bytes(data)
+            entries[component] = {"component": "toolchain-" + component,
+                "materials": [p.relative_to(output).as_posix() for p in art.files(destination)]}
+        inputs.append({"domain": domain, "sdk_version": sdk_version,
+                       "components": ["toolchain-" + name for name in components],
+                       "libraries": [{"path": p.relative_to(prefix).as_posix(),
+                                      "sha256": art.digest(art.read(p, 64 * 1024 * 1024))} for p in sorted(archives)]})
+    return [entries[name] for name in sorted(entries)], inputs
+
+
 def firmware(source_root, domains, sbom, sysbuild, output, configs, cache_value):
     """Use SPDX source selection and build module roots, not all west projects."""
     roots = {"meshbus": source_root}
@@ -273,11 +320,14 @@ def firmware(source_root, domains, sbom, sysbuild, output, configs, cache_value)
             destination = output / "licenses/zui/SUBTLEX-LICENSE.txt"
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_text(art.notice_text(roots["zui"] / "src/dicts/LICENSE"), encoding="utf-8")
+    runtime_entries, runtime_inputs = toolchain_runtimes(domains, configs, cache_value, output)
+    entries.extend(runtime_entries)
     for entry in entries:
         entry["materials"] = [p.relative_to(output).as_posix()
                               for p in art.files(output / "licenses" / entry["component"])]
     result = {"selection": "spdx-source-components" if sbom["status"] == "generated" else "partial-no-spdx",
-              "components": entries, "fonts": [{k: v for k, v in entry.items() if k != "attribution"}
+              "components": entries, "toolchain_runtimes": runtime_inputs,
+              "fonts": [{k: v for k, v in entry.items() if k != "attribution"}
                                                 for entry in font_entries],
               "scope": "Component materials and selected font notices; compatibility, source obligations, "
                        "toolchain runtimes and unrecorded generated inputs still require release review."}

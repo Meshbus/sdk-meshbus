@@ -11,6 +11,10 @@ on:
         description: Require clean CLI packages built afresh
         type: boolean
         default: false
+      reuse-twister:
+        description: Require successful full CI Twister evidence for this exact source and builder
+        type: boolean
+        default: false
       retention-days:
         type: number
         default: 14
@@ -24,6 +28,7 @@ on:
         value: ${{ jobs.prepare.outputs.products }}
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: validation-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -37,7 +42,7 @@ jobs:
     timeout-minutes: 10
     outputs:
       image: ${{ steps.image.outputs.image }}
-      sdk: ${{ steps.plan.outputs.sdk }}
+      sdk: ${{ steps.reuse.outputs.sdk || steps.plan.outputs.sdk }}
       products: ${{ steps.plan.outputs.products }}
       workspace: ${{ steps.plan.outputs.workspace }}
       heavy: ${{ steps.plan.outputs.heavy }}
@@ -76,10 +81,19 @@ jobs:
         env:
           IMAGE_REF: ${{ inputs.image }}
         run: python meshbus/scripts/ci/image.py --repository Meshbus/sdk-meshbus --reference "$IMAGE_REF"
+      - name: Reuse successful full CI Twister validation
+        id: reuse
+        if: inputs.reuse-twister
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          IMAGE: ${{ steps.image.outputs.image }}
+        run: >-
+          python meshbus/scripts/ci/baseline.py select --snapshot snapshot
+          --manifest meshbus/west.yml --image "$IMAGE"
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: ci-plan
-          path: snapshot/plan.json
+          path: snapshot
           if-no-files-found: error
 
   prepare:
@@ -117,6 +131,9 @@ jobs:
               chmod -R a+rX /work/snapshot/tools
             '
           printf '%s\n' "$IMAGE" > snapshot/image.txt
+      - name: Verify reused Twister dependency graph
+        if: inputs.reuse-twister
+        run: python meshbus/scripts/ci/baseline.py verify --snapshot snapshot
       - id: products
         if: needs.plan.outputs.products == 'true'
         env:
@@ -518,10 +535,12 @@ jobs:
           NEEDS_JSON: ${{ toJSON(needs) }}
         run: python meshbus/scripts/ci/checks.py aggregate --plan snapshot/plan.json
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-        if: needs.plan.outputs.sdk == 'true'
+        if: needs.plan.outputs.sdk == 'true' || inputs.reuse-twister
         with:
           name: source-snapshot
           path: snapshot
+      - if: inputs.reuse-twister
+        run: python meshbus/scripts/ci/baseline.py verify --snapshot snapshot
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         if: needs.plan.outputs.sdk == 'true'
         with:

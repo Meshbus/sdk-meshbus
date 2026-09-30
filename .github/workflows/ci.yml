@@ -15,6 +15,7 @@ on:
         default: stable
 permissions:
   contents: read
+  actions: read
 jobs:
   validation:
     uses: ./.github/workflows/validation.yml

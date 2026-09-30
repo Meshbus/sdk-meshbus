@@ -30,10 +30,25 @@ Publication SHALL require the existing complete strict device-free validation,
 production-profile product packaging, SPDX and license-material collection,
 matching EDK verification/qualification and complete firmware assembly. A
 successful narrowed main CI result SHALL NOT substitute for these checks.
+Candidate preparation SHALL reuse Twister only from a successful complete
+`ci.yml` run on main with the exact source revision, manifest graph and immutable
+Builder digest. It SHALL retain the baseline run and verified shard provenance.
+Missing, expired, failed, narrowed or conflicting baselines SHALL block candidate
+preparation. Other strict validation and packaging checks SHALL run afresh.
 
 #### Scenario: Candidate succeeds
 - **WHEN** all required checks and complete candidate assembly succeed
 - **THEN** their verified outputs become eligible for Alpha publication staging
+
+#### Scenario: Reuse completed Twister validation
+- **WHEN** full main CI has passed for the candidate's exact source and Builder
+- **THEN** Candidate and Alpha publication reuse that Twister evidence
+- **AND** they run fresh strict host, CLI, product, EDK and assembly checks
+
+#### Scenario: Missing or conflicting Twister baseline
+- **WHEN** no successful full main CI snapshot matches the source, graph and Builder
+- **THEN** candidate preparation fails before product packaging
+- **AND** it requests completion of full CI instead of silently omitting tests
 
 #### Scenario: Missing or failed evidence
 - **WHEN** a required job, product, EDK, notice material or checksum is missing,

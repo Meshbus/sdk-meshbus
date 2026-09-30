@@ -47,8 +47,16 @@ in-run VERSION edits, which conflict with clean candidate requirements.
 ### 2. Reuse the complete candidate pipeline
 
 Expose `candidates.yml` through `workflow_call` while preserving its manual entry
-point. The release workflow calls it with existing full/strict behavior; nested
-validation resolves the builder once to an immutable digest. All four products
+point. The release workflow calls it with full/strict behavior and Twister reuse;
+nested validation resolves the builder once to an immutable digest. A read-only
+Actions gate selects successful complete `ci.yml` evidence on main for the exact
+source, root manifest and digest. It checks both Twister layers and every planned
+shard, then binds the new dependency snapshot to the tested frozen graph. Only
+Twister is deselected in the candidate plan; other strict checks run afresh.
+Missing or expired evidence fails with an instruction to complete full CI first.
+Normal PR/main selection stays stateless and unchanged. The retained baseline
+and public manifest identify the actual reused run rather than claim fresh tests.
+All four products
 are packaged and assembled, and the six CLI targets remain validation/internal
 tool inputs. Publication reads only successful artifacts from this run.
 
@@ -153,7 +161,7 @@ than claiming the existing GA publication requirements have passed.
 
 ## Risks / Trade-offs
 
-- Full candidate preparation consumes a complete matrix even for one public
+- Candidate preparation consumes a complete non-Twister matrix even for one public
   product -> reuse the existing validated contracts and record each failed stage.
 - GitHub upload/download interruption can leave a draft -> retain original
   artifacts and resume only a matching draft without overwriting bytes.

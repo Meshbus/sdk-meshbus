@@ -212,6 +212,62 @@ class LicensingTests(unittest.TestCase):
         self.assertEqual((self.output / "licenses/hal/LICENSES/Apache-2.0.txt").read_text(), "Complete Apache terms")
         self.assertIn("HAL Author", (self.output / "licenses/hal/SOURCE-NOTICES.txt").read_text())
 
+    def runtime_fixture(self, name="sdk"):
+        prefix = self.root / name / "gnu/arm-zephyr-eabi"
+        compiler = self.write(f"{name}/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc", "fixture compiler")
+        self.write(f"{name}/sdk_version", "1.0.1\n")
+        for owner, filenames in (("gcc", ("COPYING3", "COPYING.RUNTIME")),
+                                 ("picolibc", ("COPYING.picolibc", "COPYING.NEWLIB", "COPYING.GPL2"))):
+            for filename in filenames:
+                self.write(f"{name}/gnu/arm-zephyr-eabi/share/licenses/{owner}/{filename}", filename + " fixture terms")
+        libraries = [self.write(f"{name}/gnu/arm-zephyr-eabi/lib/{library}", library + " fixture bytes")
+                     for library in ("libc.a", "libgcc.a")]
+        build = self.root / (name + "-build")
+        self.write(f"{name}-build/zephyr/zephyr.map", "\n".join("LOAD " + str(p) for p in libraries))
+        conf = {"CONFIG_PICOLIBC_USE_TOOLCHAIN": "y", "CONFIG_LIBGCC_RTLIB": "y"}
+        return prefix, compiler, build, conf
+
+    def test_runtime_notices_follow_linker_archives_and_bind_installed_bytes(self):
+        prefix, compiler, build, conf = self.runtime_fixture()
+        entries, inputs = licensing.toolchain_runtimes({"app": build}, {"app": conf},
+                                                      lambda *args: str(compiler), self.output)
+        self.assertEqual({p["component"] for p in entries}, {"toolchain-gcc-runtime", "toolchain-picolibc"})
+        self.assertEqual(inputs[0]["sdk_version"], "1.0.1")
+        self.assertEqual(inputs[0]["libraries"], [{"path": "lib/" + name,
+                         "sha256": art.digest((prefix / "lib" / name).read_bytes())} for name in ("libc.a", "libgcc.a")])
+        self.assertEqual((self.output / "licenses/toolchain-picolibc/COPYING.picolibc").read_bytes(),
+                         (prefix / "share/licenses/picolibc/COPYING.picolibc").read_bytes())
+
+    def test_missing_runtime_permission_text_fails_collection(self):
+        prefix, compiler, build, conf = self.runtime_fixture()
+        (prefix / "share/licenses/picolibc/COPYING.picolibc").unlink()
+        with self.assertRaises(FileNotFoundError):
+            licensing.toolchain_runtimes({"app": build}, {"app": conf}, lambda *args: str(compiler), self.output)
+
+    def test_missing_configured_runtime_archive_fails_collection(self):
+        prefix, compiler, build, conf = self.runtime_fixture()
+        (build / "zephyr/zephyr.map").write_text("LOAD " + str(prefix / "lib/libgcc.a"))
+        with self.assertRaisesRegex(ValueError, "missing configured Picolibc"):
+            licensing.toolchain_runtimes({"app": build}, {"app": conf}, lambda *args: str(compiler), self.output)
+
+    def test_unknown_toolchain_archive_requires_review(self):
+        prefix, compiler, build, conf = self.runtime_fixture()
+        self.write("sdk/gnu/arm-zephyr-eabi/lib/libunknown.a", "unknown library")
+        with (build / "zephyr/zephyr.map").open("a") as stream:
+            stream.write("\nLOAD " + str(prefix / "lib/libunknown.a"))
+        with self.assertRaisesRegex(ValueError, "unreviewed toolchain runtime"):
+            licensing.toolchain_runtimes({"app": build}, {"app": conf}, lambda *args: str(compiler), self.output)
+
+    def test_domains_cannot_silently_replace_different_runtime_terms(self):
+        first, compiler, build, conf = self.runtime_fixture()
+        second, other_compiler, other_build, other_conf = self.runtime_fixture("other-sdk")
+        (second / "share/licenses/picolibc/COPYING.picolibc").write_text("different fixture terms")
+        def cache(path, key):
+            return str(compiler if path.parent == build else other_compiler)
+        with self.assertRaisesRegex(ValueError, "conflicting toolchain runtime terms"):
+            licensing.toolchain_runtimes({"app": build, "mcuboot": other_build},
+                                        {"app": conf, "mcuboot": other_conf}, cache, self.output)
+
 
 if __name__ == "__main__":
     unittest.main()

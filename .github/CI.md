@@ -12,7 +12,7 @@ The separate Alpha workflow publishes only the reviewed allowlisted downloads.
 | --- | --- | --- |
 | Daily CI | Pull request or main push | The checks selected for this change passed. |
 | Full validation | Weekly Monday 06:00 Asia/Shanghai or manual CI | The complete device-free matrix passed for this source and resolved environment. |
-| Candidate preparation | Manual or reusable Alpha call | Full strict validation passed, followed by production-profile firmware packaging, EDK qualification and assembly. |
+| Candidate preparation | Manual or reusable Alpha call | Matching successful full CI Twister evidence, fresh strict validation, production-profile firmware packaging, EDK qualification and assembly. |
 | Alpha release | Push of `v*-alpha.*` tag | The complete candidate pipeline and distribution review passed; uploaded assets and anonymous public downloads match the retained checksums. |
 | Builder image | Weekly Monday 04:00, manual, or image/consumer-check PR | The proposed builder and its shallow dependency clones passed consumer smoke checks. Only successful default-branch scheduled/manual runs activate it. |
 
@@ -26,6 +26,18 @@ hosted check name. It always runs and rejects failed/cancelled jobs, a failed
 planner, unexpectedly skipped selected jobs and missing Twister instances.
 Candidate success additionally requires packaging and assembly; a successful
 validation gate alone does not qualify the candidate.
+
+Candidate preparation reuses Twister from a successful full `ci.yml` run on main
+for the exact source SHA and immutable Builder digest. The gate checks the root
+manifest, both Twister layers, every planned shard and `Required checks`; the
+new resolved dependency graph must also match. It retains `twister-baseline.json`
+in the plan/source artifacts and includes the baseline in the public release
+manifest. It grants no reuse to narrowed, failed, expired or conflicting runs.
+If the gate fails, complete main CI first; use manual **CI** to obtain a full run
+on the desired commit/image when ordinary impact selection was narrower.
+Candidate and tag runs execute no duplicate Twister jobs. Their other strict
+checks, six CLI targets, product builds, packaging and EDK qualification remain
+fresh. Normal PR/main planning does not query past runs.
 
 ## Stateless selection
 
@@ -290,8 +302,9 @@ tag, so `GITHUB_TOKEN` publication does not require additional workflow rights.
 Git operations and public publication require the repository's explicit
 authorization; the examples here do not grant it.
 
-Run manual **Candidate preparation** on the reviewed Alpha source before the
-first publication. Download its `alpha-license-review-input` and corresponding
+Complete full **CI** on the reviewed Alpha source before running manual
+**Candidate preparation**, using the same Builder digest. Before the first
+publication, download its `alpha-license-review-input` and corresponding
 `verified-firmware-candidate`, snapshot, maps and qualification evidence. Review
 the selected distribution inputs and commit the approval described in
 [distribution](../DISTRIBUTION.md#selected-distribution-review). The approval is

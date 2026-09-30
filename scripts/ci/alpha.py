@@ -119,6 +119,19 @@ def license_scope(firmware, edk, record, edk_manifest):
             art.require(name.startswith('licenses/') and art.read(firmware / name).strip(), 'missing/empty license material')
             retained.add(name)
     art.require(retained, 'missing component notices')
+    runtimes = materials.get('toolchain_runtimes', [])
+    art.require(len(runtimes) == 1 and runtimes[0]['domain'] == 'app' and runtimes[0]['sdk_version'] and
+                set(runtimes[0]['components']) == {'toolchain-gcc-runtime', 'toolchain-picolibc'},
+                'missing selected R1 toolchain runtime evidence')
+    libraries = runtimes[0]['libraries']
+    art.require({'libc.a', 'libgcc.a'} <= {Path(row['path']).name for row in libraries} and
+                len({row['path'] for row in libraries}) == len(libraries), 'incomplete runtime linker inventory')
+    for row in libraries:
+        art.relative(row['path'])
+        art.require(re.fullmatch(r'[0-9a-f]{64}', row['sha256']), 'invalid runtime archive digest')
+    art.require({'licenses/toolchain-gcc-runtime/COPYING3', 'licenses/toolchain-gcc-runtime/COPYING.RUNTIME',
+                 'licenses/toolchain-picolibc/COPYING.picolibc', 'licenses/toolchain-picolibc/COPYING.NEWLIB',
+                 'licenses/toolchain-picolibc/COPYING.GPL2'} <= retained, 'missing selected runtime notice')
     fonts = materials['fonts']
     if fonts:
         font_root = firmware / 'licenses/u8g2/fonts'
@@ -155,6 +168,7 @@ def license_scope(firmware, edk, record, edk_manifest):
                              if name != 'meshbus'},
             'notice_hashes': {name: art.digest(art.read(firmware / name)) for name in sorted(retained)},
             'fonts': fonts, 'toolchain': record['build'],
+            'toolchain_runtimes': runtimes,
             'edk_header_policy': edk_manifest['edk']['header-policy'],
             'edk_notices': {p.relative_to(edk).as_posix(): art.digest(art.read(p)) for p in edk_notices}}
 
@@ -190,6 +204,15 @@ def collect(candidate, snapshot, output, evidence, tag, sha, run_id, review_path
                      if p.name not in ('release.json', 'SHA256SUMS') or p.parent != candidate]
     art.require(assembled['assets'] == actual_assets, 'assembled inventory conflicts with candidate bytes')
     art.require(source['source_revision'] == sha, 'snapshot source conflict')
+    plan = json.loads(art.read(snapshot / 'plan.json'))
+    art.require(plan['full'] is True, 'Alpha requires complete candidate validation')
+    if plan['sdk'] is True:
+        sdk_validation = {'mode': 'fresh', 'run_id': run_id,
+                          'run_url': f'https://github.com/{REPOSITORY}/actions/runs/{run_id}'}
+    else:
+        import baseline
+        sdk_validation = baseline.verify(snapshot)
+        art.require(plan.get('twister_baseline') == sdk_validation, 'Twister reuse plan/provenance conflict')
     revisions = {p['name']: p['revision'] for p in yaml.safe_load((snapshot / 'west-frozen.yml').read_text())['manifest']['projects']}
     revisions.pop('meshbus', None)
     products = assembled['products']
@@ -275,6 +298,7 @@ def collect(candidate, snapshot, output, evidence, tag, sha, run_id, review_path
     manifest = {'schema': 1, 'tag': tag, 'version': version(tag), 'repository': REPOSITORY,
         'source_revision': sha, 'dependencies': revisions, 'manifest_sha256': source['manifest_sha256'],
         'builder_image': image, 'run_id': run_id,
+        'sdk_validation': sdk_validation,
         'run_url': f'https://github.com/{REPOSITORY}/actions/runs/{run_id}', 'target': TARGET,
         'toolchain': selected['build'], 'edk_tool': selected['edk_tool'],
         'license_review_scope_sha256': review_sha, 'assets': inventory(output),

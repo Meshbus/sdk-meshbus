@@ -20,6 +20,7 @@ on:
         value: ${{ jobs.validation.outputs.image }}
 permissions:
   contents: read
+  actions: read
 defaults:
   run:
     shell: bash
@@ -29,6 +30,7 @@ jobs:
     with:
       full: true
       strict: true
+      reuse-twister: true
       retention-days: 90
       image: ${{ inputs.image }}
 

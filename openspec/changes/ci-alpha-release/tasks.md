@@ -12,6 +12,7 @@
 
 - [x] 2.1 Expose candidates.yml for workflow_call while preserving manual preparation and its full strict matrix, retention and immutable builder identity; verify actionlint and focused CI/workflow tests cover both entries and same-source handoff.
 - [x] 2.2 Wire the Alpha entry point to candidate preparation and required success accounting; verify failed/missing candidate jobs block publication and ordinary PR/main selection remains unchanged, then update .github/CI.md with the job sequence.
+- [ ] 2.3 Following the user's CI-time refinement, reuse successful full main CI Twister evidence for the exact source, frozen graph and immutable Builder; retain baseline provenance, reject mismatches/missing evidence and run other strict/package/EDK gates afresh. Verify boundary tests, actionlint and hosted Candidate job accounting.
 
 ## 3. Verified public download collection
 
@@ -29,8 +30,8 @@
 ## 5. Integration and first hosted pilot
 
 - [x] 5.1 Run affected CI/release boundary suites, source documentation/metadata checks, actionlint, OpenSpec strict validation, git diff --check and the repository license policy; record actual outcomes here without equating structural checks with hosted acceptance.
-- [ ] 5.2 After separate explicit Git authorization, commit/push the reviewed implementation and firmware VERSION edit; verify the committed diff/source identity and successful hosted CI, preserving unrelated work.
-- [ ] 5.3 After separate explicit public-publication authorization, create/push the fixed `v1.0.0-alpha.1` tag and follow its full strict validation, production packaging, EDK qualification, complete assembly and draft verification; retain source SHA, resolved graph, builder digest, job results and artifact references here.
+- [x] 5.2 After separate explicit Git authorization, commit/push the reviewed implementation and firmware VERSION edit; verify the committed diff/source identity and successful hosted CI, preserving unrelated work.
+- [ ] 5.3 After separate explicit public-publication authorization, create/push the fixed `v1.0.0-alpha.1` tag and follow its verified full CI Twister reuse, fresh strict validation, production packaging, EDK qualification, complete assembly and draft verification; retain source SHA, resolved graph, builder digest, job results and artifact references here.
 - [ ] 5.4 Verify the resulting GitHub Release is public, prerelease=true and latest=false, then independently download the exact R1 asset set and verify checksums, version and UF2/EDK identity; record the final Release URL and CI evidence here. Physical-device, production-signing and GA acceptance remain unperformed in this CI-only pilot.
 
 ## Validation
@@ -92,5 +93,39 @@ implementation. The active developer west workspace remains Enterprise; its
 configuration and dependencies were preserved.
 
 The user authorized committing/pushing the reviewed changes and running manual
-Candidate preparation on 2026-09-30. Task 5.2 is in progress. Tag creation and
-public GitHub Release publication remain outside this authorization.
+Candidate preparation on 2026-09-30. The reviewed implementation and VERSION
+were committed as `9b273284d17fbdd7933e6a4a4660afb4fedadfb6` and pushed normally
+to `meshbus/main`. The remote source identity was independently checked.
+Its [main CI run](https://github.com/Meshbus/sdk-meshbus/actions/runs/36740191819)
+completed successfully with all 30 jobs passing on 2026-10-01 (Asia/Shanghai).
+Task 5.2 is complete. Tag creation and public GitHub Release publication remain
+outside this authorization.
+
+Manual [Candidate preparation](https://github.com/Meshbus/sdk-meshbus/actions/runs/36740230643)
+was dispatched with `image=stable` and the same committed source. Its retained
+snapshot records 76 dependency revisions, manifest SHA-256
+`7aed573187d52799c03180ad5b5c891a443f9d765dfe241fc6103f832993f41f` and Builder
+`ghcr.io/meshbus/sdk-meshbus-builder@sha256:edeed0755c6379c5553696f9456c3ea1ca0c8c6df9836effba4ba9df2e537300`.
+The original Candidate completed with all 36 jobs successful. Independent checks
+verified the retained R1 UF2 against the original firmware archive and BIN,
+verified archive checksums and ran EDK verification with the actual CI-built
+Darwin arm64 CLI. No device operation was performed. Actual license review found
+that linked SDK Picolibc permission/copyright material was absent from the
+firmware archive. Task 3.3 remains open while runtime collection is corrected
+and the actual rebuilt bytes are reviewed.
+
+On 2026-10-01 the user requested reducing unnecessary release-stage Twister.
+The revised contract preserves full baseline validation while reusing its
+Twister evidence in Candidate and tag publication. The main pipeline remains
+unchanged; explicit read-only Actions lookup is confined to Candidate reuse.
+Task 2.3 tracks implementation and hosted verification of this refinement.
+
+Local refinement checks: the complete CI boundary suite passed 115 tests, then
+the two added Alpha reuse/provenance cases passed in the affected suite. The
+release regression suite passed 94 tests, including five runtime-collection
+failure/retention cases. Ruff, actionlint, documentation/metadata, strict
+OpenSpec and repository license policy passed (0 findings, 29 exemptions; raw
+REUSE remains false). Read-only execution against main CI run `36740191819`
+successfully selected all eight actual Twister shards, the exact source and
+Builder, and retained the frozen-manifest hash. This does not establish hosted
+execution of the revised Candidate workflow; that remains to be verified.

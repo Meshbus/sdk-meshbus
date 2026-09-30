@@ -17,6 +17,9 @@ public download verification before establishing an ongoing release practice.
 - Reuse complete strict validation and the existing candidate product builds,
   SPDX/license collection, EDK checks and complete firmware assembly. Resolve
   the builder to one immutable digest for the run.
+  Following the user's CI-time refinement, reuse successful full main CI
+  Twister evidence for that exact source, graph and digest; preserve fresh
+  non-Twister candidate checks and record the reused baseline explicitly.
 - Prepare a deterministic publication inventory from verified candidate bytes.
   The proposed pilot publishes Mesh Probe R1's APP-only UF2, firmware archive,
   matching EDK, public SBOM, license-bearing companion package, checksums and
