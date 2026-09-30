@@ -30,20 +30,20 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           path: meshbus
           persist-credentials: false
       - name: Reserve disk for image export and consumer builds
         run: bash meshbus/scripts/ci/prepare-disk.sh host
-      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
       - id: identity
         env:
           REPOSITORY: ${{ github.repository }}
         run: |
           echo "image=ghcr.io/${REPOSITORY,,}-builder" >> "$GITHUB_OUTPUT"
           echo "tag=build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
-      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: meshbus/.github/docker
           build-contexts: |
@@ -72,7 +72,7 @@ jobs:
         run: |
           docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work \
             meshbus-builder:test python meshbus/scripts/ci/quality.py environment
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
         with:
           name: builder-validation
@@ -84,7 +84,7 @@ jobs:
             smoke-runtime/*.json
             smoke-runtime/*.xml
           retention-days: 14
-      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
         with:
           registry: ghcr.io

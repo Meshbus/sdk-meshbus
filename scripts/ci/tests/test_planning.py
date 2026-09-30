@@ -314,6 +314,28 @@ class Planning(unittest.TestCase):
                         self.assertEqual([part['layer'] for part in matrix], expected_layers)
         test_plan.verify({'testsuites': []}, [], False)
 
+    def test_downloaded_reports_accept_single_and_multiple_artifact_layouts(self):
+        for nested in (False, True):
+            for layers in (('runtime',), ('compile',), ('runtime', 'compile')):
+                with self.subTest(nested=nested, layers=layers), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    snapshot, reports = root / 'snapshot', root / 'reports'
+                    snapshot.mkdir()
+                    for layer in ('runtime', 'compile'):
+                        suites = [suite(layer)] if layer in layers else []
+                        (snapshot / f'{layer}.json').write_text(json.dumps({'testsuites': suites}))
+                        if suites:
+                            folder = reports / f'zephyr-{layer}-0' if nested else reports
+                            folder = folder / f'{layer}-0'
+                            folder.mkdir(parents=True)
+                            (folder / 'twister.json').write_text(json.dumps({
+                                'testsuites': [suite(layer, status='passed')]}))
+                    result = subprocess.run([
+                        sys.executable, str(Path(test_plan.__file__)), 'verify',
+                        '--snapshot', str(snapshot), '--reports', str(reports)],
+                        text=True, capture_output=True)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_selected_instance_cannot_disappear_as_skipped(self):
         with tempfile.TemporaryDirectory() as temporary:
             report = Path(temporary) / 'twister.json'
