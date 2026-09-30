@@ -421,6 +421,11 @@ identity and the relevant key fingerprints with each release.
 
 ## Publication requirements
 
+The requirements below apply to production-qualified GA publication. Public
+Alpha eligibility is a separate channel described under
+[CI Alpha publication](#ci-alpha-publication); it does not satisfy or remove
+these device and production requirements.
+
 Repository-owned SDK, firmware and CLI code use Apache-2.0, with file/subtree
 exceptions described in [third-party notices](LICENSING.md). Review
 the applicable source and notice obligations for every delivered component;
@@ -448,6 +453,73 @@ Verify only the transports and capabilities actually configured for a target;
 do not apply Mesh Probe R2's MCUboot/UART policy to a UF2 target. CLI code signing,
 notarization and host-platform qualification are separate release work.
 
+## CI Alpha publication
+
+The first public Alpha pilot selects `mesh_probe_r1/nrf52840`. Firmware uses
+`1.0.0-alpha.1` and a fixed `v1.0.0-alpha.1` Git tag; later content changes use
+the next Alpha number. CLI `Cargo.toml` versioning is independent. The six CLI
+packages remain CI validation/tool inputs rather than public pilot downloads.
+
+An Engineering Candidate remains unpublished and records `publishable: false`.
+An eligible public Alpha adds a separate publication manifest: full strict CI,
+production-profile packaging for the complete product matrix, license/SPDX
+collection, EDK compiler qualification, assembly and the selected distribution
+review must pass. Hardware validation stays `not-run`, production qualification
+stays false and R1 UF2 authentication stays `none`. CI cannot establish boot,
+RF, recovery, resource/soak or MBA runtime acceptance.
+
+The allowlisted public set contains the standalone R1 APP-only UF2, its original
+firmware archive, original matching EDK archive, curated public SBOM,
+`release-manifest.json` and `SHA256SUMS`. The raw UF2's applicable notices and
+license texts travel in the companion firmware archive; retain both when
+redistributing. Install with an existing compatible UF2 bootloader and
+SoftDevice. This pilot supplies neither component and does not authorize
+erasing settings or replacing the boot chain. The firmware archive also retains
+these instructions in `NOTICE.txt` and its generated `flash-map.json`.
+
+The public manifest enumerates payload names, sizes and SHA256 values, the
+fixed source/tag, frozen dependencies, immutable builder, compiler/CLI identity,
+Actions run and actual qualification. `SHA256SUMS` covers the payloads and
+manifest; it excludes itself. A complete inventory hashing both metadata files
+is retained in Actions. Original archives are copied without rebuilding or
+repacking. Private SPDX inventories, build logs and `release-source.json` remain
+outside the public download set. Relative private-evidence locators in an
+existing flash map are references, not bundled source-file inventories.
+
+### Selected distribution review
+
+Alpha export produces `license-review-input.json` from the actual firmware/EDK
+archives. It contains the selected component license declarations, third-party
+versions, notice hashes, selected fonts, compiler identity and EDK notices.
+Manual Candidate preparation retains this input without approval or publication.
+Unknown selected grants, generated/runtime obligations and exported header
+terms require review; a source license-policy pass does not supply that review.
+
+Record the reviewed decisions in `scripts/ci/alpha-license-review.json` before
+tagging. The file has schema 1, `approved: true`, the exact `scope_sha256`, and a
+`components` object keyed by every SBOM component name. Each decision records
+`selected_license`, concrete `evidence` and `obligations`, resolving
+`NOASSERTION` permission fields and any dual-license choice. Nonempty
+`runtime_review`, `generated_inputs_review` and `edk_review` records identify
+the reviewed inputs and applicable source/notice conditions. In particular,
+inspect the linker/runtime inputs under the recorded compiler, the GCC Runtime
+Library Exception when applicable, schema/dictionary generation and exported
+third-party headers. Do not copy a placeholder approval into this file.
+
+The scope digest excludes the moving first-party SDK revision and aggregate
+firmware version while binding third-party versions, selected declarations and
+exact delivered notice texts. A reviewed approval can therefore be committed
+without a circular hash of its own source commit. Changed selected terms,
+notices, compiler or EDK policy invalidate it. Missing, stale or unresolved
+review blocks export; restricted/review-required font selections are rejected.
+The actual distribution review for the first hosted pilot is still pending.
+
+Only CI-owned drafts can be resumed from their original verified upload set.
+Uploaded bytes are downloaded and checked before public visibility. The final
+Release is a Prerelease with `make_latest=false`, followed by anonymous download
+verification. Published bytes are never replaced or deleted by this workflow.
+See [Alpha operation and recovery](.github/CI.md#alpha-operation-and-recovery).
+
 ## Host-tool validation
 
 From the configured workspace, use the checks relevant to the changed tool:
@@ -468,7 +540,8 @@ physical recovery, production signing or public-release qualification.
 The manual [Candidate preparation workflow](.github/CI.md) requires full
 commit SHAs throughout the manifest graph and successful strict validation.
 It builds six CLI targets, checks the produced bytes on native hosts, assembles
-all discovered firmware products and compiles C/C++ samples against Mesh Probe R2/Wio EDKs.
+all discovered firmware products and compiles C/C++ samples against every
+exported LLEXT EDK.
 Linux/Windows cross builds record both build host and output target; macOS uses
 Apple-hosted tooling. `west release cli --target <triple>` supports configured
 cross toolchains. `--development` explicitly permits dirty/off-manifest local

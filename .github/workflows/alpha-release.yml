@@ -1,0 +1,110 @@
+# SPDX-FileCopyrightText: 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+name: Alpha release
+on:
+  push:
+    tags: ['v*-alpha.*']
+permissions:
+  contents: read
+concurrency:
+  group: alpha-release-${{ github.ref }}
+  cancel-in-progress: false
+defaults:
+  run:
+    shell: bash
+env:
+  RELEASE_TAG: ${{ github.ref_name }}
+jobs:
+  preflight:
+    if: github.repository == 'Meshbus/sdk-meshbus'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      published: ${{ steps.check.outputs.published }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - id: check
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python scripts/ci/publish.py preflight
+
+  candidate:
+    needs: preflight
+    if: needs.preflight.outputs.published == 'false'
+    uses: ./.github/workflows/candidates.yml
+    with:
+      image: stable
+
+  stage:
+    needs: [preflight, candidate]
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ needs.candidate.outputs.image }}
+      volumes:
+        - /usr/local/lib/android:/__host_sdks/android
+        - /usr/share/dotnet:/__host_sdks/dotnet
+        - /opt/ghc:/__host_sdks/ghc
+        - /usr/local/.ghcup:/__host_sdks/ghcup
+        - /opt/hostedtoolcache/CodeQL:/__host_sdks/codeql
+    timeout-minutes: 45
+    env:
+      MESHBUS_CLI: ${{ github.workspace }}/internal-cli/meshbus/meshbus
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          path: meshbus
+          persist-credentials: false
+      - uses: ./meshbus/.github/actions/workspace
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: verified-firmware-candidate
+          path: firmware-candidate
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: cli-x86_64-unknown-linux-gnu
+          path: internal-part
+      - run: python meshbus/scripts/ci/artifact.py internal-part internal-cli
+      - run: >-
+          python meshbus/scripts/ci/alpha.py --candidate firmware-candidate
+          --snapshot snapshot --output alpha-assets --evidence alpha-evidence
+          --review meshbus/scripts/ci/alpha-license-review.json
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: alpha-evidence
+          path: alpha-evidence
+          retention-days: 90
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: verified-alpha-assets
+          path: alpha-assets
+          retention-days: 90
+          if-no-files-found: error
+
+  publish:
+    needs: [preflight, candidate, stage]
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          path: meshbus
+          persist-credentials: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: verified-alpha-assets
+          path: alpha-assets
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: alpha-evidence
+          path: alpha-evidence
+      - env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          python meshbus/scripts/ci/publish.py publish --assets alpha-assets
+          --inventory alpha-evidence/inventory.json

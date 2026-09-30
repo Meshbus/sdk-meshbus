@@ -2,9 +2,9 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # GitHub Actions
 
-CI validates this SDK, product firmware and host CLI without flashing hardware,
-production signing or publishing releases. Candidate archives retain
-`publishable: false`.
+Validation CI checks this SDK, product firmware and host CLI without flashing
+hardware or production signing. Candidate archives retain `publishable: false`.
+The separate Alpha workflow publishes only the reviewed allowlisted downloads.
 
 ## Validation contracts
 
@@ -12,7 +12,8 @@ production signing or publishing releases. Candidate archives retain
 | --- | --- | --- |
 | Daily CI | Pull request or main push | The checks selected for this change passed. |
 | Full validation | Weekly Monday 06:00 Asia/Shanghai or manual CI | The complete device-free matrix passed for this source and resolved environment. |
-| Candidate preparation | Manual | Full strict validation passed, followed by production-profile firmware packaging, EDK qualification and assembly. |
+| Candidate preparation | Manual or reusable Alpha call | Full strict validation passed, followed by production-profile firmware packaging, EDK qualification and assembly. |
+| Alpha release | Push of `v*-alpha.*` tag | The complete candidate pipeline and distribution review passed; uploaded assets and anonymous public downloads match the retained checksums. |
 | Builder image | Weekly Monday 04:00, manual, or image/consumer-check PR | The proposed builder and its shallow dependency clones passed consumer smoke checks. Only successful default-branch scheduled/manual runs activate it. |
 
 `ci.yml` calls `validation.yml` for daily and full validation. The candidate
@@ -276,6 +277,61 @@ assembly. Local checks and pinned revisions do not
 establish a successful hosted run; rerun CI on the submitted changes before
 claiming hosted CI or candidate validation complete. Hardware, production signing,
 notarization and public release are outside this validation.
+
+## Alpha operation and recovery
+
+The [Alpha workflow](workflows/alpha-release.yml) accepts canonical tags such as
+`v1.0.0-alpha.1`. Commit `apps/meshbus/VERSION` with `EXTRAVERSION = alpha.1`
+before tagging that exact source revision. The workflow never stamps a dirty
+in-run version or uploads a locally built UF2. All called workflows check out
+the triggering source; dependency snapshots and package/EDK provenance must
+agree. Merge reviewed workflow changes to the default branch before the first
+tag, so `GITHUB_TOKEN` publication does not require additional workflow rights.
+Git operations and public publication require the repository's explicit
+authorization; the examples here do not grant it.
+
+Run manual **Candidate preparation** on the reviewed Alpha source before the
+first publication. Download its `alpha-license-review-input` and corresponding
+`verified-firmware-candidate`, snapshot, maps and qualification evidence. Review
+the selected distribution inputs and commit the approval described in
+[distribution](../DISTRIBUTION.md#selected-distribution-review). The approval is
+bound to selected licensing inputs, not timestamped archive bytes. A subsequent
+tag builds its own clean committed candidate and checks the scope again.
+No approval file has been fabricated for the first pilot.
+
+The job order is preflight -> complete reusable Candidate preparation -> public
+staging -> draft upload/verification -> publication -> anonymous verification.
+The candidate pipeline resolves the builder once and retains full strict
+validation, all four products and six native-checked CLI packages. Every
+candidate job must succeed; missing, failed, cancelled and unexpected skipped
+jobs fail the Candidate required checks. Ordinary PR/main selection is unchanged.
+
+Preflight checks the remote tag and committed VERSION. An existing public
+Prerelease is verified against its original manifest, inventory and downloads,
+then completes without building or changing its assets. Fresh staging exports
+R1's six public files and retains `alpha-evidence` plus `verified-alpha-assets`
+for 90 days. Only the publication job has `contents: write`; all validation,
+build and export jobs have read access. Same-tag runs are serialized without
+cancelling an active upload. No personal token or signing key is required.
+
+If license review is missing or stale, staging fails and retains
+`license-review-input.json`. Complete the review on a branch before creating the
+publication tag; do not move an existing tag to inject an approval. Failed or
+incomplete uploads retain an owned draft. **Rerun only the failed publication
+job in its original Actions run**, using its original retained artifacts.
+Matching uploaded assets remain untouched; missing assets are uploaded. A full
+rerun detects the draft before rebuilding and fails with recovery instructions.
+Conflicting ownership, source, inventory or existing asset bytes fail without
+clobber, tag movement or deletion. After evidence expires, do not regenerate
+bytes under an existing version; use a newly reviewed Alpha version.
+
+Authenticated draft download checks precede `draft=false`, `prerelease=true`
+and `make_latest=false`. Anonymous download checks follow publication. The
+Actions summary distinguishes a retained draft from a failure after the Release
+became public. Inspect the actual state after a network interruption: publishing
+may have succeeded even if its response was lost. Preserve public bytes and use
+the next Alpha number for corrections. Successful CI publication supplies no
+physical-device or GA qualification evidence.
 
 ## First activation and reproduction
 

@@ -110,6 +110,19 @@ def product(board, candidate):
                     '--packages-root', ROOT / 'samples/subsys/llext/apps/cxx_hello',
                     '--packages-output', OUT / f'extensions-{index}', cwd=WORKSPACE,
                     stdout=report, stderr=subprocess.STDOUT)
+        # Persist successful compiler qualification beside the exact archive;
+        # logs alone do not establish successful completion for public export.
+        sys.path.insert(0, str(ROOT / 'scripts/release'))
+        import artifacts
+        for record_path in (OUT / 'firmware-parts').rglob('release-part.json'):
+            record = json.loads(record_path.read_text())
+            if record['capabilities']['llext'] and not archives:
+                raise ValueError('LLEXT candidate has no EDK qualification')
+            evidence = {'target': board, 'source_revision': record['provenance']['firmware']['revision'],
+                        'checks': ['production-packaging', 'edk-verify', 'edk-c-and-cxx-qualify']
+                                  if record['capabilities']['llext'] else ['production-packaging']}
+            artifacts.write_json(record_path.parent / 'candidate-validation.json', evidence)
+            artifacts.checksums(record_path.parent)
     else:
         run('west', 'build', '--sysbuild', '-b', board, ROOT / 'apps/meshbus',
             '-d', WORKSPACE / 'product-build', cwd=WORKSPACE)

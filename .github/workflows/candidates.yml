@@ -9,6 +9,15 @@ on:
         default: stable
         required: true
         type: string
+  workflow_call:
+    inputs:
+      image:
+        description: Validated builder tag or sha256 digest (resolved once)
+        default: stable
+        type: string
+    outputs:
+      image:
+        value: ${{ jobs.validation.outputs.image }}
 permissions:
   contents: read
 defaults:
@@ -105,9 +114,40 @@ jobs:
           path: product-parts
       - working-directory: meshbus
         run: west release assemble --input ../product-parts --output ../firmware-candidate
+      - name: Retain Alpha license review inputs without publication
+        run: >-
+          python meshbus/scripts/ci/alpha.py --candidate firmware-candidate
+          --snapshot snapshot --output alpha-assets --evidence alpha-review
+          --review meshbus/scripts/ci/alpha-license-review.json --review-only
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: alpha-license-review-input
+          path: alpha-review
+          retention-days: 90
+          if-no-files-found: warn
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: verified-firmware-candidate
           path: firmware-candidate
           retention-days: 90
           if-no-files-found: error
+
+  complete:
+    name: Candidate required checks
+    needs: [validation, products, assemble]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json, os, sys
+          sys.path.insert(0, 'scripts/ci')
+          import alpha
+          alpha.require_jobs(json.loads(os.environ['NEEDS_JSON']), ['validation', 'products', 'assemble'])
+          PY
