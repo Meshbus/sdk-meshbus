@@ -8,6 +8,7 @@ from pathlib import Path
 import subprocess
 
 import impact
+import product_impact
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -27,6 +28,17 @@ def category(path):
     if path in ('REUSE.toml', '.github/license-policy.toml') or path.startswith(
             ('LICENSE', 'docs/licensing/')):
         return 'docs'
+    if path in ('.github/actions/cargo-cache/action.yml', 'scripts/ci/cargo-xwin.sh',
+                'scripts/ci/cli_workspace.py', 'scripts/ci/artifact.py'):
+        return 'cli'
+    if path in ('.github/workflows/alpha-release.yml', '.github/workflows/candidates.yml',
+                'scripts/ci/alpha.py', 'scripts/ci/publish.py', 'scripts/ci/baseline.py'):
+        return 'release'
+    # Unit tests alone cannot qualify changes to the real execution/selection path.
+    if path in ('scripts/ci/plan.py', 'scripts/ci/impact.py', 'scripts/ci/test_plan.py',
+                'scripts/ci/workspace.py', 'scripts/ci/run.py', 'scripts/ci/checks.py',
+                'scripts/ci/product_impact.py'):
+        return 'shared'
     if path.startswith('scripts/ci/') and path.endswith('.py'):
         return 'tools'
     if path in ('west.yml', 'CMakeLists.txt', 'Kconfig') or path.startswith(
@@ -50,17 +62,46 @@ def category(path):
 def select(paths, full=False):
     categories = {category(p) for p in paths}
     full = full or bool(categories & {'shared', 'unknown'}) or not paths
-    sdk = full or bool(categories & {'firmware', 'tests', 'samples'})
+    scoped, board_names, product_names, consumer_roots = set(), set(), set(), set()
+    all_products = full or bool(categories & {'release'})
+    for path in paths:
+        if category(path) != 'firmware':
+            continue
+        scope = None if full else product_impact.resolve(path, ROOT)
+        if scope is None:
+            all_products = True
+            continue
+        board_roots, _ = product_impact.board_tests(scope['boards'], ROOT) if scope['boards'] else ([], [])
+        if not board_roots and scope['products'] == [] and not scope['roots']:
+            all_products = True
+            continue
+        scoped.add(path)
+        board_names.update(scope['boards'])
+        consumer_roots.update(scope['roots'])
+        if scope['products'] is None:
+            all_products = True
+        else:
+            product_names.update(scope['products'])
+    board_roots, platforms = product_impact.board_tests(board_names, ROOT) if board_names else ([], [])
     # Samples without Twister metadata (including MBA apps) may be product
     # fixtures; retain product validation when their owner cannot be resolved.
     unowned_sample = any(category(p) == 'samples' and impact.direct_root(p, ROOT) == 'samples'
                         for p in paths)
-    products = full or unowned_sample or bool(categories & {'firmware', 'release'})
+    all_products = all_products or unowned_sample
+    products = all_products or bool(product_names)
     cli = full or bool(categories & {'cli', 'release'})
     host = full or bool(categories & {'cli', 'release', 'tools'})
     selection = (dict(test_roots=['tests'], compile_roots=['tests', 'samples'],
                       sdk_selection=dict(components=[], fallback_paths=[], full=True)) if full else
-                 impact.select([p for p in paths if category(p) in ('firmware', 'tests', 'samples')], ROOT))
+                 impact.select([p for p in paths if p not in scoped and
+                                category(p) in ('firmware', 'tests', 'samples')], ROOT))
+    selection['test_roots'] = impact.compact(set(selection['test_roots']) |
+                                             {r for r in consumer_roots if r.startswith('tests')})
+    unrestricted = (selection['compile_roots'] if full else
+                    impact.compact(set(selection['compile_roots']) | consumer_roots))
+    if not full:
+        selection['compile_roots'] = impact.compact(set(unrestricted) | set(board_roots))
+    sdk = bool(selection['test_roots'] or selection['compile_roots'])
     extended_roots = {impact.direct_root(p, ROOT) for p in paths if category(p) == 'tests'}
     if any(p.startswith('subsys/settings/') for p in paths):
         extended_roots.add('tests/subsys/settings/performance')
@@ -71,19 +112,24 @@ def select(paths, full=False):
     mac = [{'target': 'aarch64-apple-darwin', 'runner': 'macos-15'}] if cli else []
     if full and cli:
         linux += ['aarch64-unknown-linux-gnu', 'aarch64-pc-windows-msvc']
-        mac += [{'target': 'x86_64-apple-darwin', 'runner': 'macos-15-intel'}]
+        mac += [{'target': 'x86_64-apple-darwin', 'runner': 'macos-15'}]
     runners = {'x86_64-unknown-linux-gnu': 'ubuntu-24.04',
                'aarch64-unknown-linux-gnu': 'ubuntu-24.04-arm',
                'x86_64-pc-windows-msvc': 'windows-2025',
                'aarch64-pc-windows-msvc': 'windows-11-arm'}
     return dict(full=full, categories=sorted(categories), host=host, rust=cli,
                 sdk=sdk, products=products, cli=cli, audit=audit, west_audit=full,
-                fonts=full or products, checkpatch=checkpatch,
+                fonts=full or products, checkpatch=checkpatch, cli_profile='release' if full else 'ci',
                 workspace=sdk or products or cli or audit or checkpatch,
                 heavy=host or sdk or products or cli or audit or checkpatch,
                 **selection, extended_roots=impact.compact(extended_roots),
+                product_names=None if all_products else sorted(product_names),
+                board_compile_roots=board_roots, board_platforms=platforms,
+                unrestricted_compile_roots=unrestricted,
                 linux_targets=linux, mac_targets=mac,
-                native_targets=[{'target': t, 'runner': runners[t]} for t in linux] + mac)
+                native_targets=[{'target': t, 'runner': runners[t]} for t in linux] +
+                [dict(item, runner='macos-15-intel' if item['target'].startswith('x86_64')
+                      else 'macos-15') for item in mac])
 
 
 def changed_paths(base=None, before=None):

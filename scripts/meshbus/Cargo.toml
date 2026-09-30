@@ -48,3 +48,10 @@ tempfile = "3.21.0"
 codegen-units = 1
 lto = "thin"
 strip = true
+
+# Daily target/package checks retain optimized code without release LTO cost.
+[profile.ci]
+inherits = "release"
+opt-level = 1
+codegen-units = 16
+lto = "off"

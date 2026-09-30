@@ -4,6 +4,7 @@
 import argparse
 from collections import Counter
 import json
+import math
 from pathlib import Path
 import subprocess
 
@@ -38,10 +39,14 @@ def active(report):
     return [s for s in report['testsuites'] if s.get('status') not in ('filtered', 'skipped')]
 
 
-def partition(report, count=4):
+def partition(report, count=None):
     suites = active(report)
     if not suites:
         return []
+    # Environment preparation costs more than a handful of warm builds.
+    # Preserve full-run parallelism while batching small impact selections.
+    if count is None:
+        count = min(4, math.ceil(len(suites) / 12))
     identities = [key(s) for s in suites]
     if len(set(identities)) != len(identities):
         raise ValueError('duplicate Twister instances')
@@ -70,20 +75,39 @@ def generate(workspace, snapshot):
     matrix = []
     runtime_keys = set()
     for layer, label in (('runtime', 'Run'), ('compile', 'Build')):
-        roots = selection['test_roots'] if layer == 'runtime' else selection['compile_roots']
-        command = ['west', 'twister', '--integration', '--enable-slow', '--report-filtered', '-j', '2',
-                   '-O', str(snapshot.parent / 'ci-output' / f'plan-{layer}'),
-                   '--save-tests', str(snapshot / f'{layer}.json')]
-        for root in roots:
-            command += ['-T', str(workspace / 'meshbus' / root)]
-        command += ['--filter', 'runnable'] if layer == 'runtime' else ['--build-only']
-        if roots:
-            subprocess.run(command, cwd=workspace, check=True)
-            report = json.loads((snapshot / f'{layer}.json').read_text())
-            report = filter_extended(report, selection, workspace / 'meshbus')
-        else:
+        roots = (selection['test_roots'] if layer == 'runtime' else
+                 selection.get('unrestricted_compile_roots', selection['compile_roots']))
+
+        def discover(selected_roots, filename, platforms=()):
             # Without -T Twister searches its default tree, not an empty set.
-            report = {'testsuites': []}
+            if not selected_roots:
+                return {'testsuites': []}
+            command = ['west', 'twister', '--integration', '--enable-slow', '--report-filtered', '-j', '2',
+                       '-O', str(snapshot.parent / 'ci-output' / f'plan-{filename}'),
+                       '--save-tests', str(snapshot / f'{filename}.json')]
+            for root in selected_roots:
+                command += ['-T', str(workspace / 'meshbus' / root)]
+            for platform in platforms:
+                command += ['-p', platform]
+            command += ['--filter', 'runnable'] if layer == 'runtime' else ['--build-only']
+            subprocess.run(command, cwd=workspace, check=True)
+            return json.loads((snapshot / f'{filename}.json').read_text())
+
+        report = discover(roots, layer)
+        if layer == 'compile' and selection.get('board_compile_roots'):
+            platforms = selection['board_platforms']
+            boards = discover(selection['board_compile_roots'], 'board-compile', platforms)
+            for discovered in (report, boards):
+                identities = [key(s) for s in active(discovered)]
+                if len(identities) != len(set(identities)):
+                    raise ValueError('duplicate Twister instances')
+            # Merge with ordinary component coverage without restricting its platforms.
+            suites = {key(s): s for s in report['testsuites']}
+            for suite in active(boards):
+                if suite['platform'] in platforms:
+                    suites[key(suite)] = suite
+            report['testsuites'] = list(suites.values())
+        report = filter_extended(report, selection, workspace / 'meshbus')
         if layer == 'runtime':
             runtime_keys = {key(s) for s in active(report)}
         else:

@@ -54,6 +54,7 @@ jobs:
       rust: ${{ steps.plan.outputs.rust }}
       host: ${{ steps.plan.outputs.host }}
       cli: ${{ steps.plan.outputs.cli }}
+      cli-profile: ${{ steps.plan.outputs.cli_profile }}
       linux: ${{ steps.plan.outputs.linux_targets }}
       mac: ${{ steps.plan.outputs.mac_targets }}
       native: ${{ steps.plan.outputs.native_targets }}
@@ -63,6 +64,8 @@ jobs:
           path: meshbus
           fetch-depth: 0
           persist-credentials: false
+      - name: Install planning parser
+        run: python -m pip install -c meshbus/.github/docker/requirements.lock PyYAML
       - id: plan
         working-directory: meshbus
         env:
@@ -112,7 +115,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Reserve disk for image and dependencies
-        run: bash meshbus/scripts/ci/prepare-disk.sh host
+        run: bash meshbus/scripts/ci/prepare-disk.sh host 24
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
           name: ci-plan
@@ -127,6 +130,7 @@ jobs:
             bash -euc '
               git config --global --add safe.directory /work/meshbus
               python meshbus/scripts/ci/workspace.py --workspace /work --record /work/snapshot
+              python meshbus/scripts/ci/cli_workspace.py record --workspace /work --snapshot /work/snapshot
               cp -r /opt/builder /work/snapshot/tools
               chmod -R a+rX /work/snapshot/tools
             '
@@ -141,6 +145,7 @@ jobs:
         run: |
           docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work "$IMAGE" \
             python meshbus/scripts/release/release.py matrix > snapshot/products.json
+          python meshbus/scripts/ci/product_impact.py --plan snapshot/plan.json --matrix snapshot/products.json
           echo "matrix=$(jq -c . snapshot/products.json)" >> "$GITHUB_OUTPUT"
       - id: shards
         if: needs.plan.outputs.sdk == 'true'
@@ -380,15 +385,22 @@ jobs:
         with:
           path: meshbus
           persist-credentials: false
-      - uses: ./meshbus/.github/actions/workspace
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: source-snapshot
+          path: snapshot
+      - run: bash meshbus/scripts/ci/prepare-disk.sh container 8
+      - run: python meshbus/scripts/ci/cli_workspace.py setup
       - uses: ./meshbus/.github/actions/cargo-cache
         with:
           target: ${{ matrix.target }}
           image: ${{ needs.prepare.outputs.image }}
           candidate: ${{ inputs.strict }}
+          profile: ${{ needs.plan.outputs.cli-profile }}
       - env:
           TARGET: ${{ matrix.target }}
           CANDIDATE: ${{ inputs.strict }}
+          PROFILE: ${{ needs.plan.outputs.cli-profile }}
           CARGO_BUILD_JOBS: 2
           BUILDER_IMAGE: ${{ needs.prepare.outputs.image }}
           XWIN_CACHE_DIR: ${{ github.workspace }}/xwin-cache
@@ -398,7 +410,7 @@ jobs:
         run: |
           args=()
           if [[ "$CANDIDATE" == true ]]; then args+=(--candidate); fi
-          python meshbus/scripts/ci/run.py cli --target "$TARGET" "${args[@]}"
+          python meshbus/scripts/ci/run.py cli --target "$TARGET" --profile "$PROFILE" "${args[@]}"
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: cli-${{ matrix.target }}
@@ -429,20 +441,31 @@ jobs:
           python -m pip install -c meshbus/.github/docker/requirements.lock west PyYAML jsonschema
           rustup toolchain install 1.97.1 --profile minimal
           rustup default 1.97.1
-      - uses: ./meshbus/.github/actions/workspace
+      - env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          rustup target add "$TARGET"
+          if [[ "$TARGET" == x86_64-apple-darwin ]]; then arch -x86_64 /usr/bin/true; fi
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: source-snapshot
+          path: snapshot
+      - run: python meshbus/scripts/ci/cli_workspace.py setup
       - uses: ./meshbus/.github/actions/cargo-cache
         with:
           target: ${{ matrix.target }}
           image: rust-1.97.1-${{ matrix.runner }}
           candidate: ${{ inputs.strict }}
+          profile: ${{ needs.plan.outputs.cli-profile }}
       - env:
           TARGET: ${{ matrix.target }}
           CANDIDATE: ${{ inputs.strict }}
+          PROFILE: ${{ needs.plan.outputs.cli-profile }}
         run: |
           args=()
           if [[ "$CANDIDATE" == true ]]; then args+=(--candidate); fi
-          python meshbus/scripts/ci/run.py cli --target "$TARGET" "${args[@]}"
-          cargo test --locked --manifest-path meshbus/scripts/meshbus/Cargo.toml
+          python meshbus/scripts/ci/run.py cli --target "$TARGET" --profile "$PROFILE" "${args[@]}"
+          cargo test --locked --target "$TARGET" --manifest-path meshbus/scripts/meshbus/Cargo.toml
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: cli-${{ matrix.target }}

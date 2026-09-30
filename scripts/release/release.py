@@ -830,7 +830,15 @@ def verify_cli_paths(binary, paths):
                         "CLI embeds a developer path; check Rust path remapping")
 
 
+def client_profile(args):
+    profile = getattr(args, "profile", "release")
+    art.require(profile == "release" or (profile == "ci" and getattr(args, "development", False)),
+                "CLI candidates require the release profile")
+    return profile
+
+
 def client(args):
+    profile = client_profile(args)
     workspace = args.workspace.resolve(strict=True)
     source_root = workspace / "meshbus"
     crate = source_root / "scripts/meshbus"
@@ -847,7 +855,15 @@ def client(args):
                 if line.startswith("host: "))
     target = args.target or host
     art.require(target in CLIENTS, "unsupported CLI archive target")
-    source = provenance(workspace, source_root)
+    source_snapshot = getattr(args, "source_snapshot", None)
+    if source_snapshot:
+        import cli_source
+        source, proto = cli_source.verify(source_snapshot, source_root, workspace)
+        art.require(not env.get("MESHBUS_PROTO_ROOT") or Path(env["MESHBUS_PROTO_ROOT"]) == proto,
+                    "CLI schema override differs from source snapshot")
+        env["MESHBUS_PROTO_ROOT"] = str(proto)
+    else:
+        source = provenance(workspace, source_root)
     development = getattr(args, "development", False)
     art.require(development or all(not state["dirty"] for state in
                 [source["firmware"], *source["projects"].values()]),
@@ -856,7 +872,7 @@ def client(args):
     part = args.output / "cli" / target
     art.require(not part.exists() or not any(part.iterdir()), f"output directory is not empty: {part}")
     target_dir = args.cargo_target_dir or Path(env.get("CARGO_TARGET_DIR", workspace / "build-meshbus-cli"))
-    command = [cargo, "build", "--locked", "--release", "--manifest-path", crate / "Cargo.toml",
+    command = [cargo, "build", "--locked", "--profile", profile, "--manifest-path", crate / "Cargo.toml",
                "--target-dir", target_dir.resolve(), "--message-format=json-render-diagnostics"]
     command += ["--target", target]
     messages = [json.loads(line) for line in run(command, cwd=workspace, capture=True, env=env).splitlines() if line]
@@ -904,7 +920,10 @@ def client(args):
             "protobuf_descriptor": {**generated, "sha256": art.digest(art.read(descriptor))}})
         record = {"schema": 1, "kind": "cli", "target": target, "version": package["version"], "publishable": False,
                   "provenance": source, "build_host": host, "cross_compiled": target != host,
-                  "development": development,
+                  "development": development, "build_profile": profile,
+                  "source_snapshot": ({"sha256": art.digest(art.read(source_snapshot / "cli-source.json")),
+                                       "scope": "Inherited prepared graph; local SDK and schema verified"}
+                                      if source_snapshot else None),
                   "cargo_lock_sha256": art.digest(art.read(crate / "Cargo.lock")),
                   "protobuf_descriptor_sha256": art.digest(art.read(descriptor)),
                   "binary": {"file": executable, "sha256": art.digest(binary)},
@@ -1047,6 +1066,10 @@ def add_arguments(parser):
     cli.add_argument("--output", type=Path, required=True)
     cli.add_argument("--target", choices=sorted(CLIENTS), help="Cargo target; cross targets require a configured linker/SDK")
     cli.add_argument("--cargo-target-dir", type=Path)
+    cli.add_argument("--source-snapshot", type=Path,
+                     help="Use verified CI provenance and only the pinned schema checkout")
+    cli.add_argument("--profile", choices=("release", "ci"), default="release",
+                     help="CI profile is permitted only with --development")
     cli.add_argument("--development", action="store_true", help="allow dirty/off-manifest engineering CLI packages")
     assembly = sub.add_parser("assemble", help="Verify and aggregate all discovered firmware targets")
     assembly.add_argument("--input", type=Path, required=True)

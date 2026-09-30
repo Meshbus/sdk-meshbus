@@ -54,7 +54,7 @@ def twister(mode, shard):
         run('ccache', '--show-stats')
 
 
-def cli(target, candidate):
+def cli(target, candidate, profile='release'):
     env = os.environ.copy()
     if 'windows' in target and sys.platform != 'win32':
         env.setdefault('XWIN_VERSION', '17')
@@ -70,6 +70,8 @@ def cli(target, candidate):
                    PKG_CONFIG_LIBDIR='/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig')
     run(sys.executable, ROOT / 'scripts/release/release.py', 'cli', '--workspace', WORKSPACE,
         '--target', target, '--output', OUT / 'parts', '--cargo-target-dir', WORKSPACE / 'cargo-build',
+        '--source-snapshot', WORKSPACE / 'snapshot',
+        '--profile', profile,
         *([] if candidate else ['--development']), cwd=WORKSPACE, env=env)
     part = OUT / 'parts/cli' / target
     tools = {'builder_image': env.get('BUILDER_IMAGE'), 'host': platform.platform(),
@@ -134,6 +136,7 @@ def main():
     parser.add_argument('--target')
     parser.add_argument('--shard', type=int, default=0)
     parser.add_argument('--candidate', action='store_true')
+    parser.add_argument('--profile', choices=('ci', 'release'), default='release')
     parser.add_argument('--python-only', action='store_true')
     args = parser.parse_args()
     OUT.mkdir(exist_ok=True)
@@ -142,7 +145,7 @@ def main():
     elif args.layer in ('runtime', 'compile'):
         twister(args.layer, args.shard)
     elif args.layer == 'cli':
-        cli(args.target, args.candidate)
+        cli(args.target, args.candidate, args.profile)
     else:
         product(args.target, args.candidate)
 

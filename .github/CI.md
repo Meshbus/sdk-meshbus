@@ -53,15 +53,19 @@ matched components and paths that required broader SDK coverage.
 | Ordinary Markdown/RST, including CI/CLI documentation | None: no builder resolution, west workspace, firmware or CLI build. |
 | OpenSpec artifacts, generated skills and root npm tool configuration | Source checks validate OpenSpec; no firmware or Rust builds. |
 | Mapped service implementation/header or driver implementation/binding | Declared Twister roots and integration consumers, plus product sysbuilds; no unrelated CLI packages. |
-| Boards, product configuration, common firmware helpers or unmapped firmware paths | All SDK runtime/build checks and all product sysbuilds. |
+| Board DTS/defconfig and product profiles | Known board integration builds and affected product sysbuilds, including local include consumers. Unresolved ownership expands coverage. |
+| Product VERSION | Product sysbuilds; no unrelated SDK or CLI builds. |
+| Common firmware helpers or unmapped firmware paths | All SDK runtime/build checks and all product sysbuilds. |
 | Direct test changes | Both Twister layers use the nearest test metadata directory; no products or CLI. Deleted suites and shared fixtures without a local metadata owner fall back to the tests root. |
 | Direct sample changes | Compile the nearest sample metadata directory; no runtime layer, products or CLI. Unresolved/deleted sample roots and samples without Twister metadata expand to all SDK and product checks. |
 | CLI code | Python/Rust checks, three representative CLI targets and native artifact execution. |
-| Host and CI Python tools | Python tests without restoring the firmware workspace or running Rust. |
+| Host and ordinary CI Python tools | Python tests without restoring the firmware workspace or running Rust. |
 | Root `LICENSE` and `LICENSES/Apache-2.0.txt` | CLI/Rust checks and representative CLI targets because EDK validation and export consume these texts; no firmware builds. |
 | Other license texts and metadata | Source license/metadata checks; no firmware or CLI builds. |
 | Release tools / product inventory tooling | Python/Rust checks, representative CLI packaging and native checks, product sysbuilds. Firmware package/EDK qualification runs in candidate preparation. |
-| Manifest, shared build/module files, workflow/impact-policy changes, unknown paths | Full matrix. |
+| CLI cache/action helpers | CLI/host validation. |
+| Candidate/Alpha workflows and publication helpers | Release/CLI/product validation. |
+| Manifest, shared build/module files, validation workflow, execution/selection helpers, unknown paths | Full matrix. |
 
 [ci-impact.toml](ci-impact.toml) records component paths and their test/sample
 roots, including the integration consumers relevant to each component. These
@@ -85,11 +89,17 @@ Renames include both the old and new paths. Mapped public headers share their
 component scope; unmapped headers expand SDK/product checks. Scheduled/manual
 runs bypass narrowing and include every supported configuration.
 
-Products remain broad for service, driver, board and application changes until
-their configuration/devicetree consumer relationships are explicitly established.
-A Twister impact map alone cannot prove that a product is unaffected. A new driver
-without a mapped test, such as QMA6100P, therefore still receives all SDK and
-product checks. Direct Twister sample/test changes do not build the CLI.
+Board DTS, overlays and defconfig inputs use existing board/profile directories
+as owners. Local preprocessor includes extend selection to their consumers,
+including deleted includes still referenced by retained sources. Board coverage
+uses the affected boards' declared integration platforms. Product profile changes
+select their product; `VERSION` selects all products. The final product list is
+filtered from `west release matrix`, and an unknown requested owner fails.
+Mixed component changes retain their unrestricted platforms alongside board builds.
+Arbitrary Kconfig/CMake changes, unknown owners and shared implementation still
+expand conservatively. This does not infer disabled services from handwritten
+Kconfig fragments. Service/driver changes continue to build all products until
+complete product configuration dependencies establish a narrower safe scope.
 
 This policy follows the explicit area-to-tests and direct metadata-root selection
 in [Zephyr's planner](https://github.com/zephyrproject-rtos/zephyr/blob/79f8ce2ca4d162fb61332ab17556a4ffad1d5385/scripts/ci/test_plan_v2.py),
@@ -110,9 +120,16 @@ Workspace checks use the same direct dependency setup as build jobs.
 
 Daily CLI selection is Linux x86-64, Windows x86-64 and macOS ARM64. Full runs
 add Linux ARM64, Windows ARM64 and macOS x86-64. Firmware-only changes do not
-build these packages. Host checks use the Linux builder; CLI consumers retain a
-complete workspace because current packaging records provenance across west's
-active graph. Python-only host checks run the CI, host-tool and remote-tool unit suites without
+build these packages. Host checks use the Linux builder. Prepare records `cli-source.json` from its
+verified complete graph. CLI jobs restore only the pinned `meshbus-protobufs`
+checkout, validating source SHA, root manifest, frozen graph, project URL, schema
+revision and dirty state. Packaging records the inherited source receipt and its
+locally verified SDK/schema inputs. Other dependency checkouts are not needed.
+Daily CLI builds use the optimized `ci` Cargo profile (opt-level 1, 16 codegen
+units, LTO off); full/candidate builds use `release`. Non-development packaging
+rejects the CI profile. Both macOS targets compile on Apple Silicon. Targeted
+Cargo tests execute x86 code under preinstalled Rosetta; the distributed Intel
+archive is still checked on an Intel runner. Python-only host checks run the CI, host-tool and remote-tool unit suites without
 that dependency setup. Release tests run with CLI/release/full checks because their
 fixtures consume Zephyr metadata and native image tools.
 
@@ -130,7 +147,7 @@ ordinary PR/main validation. Branches and tags are rejected. Root and available
 imports are checked before updating; newly fetched imports are checked before
 any build or scan runs.
 
-Each job needing dependencies initializes its own west workspace and runs
+Each firmware/host job needing the full graph initializes its own west workspace and runs
 `west update --narrow -o=--depth=1` directly against the checked-out source
 manifest. Linux jobs also pass `--path-cache "$MESHBUS_WEST_SEED"` to reuse
 the shallow repositories already in the builder image. West initializes matching
@@ -170,13 +187,18 @@ Native jobs check the actual produced CLI archives on their OS/architecture:
 checksums, executable architecture, identity/help, offline package verification
 and tampered-fixture rejection. They do not qualify drivers or device transports.
 
-Prepare and heavy Linux jobs reclaim unused SDK directories only on disposable
-GitHub-hosted Linux runners. These cleanup scripts reject local/self-hosted use.
-Linux jobs reuse the image's shallow clones. macOS jobs perform shallow remote
-fetches because they do not run in that Linux image. Neither uses an Actions
-dependency-source cache; each job initializes its own `.west` state.
-Cargo and ccache keys partition incompatible environments. Candidate CLI builds
-reuse downloads only and compile fresh binaries. Caches never certify checks.
+Prepare and heavy Linux jobs check free space before reclaiming unused SDKs
+on disposable GitHub-hosted Linux runners, stopping once enough space exists.
+The budget is 24 GiB before pulling the image, 12 GiB for firmware work and 8 GiB
+for CLI jobs after image initialization. Insufficient space fails explicitly.
+These cleanup scripts reject local/self-hosted use. Full Linux workspaces reuse
+the image's shallow clones; CLI jobs fetch only schemas and need no `.west` state.
+The existing Linux tool image supplies cross linkers without a new image rollout.
+Cargo and ccache keys partition incompatible environments. Cargo keys include
+profile, toolchain/SDK identity, Cargo manifest/lock and target; unrelated frozen
+firmware graph changes do not invalidate compiled CLI dependencies. Cargo still
+tracks schema changes. Candidate CLI builds reuse downloads only and compile
+fresh binaries. Caches never certify checks.
 
 ## Test and security evidence
 
@@ -188,7 +210,8 @@ include all variants. Filtering happens before Prepare freezes the runtime and
 compilation inventories; the raw discovery reports remain in its task output.
 Runtime builds
 are removed from the compilation inventory only for the same scenario, platform
-and toolchain. Each nonempty layer has up to four deterministic shards. A focused
+and toolchain. Each nonempty layer uses one deterministic shard per 12 instances, capped at
+four. This reduces setup for small selections while preserving full-run parallelism. A focused
 selection may need only one layer; a completely empty selection fails. Per-shard
 and aggregate checks reject omissions, duplicates and unexpected skips. Runtime
 requires execution evidence; build-only success is never runtime success.

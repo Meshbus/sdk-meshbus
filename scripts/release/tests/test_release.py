@@ -1179,6 +1179,12 @@ class EntryTests(unittest.TestCase):
                     release.client(args)
             self.assertFalse(args.output.exists())
 
+    def test_cli_fast_profile_is_development_only(self):
+        self.assertEqual(release.client_profile(argparse.Namespace(development=True, profile="ci")), "ci")
+        self.assertEqual(release.client_profile(argparse.Namespace()), "release")
+        with self.assertRaisesRegex(ValueError, "release profile"):
+            release.client_profile(argparse.Namespace(development=False, profile="ci"))
+
     def test_cli_candidate_rejects_dirty_sources_before_compiling(self):
         with tempfile.TemporaryDirectory() as temporary:
             args = argparse.Namespace(workspace=Path(temporary), target=None,

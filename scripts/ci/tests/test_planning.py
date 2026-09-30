@@ -35,7 +35,7 @@ class Planning(unittest.TestCase):
 
     def test_metadata_and_ci_python_have_no_product_build_dependency(self):
         for path in ('REUSE.toml', 'LICENSING.md', 'LICENSES/MIT.txt',
-                     '.github/license-policy.toml', 'scripts/ci/plan.py'):
+                     '.github/license-policy.toml', 'scripts/ci/docs.py'):
             with self.subTest(path=path):
                 selected = plan.select([path])
                 self.assertFalse(selected['full'])
@@ -265,6 +265,35 @@ class Planning(unittest.TestCase):
         with self.assertRaises(ValueError):
             checks.aggregate(needs | {'unselected': {'result': 'failure'}}, expected)
 
+    def test_small_selections_do_not_create_one_job_per_instance(self):
+        for size, workers in ((1, 1), (4, 1), (12, 1), (13, 2), (60, 4)):
+            report = {'testsuites': [suite(str(i)) for i in range(size)]}
+            self.assertEqual(len(test_plan.partition(report)), workers)
+
+    def test_ci_helpers_select_their_actual_consumers(self):
+        for path in ('.github/actions/cargo-cache/action.yml', 'scripts/ci/cargo-xwin.sh',
+                     'scripts/ci/cli_workspace.py'):
+            selected = plan.select([path])
+            self.assertTrue(selected['cli'], path)
+            self.assertFalse(selected['sdk'], path)
+        for path in ('scripts/ci/plan.py', 'scripts/ci/impact.py', 'scripts/ci/test_plan.py',
+                     'scripts/ci/workspace.py', 'scripts/ci/run.py'):
+            self.assertTrue(plan.select([path])['full'], path)
+        for path in ('.github/workflows/alpha-release.yml', '.github/workflows/candidates.yml'):
+            selected = plan.select([path])
+            self.assertTrue(selected['cli'])
+            self.assertTrue(selected['products'])
+            self.assertFalse(selected['sdk'])
+
+    def test_macos_cross_build_keeps_native_intel_execution(self):
+        selected = plan.select(['README.md'], full=True)
+        target = 'x86_64-apple-darwin'
+        self.assertIn({'target': target, 'runner': 'macos-15'}, selected['mac_targets'])
+        self.assertIn({'target': target, 'runner': 'macos-15-intel'}, selected['native_targets'])
+        self.assertEqual(selected['cli_profile'], 'release')
+        self.assertEqual(selected['compile_roots'], ['tests', 'samples'])
+        self.assertEqual(plan.select(['scripts/meshbus/src/main.rs'])['cli_profile'], 'ci')
+
     def test_shards_are_disjoint_nonempty_and_complete(self):
         report = {'testsuites': [suite(str(i)) for i in range(9)]}
         shards = test_plan.partition(report, 4)
@@ -313,6 +342,33 @@ class Planning(unittest.TestCase):
                         matrix = json.loads((snapshot / 'shards.json').read_text())['include']
                         self.assertEqual([part['layer'] for part in matrix], expected_layers)
         test_plan.verify({'testsuites': []}, [], False)
+
+    def test_board_compile_scope_does_not_filter_component_platforms(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            snapshot = root / 'snapshot'
+            snapshot.mkdir()
+            selection = plan.select(['tests/subsys/clock/src/main.c'])
+            selection.update(board_compile_roots=['samples/board'],
+                             board_platforms=['board/soc'],
+                             compile_roots=['tests/subsys/clock', 'samples/board'])
+            (snapshot / 'plan.json').write_text(json.dumps(selection))
+            def twister(command, **kwargs):
+                target = Path(command[command.index('--save-tests') + 1])
+                reports = {'runtime': [suite('clock')],
+                           'compile': [suite('clock'), suite('clock', 'other/soc')],
+                           'board-compile': [suite('board_sample', 'board/soc'),
+                                             suite('unselected', 'other/soc')]}
+                target.write_text(json.dumps({'testsuites': reports[target.stem]}))
+                if target.stem == 'board-compile':
+                    self.assertIn('-p', command)
+                else:
+                    self.assertNotIn('-p', command)
+            with patch.object(test_plan.subprocess, 'run', side_effect=twister):
+                test_plan.generate(root, snapshot)
+            report = json.loads((snapshot / 'compile.json').read_text())
+            self.assertEqual({(s['name'], s['platform']) for s in report['testsuites']},
+                             {('clock', 'other/soc'), ('board_sample', 'board/soc')})
 
     def test_downloaded_reports_accept_single_and_multiple_artifact_layouts(self):
         for nested in (False, True):
