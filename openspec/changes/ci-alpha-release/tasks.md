@@ -12,7 +12,7 @@
 
 - [x] 2.1 Expose candidates.yml for workflow_call while preserving manual preparation and its full strict matrix, retention and immutable builder identity; verify actionlint and focused CI/workflow tests cover both entries and same-source handoff.
 - [x] 2.2 Wire the Alpha entry point to candidate preparation and required success accounting; verify failed/missing candidate jobs block publication and ordinary PR/main selection remains unchanged, then update .github/CI.md with the job sequence.
-- [ ] 2.3 Following the user's CI-time refinement, reuse successful full main CI Twister evidence for the exact source, frozen graph and immutable Builder; retain baseline provenance, reject mismatches/missing evidence and run other strict/package/EDK gates afresh. Verify boundary tests, actionlint and hosted Candidate job accounting.
+- [x] 2.3 Following the user's CI-time refinement, reuse successful full main CI Twister evidence for the exact source, frozen graph and immutable Builder; retain baseline provenance, reject mismatches/missing evidence and run other strict/package/EDK gates afresh. Verify boundary tests, actionlint and hosted Candidate job accounting.
 
 ## 3. Verified public download collection
 
@@ -129,3 +129,36 @@ REUSE remains false). Read-only execution against main CI run `36740191819`
 successfully selected all eight actual Twister shards, the exact source and
 Builder, and retained the frozen-manifest hash. This does not establish hosted
 execution of the revised Candidate workflow; that remains to be verified.
+
+Hosted refinement acceptance on 2026-10-01 (Asia/Shanghai):
+
+- Implementation and runtime collection were committed/pushed as
+  `94db2fad1cc77a58ea4d9c1c371722d513164163`; remote main matched that SHA.
+- [Full main CI](https://github.com/Meshbus/sdk-meshbus/actions/runs/36749625503)
+  passed all 30 jobs. Its actual host log records 117 CI boundary tests and
+  94 release regression tests passing, alongside the other host suites.
+- [Candidate preparation](https://github.com/Meshbus/sdk-meshbus/actions/runs/36751986315)
+  passed 28 executed jobs. One SDK matrix placeholder was deliberately skipped;
+  no Twister shard jobs ran. Previously, Candidate executed 36 jobs.
+- The downloaded Candidate plan records `full: true`, `sdk: false` and baseline
+  run `36749625503`, attempt 1, including all eight successful Twister shards.
+  Source SHA, Builder digest and frozen manifest SHA-256
+  `296b63ac56c1b0e71b8f26523f2269e434068afd89fd6c00ee566f0c27ef64dc` match.
+  Independent verification of the actual new dependency snapshot passed.
+- Fresh strict CLI/native validation, all four production packages, C/C++ EDK
+  qualification, complete assembly and Candidate required checks passed.
+- Downloaded R1 part/archive checksums and UF2/BIN/HEX consistency passed.
+  UF2 SHA-256 is
+  `c2fda7b5ebff85cfc4c08b57da252d75262ba186d7c1fbd16a2a75a674d9abe5`.
+  The actual CI-built Darwin arm64 CLI independently verified its new EDK.
+- R1 runtime records identify SDK 1.0.1 and the actual linked `libc.a`/`libgcc.a`
+  archive digests. The firmware archive now retains GCC license/exception and
+  Picolibc/Newlib materials. Downloaded Picolibc materials match the installed
+  official SDK 1.0.1 notice bytes. This corrects the observed missing materials;
+  it does not fabricate completion of the selected distribution approval.
+
+Task 2.3 is complete. Task 3.3's committed scope-bound distribution approval and
+the separately authorized publication tasks 5.3-5.4 remain pending. No tag,
+GitHub Release, device operation or production signing was performed. These
+post-run acceptance records are retained locally for the next review commit;
+the validated implementation remains at `94db2fa`.

@@ -24,7 +24,7 @@
 ## 5. Combined acceptance
 
 - [x] 5.1 Pass CI/release boundary tests, workflow syntax, metadata/docs, OpenSpec and license policy; record actual validation and limits.
-- [ ] 5.2 Review and commit only this change, push once, inspect hosted CI and compare timings and complete inventories with run 36749625503.
+- [x] 5.2 Review and commit only this change, push once, inspect hosted CI and compare timings and complete inventories with run 36749625503.
 
 ### Local validation
 
@@ -60,3 +60,24 @@
 - After the correction, all 132 CI tests passed, including both previously
   failing profile cases. Ruff, strict OpenSpec and repository license policy
   also passed; workflow structure and build implementation are unchanged.
+
+### Completed hosted acceptance
+
+- Corrective commit e8dcc07 passed all 30 jobs in run 36767711584:
+  <https://github.com/Meshbus/sdk-meshbus/actions/runs/36767711584>.
+- Downloaded native records confirm all six targets passed archive checksums,
+  binary architecture, native identity/help, signed fixture verification and
+  tamper rejection. The Intel macOS package records an ARM64 build host and
+  passed the separate Intel runner. CLI packages retain the release profile
+  and the source receipt for the clean corrective commit.
+- The downloaded Twister inventories exactly match baseline 36749625503 by
+  scenario, platform and toolchain: 60 runtime and 52 compile instances, with
+  no overlap. All eight shards and all four product builds passed.
+- Wall time was 11m45s versus baseline 19m19s (about 39% lower). Prepare was
+  206s versus 290s; Intel macOS was 289s versus 805s; Linux x86-64 was 256s
+  versus 318s. These are single-run observations with runner/cache variation,
+  not a controlled benchmark. Daily CI-profile gains are not measured by this
+  full release-profile run.
+- The initial combined push required one corrective push for the output
+  serialization defect. This final acceptance update remains local to avoid
+  another push solely for the post-run record.
