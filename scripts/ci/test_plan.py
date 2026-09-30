@@ -111,5 +111,7 @@ if __name__ == '__main__':
         generate(args.workspace.resolve(), args.snapshot.resolve())
     else:
         for layer in ('runtime', 'compile'):
+            # A single matching artifact is extracted without its artifact-name
+            # directory; the producer's layer/shard directory is always present.
             verify(json.loads((args.snapshot / f'{layer}.json').read_text()),
-                   list(args.reports.glob(f'zephyr-{layer}-*/**/twister.json')), layer == 'runtime')
+                   list(args.reports.glob(f'**/{layer}-*/twister.json')), layer == 'runtime')
