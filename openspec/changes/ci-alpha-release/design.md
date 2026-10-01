@@ -118,7 +118,8 @@ permission failure, and automation does not assert ownership or legal clearance.
 The removed `--review` and `--review-only` flags fail normal argument parsing;
 all repository callers migrate together. The public manifest remains schema 1
 and omits `license_review_scope_sha256` without adding another approval field.
-No public Alpha has been released, so no published asset needs migration.
+At the initial implementation, no public Alpha had been released. The later
+full-matrix follow-up preserves the now-published schema 1 alpha.1 bytes.
 
 ### 4. Use a staged GitHub Release transition
 
@@ -200,3 +201,25 @@ contract rather than claiming existing GA publication requirements have passed.
 5. Preserve the published release. Further content changes use `alpha.2` or a
    later approved version; disabling future workflow execution is separate from
    removing an existing release.
+
+## Full matrix publication follow-up
+
+The completed alpha.1 R1 pilot remains unchanged. Alpha.2 collects original
+archives for every target discovered by the existing APP profile matrix,
+standalone APP UF2 or MCUboot BIN plus each public SBOM and applicable EDK.
+MCUboot full images remain inside their firmware archives with their flash maps.
+The six native-validated CLI archives share this Alpha release as companion
+downloads while retaining their Cargo version, source identity and signing status.
+Firmware assembly remains firmware-only; CLI parts and native validation artifacts
+are passed separately to both evidence-only Candidate and Alpha staging.
+
+Schema 2 records per-product assets, toolchain, qualification and CLI platforms,
+version, binary digests and native checks. Publication verifies completeness
+against committed APP profile names and the canonical CLI platform inventory.
+Schema 1 remains supported for read-only verification of the published R1 pilot.
+All material checks apply to each product, including both MCUboot domains, and
+CLI package notices, Cargo license materials and generated protobuf materials.
+Validate everything before writing public output, preserve original archives,
+and reject missing/duplicate targets, unexpected names, source/version/architecture
+conflicts and missing/corrupt native or material evidence. No devices, keys,
+new dependency revisions or replacement of alpha.1 assets are involved.

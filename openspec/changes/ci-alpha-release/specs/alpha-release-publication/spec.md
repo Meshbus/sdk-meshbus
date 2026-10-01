@@ -165,11 +165,34 @@ verified inventory SHALL be treated as already published; conflicts SHALL fail.
 An Alpha publication SHALL have explicit Alpha publication eligibility and
 report the actual CI checks and unmet hardware/production qualification. It
 SHALL preserve candidate qualification records and SHALL NOT manufacture a GA,
-device-operation, image-authentication or host-signing claim. The pilot's CLI
-builds SHALL remain internal validation/tool inputs with independent versions.
+device-operation, image-authentication or host-signing claim. CLI packages SHALL retain independent versions and report actual native validation
+and unperformed code signing/notarization when included as companion downloads.
 
 #### Scenario: Device-free Alpha
 - **WHEN** a candidate passes CI without physical-device validation
 - **THEN** the public manifest and release notes identify Alpha status and the
   unperformed hardware validation
 - **AND** candidate records retain their unqualified production status
+
+### Requirement: Publish the complete product and CLI matrix
+
+Following the immutable alpha.1 R1 pilot, a new Alpha SHALL publish original
+firmware archives for every registered APP target, the matching standalone APP
+UF2 or MCUboot BIN, public SBOM and each applicable qualified EDK. It SHALL
+include original native-validated CLI archives for all supported arm64/x86-64
+macOS, Windows and Linux targets, with independent CLI versions. Schema 2 SHALL
+record per-target payload names, source/version, integrity and qualification;
+schema 1 SHALL remain readable for existing immutable releases.
+
+#### Scenario: Complete mixed product and host matrix
+- **WHEN** every registered product and six CLI platforms passes its required checks
+- **THEN** the new Alpha contains every product and CLI archive with matching source
+- **AND** MCUboot and UF2 retain their own native formats and recovery instructions
+
+#### Scenario: Incomplete or conflicting matrix
+- **WHEN** a board, CLI archive, native proof, EDK or required material is missing, duplicate or inconsistent
+- **THEN** evidence and publication staging fail before public output is produced
+
+#### Scenario: Preserve prior publication
+- **WHEN** the already public schema 1 alpha.1 is checked again
+- **THEN** its original inventory remains valid without adding or replacing assets

@@ -116,10 +116,19 @@ jobs:
           path: product-parts
       - working-directory: meshbus
         run: west release assemble --input ../product-parts --output ../firmware-candidate
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: cli-*
+          path: cli-parts
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: native-validation-*
+          path: cli-native
       - name: Check and retain Alpha license materials without publication
         run: >-
           python meshbus/scripts/ci/alpha.py --candidate firmware-candidate
-          --snapshot snapshot --output alpha-assets --evidence alpha-evidence
+          --snapshot snapshot --cli cli-parts --native cli-native
+          --output alpha-assets --evidence alpha-evidence
           --evidence-only
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:

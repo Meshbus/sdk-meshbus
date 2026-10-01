@@ -370,3 +370,34 @@ Acceptance-record checks: local documentation references/includes, metadata
 with zero remaining findings and 54 exemptions; raw REUSE compliance remains
 false under the documented repository metadata scope. This documentation-only
 update does not require a new firmware build or move the public tag.
+
+## 6. Full matrix and CLI follow-up
+
+- [x] 6.1 Extend verified staging and provenance to all registered products, applicable EDKs and six native-validated CLI archives; test mixed UF2/MCUboot, independent CLI version, complete notice/runtime inventories, missing/conflicting targets and legacy schema 1 verification.
+- [x] 6.2 Pass CLI parts and native artifacts to Candidate evidence and Alpha staging; update specs, publication guides and firmware VERSION to alpha.2; verify workflow interfaces, complete CI/release suites, actionlint, documentation, strict OpenSpec, license policy and whitespace.
+- [ ] 6.3 Commit/push the authorized change and complete full CI and manual Candidate for the final source before pushing a new alpha.2 tag; retain exact source, Builder, dependency graph and reused Twister evidence.
+- [ ] 6.4 Follow tag CI through public Pre-release publication, independently download and verify the complete board/CLI inventory, and record the release and evidence without claiming hardware or host signing qualification.
+
+Full-matrix local validation (2026-10-01):
+
+- The user requested normal CI publication for all adapted boards and CLI.
+  The expanded publication advances firmware VERSION to alpha.2, preserving
+  the already published alpha.1 tag and bytes. CLI retains Cargo version 1.0.0.
+- CI boundary suite passed 149 tests, then the affected Alpha suite passed
+  46 tests including two additional matrix/safe-ZIP regressions. Release
+  regression suite passed all 101 tests. Ruff, actionlint, local documentation,
+  metadata (132 documents, 105 scenarios), strict OpenSpec (four items),
+  repository license policy and whitespace checks passed. Policy has zero
+  remaining findings and 54 exemptions; raw REUSE remains false.
+- Independently downloaded all original firmware, six CLI and native validation
+  artifacts from completed Alpha run 36860528713. The new collector passed
+  complete local staging of those actual retained source-6286ba0 bytes without
+  changing any public asset. This validates collector compatibility, not a new
+  alpha.2 build or hosted acceptance for the pending implementation.
+- The staged schema 2 inventory contains 23 files: four product archives,
+  three UF2s and one MCUboot APP BIN, four public SBOMs, three applicable EDKs,
+  six native-validated CLI archives, manifest and checksums. Both R2 runtime
+  domains and merged firmware contents passed checks. No EDK is claimed for
+  tracker_t1000_e, whose actual product capability disables LLEXT.
+
+Tasks 6.3-6.4 remain pending exact-source hosted and public download acceptance.

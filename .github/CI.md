@@ -333,7 +333,7 @@ authorization; the examples here do not grant it.
 
 Complete full **CI** on the committed Alpha source before running manual
 **Candidate preparation**, using the same Builder digest. Candidate preparation
-checks firmware/EDK license materials with `--evidence-only`, retaining
+checks every firmware/EDK and CLI license material and native proof with `--evidence-only`, retaining
 `alpha-license-evidence` and its `license-evidence.json` alongside the verified
 candidate and qualification evidence. It does not generate public Alpha assets.
 Permission decisions and any new or changed alternatives/exceptions are reviewed
@@ -351,7 +351,7 @@ jobs fail the Candidate required checks. Ordinary PR/main selection is unchanged
 Preflight checks the remote tag and committed VERSION. An existing public
 Prerelease is verified against its original manifest, inventory and downloads,
 then completes without building or changing its assets. Fresh staging exports
-R1's six public files and retains `alpha-evidence` plus `verified-alpha-assets`
+the complete product and CLI public files and retains `alpha-evidence` plus `verified-alpha-assets`
 for 90 days. Only the publication job has `contents: write`; all validation,
 build and export jobs have read access. Same-tag runs are serialized without
 cancelling an active upload. No personal token or signing key is required.
@@ -412,3 +412,16 @@ SHA, copy the downloaded snapshot to `<new-workspace>/snapshot`, and run
 `scripts/ci/run.py` layer. Keep outputs outside the source checkout.
 No remote Actions runs, successful image publication, or complete candidate set
 are implied by local unit/static checks.
+
+### Complete Alpha download matrix
+
+After the immutable R1 alpha.1 pilot, Alpha staging publishes all targets from
+`west release matrix`, each native APP image, firmware archive, public SBOM and
+applicable EDK, plus all six native-validated CLI archives. Both Candidate
+assembly and Alpha staging download `cli-*` and `native-validation-*` separately
+from firmware assembly and pass `--cli` and `--native` to `alpha.py`. Missing or
+conflicting product, CLI, native or material evidence fails the complete release.
+CLI archives keep their Cargo version; no host signing or notarization is implied.
+Manifest schema 2 records the per-product and CLI matrix. Schema 1 verification
+remains available for original alpha.1 downloads. Advance firmware VERSION and
+the Alpha tag together; do not add downloads to an existing public version.

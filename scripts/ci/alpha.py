@@ -6,9 +6,10 @@ import json
 import os
 from pathlib import Path
 import re
-import shutil
 import subprocess
 import sys
+import stat
+import zipfile
 import tarfile
 import tempfile
 
@@ -54,12 +55,32 @@ def entry(name, data):
     return {'name': name, 'size': len(data), 'sha256': art.digest(data)}
 
 
-def payload_names(tag):
+def payload_names(tag, products=None, cli=None):
     value = version(tag)
-    return {f'meshbus-{value}-mesh_probe_r1_nrf52840.uf2',
-            f'meshbus-{value}-mesh_probe_r1_nrf52840-firmware.tar.gz',
-            f'app-{value}-mesh_probe_r1-nrf52840-edk.tar.xz',
-            f'meshbus-{value}-mesh_probe_r1_nrf52840-SBOM.spdx'}
+    if products is None:  # Published schema 1 R1 pilot.
+        products = [{'target': TARGET, 'format': 'uf2', 'capabilities': {'llext': True}}]
+    names = set()
+    for product in products:
+        target = product['target']
+        art.require(re.fullmatch(r'[a-z0-9_]+(?:/[a-z0-9_]+)+', target), 'invalid product target')
+        art.require(product['format'] in ('uf2', 'mcuboot'), 'unknown product format')
+        stem = f'meshbus-{value}-{target.replace("/", "_")}'
+        names.update((stem + '-firmware.tar.gz', stem + '-SBOM.spdx',
+                      stem + ('.uf2' if product['format'] == 'uf2' else '.bin')))
+        if product['capabilities']['llext']:
+            names.add(f'app-{value}-{target.replace("/", "-")}-edk.tar.xz')
+    if cli:
+        art.require(re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?', cli['version']), 'invalid CLI version')
+        for row in cli['targets']:
+            art.require(row['target'] in art.CLIENTS, 'unexpected CLI target')
+            names.add(f'meshbus-{cli["version"]}-{row["target"]}.' +
+                      ('zip' if 'windows' in row['target'] else 'tar.gz'))
+    return names
+
+
+def product_profiles():
+    root = Path(__file__).resolve().parents[2] / 'apps/meshbus/boards'
+    return {p.stem for p in root.glob('*/*/*.conf') if not p.stem.endswith('_mcuboot')}
 
 
 def inventory(root):
@@ -79,6 +100,23 @@ def portable(value):
 def unpack(archive, destination, prefix=None):
     """Reject unsafe entries before extracting any archive content."""
     total, names = 0, set()
+    if archive.suffix == '.zip':
+        with zipfile.ZipFile(archive) as stream:
+            members = stream.infolist()
+            for member in members:
+                name = member.filename.rstrip('/') if member.is_dir() else member.filename
+                art.relative(name)
+                mode = member.external_attr >> 16
+                art.require(name not in names and not stat.S_ISLNK(mode) and
+                            (not stat.S_IFMT(mode) or stat.S_ISREG(mode) or stat.S_ISDIR(mode)),
+                            'unsafe/duplicate archive entry')
+                names.add(name)
+                total += member.file_size
+                art.require(total <= 512 * 1024 * 1024 and len(members) <= 100000, 'archive exceeds extraction bound')
+            roots = {name.split('/')[0] for name in names}
+            art.require(len(roots) == 1 and (prefix is None or roots == {prefix}), 'unexpected archive root')
+            stream.extractall(destination)
+        return destination / next(iter(roots))
     with tarfile.open(archive) as stream:
         members = []
         for member in stream:
@@ -120,18 +158,30 @@ def license_scope(firmware, edk, record, edk_manifest):
             retained.add(name)
     art.require(retained, 'missing component notices')
     runtimes = materials.get('toolchain_runtimes', [])
-    art.require(len(runtimes) == 1 and runtimes[0]['domain'] == 'app' and runtimes[0]['sdk_version'] and
-                set(runtimes[0]['components']) == {'toolchain-gcc-runtime', 'toolchain-picolibc'},
-                'missing selected R1 toolchain runtime evidence')
-    libraries = runtimes[0]['libraries']
-    art.require({'libc.a', 'libgcc.a'} <= {Path(row['path']).name for row in libraries} and
-                len({row['path'] for row in libraries}) == len(libraries), 'incomplete runtime linker inventory')
-    for row in libraries:
-        art.relative(row['path'])
-        art.require(re.fullmatch(r'[0-9a-f]{64}', row['sha256']), 'invalid runtime archive digest')
-    art.require({'licenses/toolchain-gcc-runtime/COPYING3', 'licenses/toolchain-gcc-runtime/COPYING.RUNTIME',
-                 'licenses/toolchain-picolibc/COPYING.picolibc', 'licenses/toolchain-picolibc/COPYING.NEWLIB',
-                 'licenses/toolchain-picolibc/COPYING.GPL2'} <= retained, 'missing selected runtime notice')
+    art.require(runtimes and 'app' in {row['domain'] for row in runtimes} and
+                len({row['domain'] for row in runtimes}) == len(runtimes) and
+                {row['domain'] for row in runtimes} == {row['domain'] for row in record['images']},
+                'missing selected R1 toolchain runtime evidence' if record['target'] == TARGET
+                else 'missing selected toolchain runtime evidence')
+    groups = {'libc.a': 'toolchain-picolibc', 'libm.a': 'toolchain-picolibc',
+              'libgcc.a': 'toolchain-gcc-runtime', 'libstdc++.a': 'toolchain-gcc-runtime',
+              'libsupc++.a': 'toolchain-gcc-runtime'}
+    notices = {'toolchain-gcc-runtime': ('COPYING3', 'COPYING.RUNTIME'),
+               'toolchain-picolibc': ('COPYING.picolibc', 'COPYING.NEWLIB', 'COPYING.GPL2')}
+    for runtime in runtimes:
+        libraries = runtime['libraries']
+        names = {Path(row['path']).name for row in libraries}
+        art.require(runtime['sdk_version'] and libraries and names <= groups.keys() and
+                    len({row['path'] for row in libraries}) == len(libraries) and
+                    set(runtime['components']) == {groups[name] for name in names}, 'incomplete runtime linker inventory')
+        if record['target'] == TARGET:
+            art.require({'libc.a', 'libgcc.a'} <= names, 'incomplete runtime linker inventory')
+        for row in libraries:
+            art.relative(row['path'])
+            art.require(re.fullmatch(r'[0-9a-f]{64}', row['sha256']), 'invalid runtime archive digest')
+        for component in runtime['components']:
+            art.require({f'licenses/{component}/{name}' for name in notices[component]} <= retained,
+                        'missing selected runtime notice')
     fonts = materials['fonts']
     if fonts:
         font_root = firmware / 'licenses/u8g2/fonts'
@@ -158,24 +208,196 @@ def license_scope(firmware, edk, record, edk_manifest):
             fields.pop('PackageVersion', None)  # Source identity is retained in the release manifest.
         packages.append(fields)
     art.require(packages, 'public SBOM contains no components')
-    for name in ('LICENSE.txt', 'LICENSES/Apache-2.0.txt', 'NOTICE.txt'):
-        art.require(art.read(edk / name).strip(), 'missing required EDK notice')
-    art.require(art.read(edk / 'LICENSE.txt') == art.read(edk / 'LICENSES/Apache-2.0.txt'), 'EDK license text conflict')
-    edk_notices = [p for p in art.files(edk) if p.name.endswith('NOTICES.md') or
-                   p.relative_to(edk).as_posix() in ('LICENSE.txt', 'LICENSES/Apache-2.0.txt', 'NOTICE.txt')]
-    return {'target': TARGET, 'components': sorted(packages, key=lambda p: p['PackageName']),
+    edk_notices = []
+    if edk is not None:
+        for name in ('LICENSE.txt', 'LICENSES/Apache-2.0.txt', 'NOTICE.txt'):
+            art.require(art.read(edk / name).strip(), 'missing required EDK notice')
+        art.require(art.read(edk / 'LICENSE.txt') == art.read(edk / 'LICENSES/Apache-2.0.txt'), 'EDK license text conflict')
+        edk_notices = [p for p in art.files(edk) if p.name.endswith('NOTICES.md') or
+                       p.relative_to(edk).as_posix() in ('LICENSE.txt', 'LICENSES/Apache-2.0.txt', 'NOTICE.txt')]
+    return {'target': record['target'], 'components': sorted(packages, key=lambda p: p['PackageName']),
             'dependencies': {name: value['revision'] for name, value in record['provenance']['projects'].items()
                              if name != 'meshbus'},
             'notice_hashes': {name: art.digest(art.read(firmware / name)) for name in sorted(retained)},
-            'fonts': fonts, 'toolchain': record['build'],
-            'toolchain_runtimes': runtimes,
-            'edk_header_policy': edk_manifest['edk']['header-policy'],
+            'fonts': fonts, 'toolchain': record['build'], 'toolchain_runtimes': runtimes,
+            'edk_header_policy': edk_manifest['edk']['header-policy'] if edk_manifest else None,
             'edk_notices': {p.relative_to(edk).as_posix(): art.digest(art.read(p)) for p in edk_notices}}
 
 
-def collect(candidate, snapshot, output, evidence, tag, sha, run_id, evidence_only=False):
+
+def collect_product(record, part, tag, sha, revisions, temporary):
+    import release
+    target = record['target']
+    llext = record['capabilities']['llext']
+    art.verify_checksums(part)
+    qualification = json.loads(art.read(part / 'candidate-validation.json'))
+    checks = ['production-packaging'] + (['edk-verify', 'edk-c-and-cxx-qualify'] if llext else [])
+    art.require(qualification['source_revision'] == sha and qualification['target'] == target and
+                qualification['checks'] == checks, 'missing successful EDK qualification evidence')
+    image = next(i for i in record['images'] if i['domain'] == 'app')
+    binary = art.read(part / 'app.bin')
+    art.require(art.digest(binary) == image['sha256'], 'retained APP differs from image')
+    art.require(record['authentication'] == 'none', 'unexpected authenticated Alpha product')
+    if record['format'] == 'uf2':
+        uf2 = art.read(part / 'app.uf2')
+        art.require(release.verify_uf2(uf2, binary, image['address'], image['partition_address'] + image['partition_size'],
+                    record['uf2']['family_id'], art.read(part / 'app.hex') if 'hex_sha256' in record['uf2'] else None)
+                    == record['uf2'], 'UF2 metadata conflict')
+    else:
+        art.require(record['format'] == 'mcuboot', 'unexpected product format')
+        release.verify_mcuboot_image(binary, record['authentication'])
+        art.require(image['address'] == image['partition_address'] and len(binary) <= image['partition_size'],
+                    'MCUboot application exceeds recorded partition')
+    firmware_archives, edk_archives = list(part.glob('*-firmware.tar.gz')), list(part.glob('*-edk.tar.xz'))
+    art.require(len(firmware_archives) == 1 and len(edk_archives) == int(llext), 'missing firmware/EDK archives')
+    for archive in firmware_archives + edk_archives:
+        art.verify_sidecar(archive)
+    firmware_archive = firmware_archives[0]
+    edk_manifest, edk = None, None
+    if llext:
+        edk_manifest = release.cli_json('edk', 'verify', edk_archives[0])['manifest']
+        art.require(edk_manifest['target'] == target and edk_manifest['host']['version'] == version(tag) and
+                    edk_manifest['host']['source-revision'] == sha and edk_manifest['publishable'] is True,
+                    'EDK version/source conflict')
+        clean_source(edk_manifest, sha, revisions)
+        image_digest = edk_manifest['host'].get('image-sha256')
+        if image_digest:
+            art.require(image_digest == art.digest(binary), 'EDK image identity conflict')
+        edk = unpack(edk_archives[0], temporary / 'edk')
+        portable(edk_manifest)
+        for path in art.files(edk):
+            art.require('spdx-private' not in path.parts and path.name != 'release-source.json',
+                        'private evidence in public EDK')
+            if path.suffix == '.json':
+                portable(art.read(path).decode())
+    firmware = unpack(firmware_archive, temporary / 'fw', 'firmware')
+    art.verify_checksums(firmware)
+    art.require(json.loads(art.read(firmware / 'flash-map.json')) == record and
+                art.read(firmware / 'app.bin') == binary and
+                (record['format'] != 'uf2' or art.read(firmware / 'app.uf2') == uf2),
+                'archive UF2/APP disagrees with retained product')
+    for name in ('LICENSE.txt', 'NOTICE.txt', 'SBOM.spdx', 'license-materials.json'):
+        art.require(art.read(firmware / name).strip(), 'missing required firmware material')
+    if 'license_materials' in record:
+        art.require(record['license_materials'] == {'manifest': 'license-materials.json',
+                    'selection': json.loads(art.read(firmware / 'license-materials.json'))['selection']},
+                    'firmware material inventory differs from product')
+    allowed = {'app.bin', 'app.hex', 'LICENSE.txt', 'NOTICE.txt', 'flash-map.json',
+               'SHA256SUMS', 'SBOM.spdx', 'license-materials.json'}
+    if record['format'] == 'uf2':
+        allowed.add('app.uf2')
+    else:
+        allowed |= {'mcuboot.bin', 'mcuboot.hex', 'full.bin', 'full.hex'}
+        segments = []
+        for row in record['images']:
+            data = art.read(firmware / row['file'])
+            art.require(len(data) == row['size'] and art.digest(data) == row['sha256'] and
+                        row['address'] >= row['partition_address'] and
+                        row['address'] + len(data) <= row['partition_address'] + row['partition_size'],
+                        'archived image/partition conflict')
+            segments.append((row['address'], data))
+        segments.sort()
+        art.require(all(a + len(data) <= b for (a, data), (b, _) in zip(segments, segments[1:])),
+                    'overlapping archived images')
+        first, end = segments[0][0], segments[-1][0] + len(segments[-1][1])
+        art.require(0 < end - first <= release.MAX_IMAGE and
+                    record['full_bin'] == {'file': 'full.bin', 'address': first, 'fill': 255},
+                    'merged image layout conflict')
+        full = bytearray(b'\xff' * (end - first))
+        for address, data in segments:
+            full[address - first:address - first + len(data)] = data
+        art.require(art.read(firmware / 'full.bin') == full and
+                    art.read(firmware / 'full.hex').decode() == release.full_hex(segments), 'merged image content conflict')
+    for path in art.files(firmware):
+        relative = path.relative_to(firmware).as_posix()
+        art.require(relative.startswith('licenses/') or relative in allowed, 'unexpected firmware archive file')
+        art.require('spdx-private' not in path.parts, 'private SPDX inventory in public archive')
+        if path.suffix in ('.json', '.spdx'):
+            portable(art.read(path).decode())
+    scope = license_scope(firmware, edk, record, edk_manifest)
+    stem = f'meshbus-{version(tag)}-{target.replace("/", "_")}'
+    payload = {stem + ('.uf2' if record['format'] == 'uf2' else '.bin'):
+               uf2 if record['format'] == 'uf2' else binary,
+               stem + '-SBOM.spdx': art.read(firmware / 'SBOM.spdx')}
+    for archive in firmware_archives + edk_archives:
+        payload[archive.name] = art.read(archive, MAX_ASSET)
+    art.require(set(payload) == payload_names(tag, [record]), 'unexpected public payload filename')
+    description = {key: record[key] for key in ('target', 'format', 'authentication', 'capabilities')}
+    description.update(toolchain=record['build'], edk_tool=record.get('edk_tool'),
+                       assets=sorted(payload), qualification=record['validation'])
+    return description, scope, payload
+
+
+def collect_cli(parts, native, sha, revisions, temporary):
+    import artifact
+    import tomllib
+    expected_version = tomllib.loads((Path(__file__).resolve().parents[1] / 'meshbus/Cargo.toml').read_text())['package']['version']
+    records = list(parts.rglob('release-part.json'))
+    proofs = [json.loads(art.read(p)) for p in art.files(native)]
+    art.require(len(records) == len(proofs) == len(art.CLIENTS) and
+                {p['target'] for p in proofs} == art.CLIENTS, 'missing/duplicate CLI native evidence')
+    clients, scopes, payload, targets = [], [], {}, set()
+    expected_checks = ['archive-checksums', 'binary-architecture', 'native-version', 'help', 'signed-fixture', 'tamper-rejection']
+    for path in records:
+        part = path.parent
+        art.verify_checksums(part)
+        record = json.loads(art.read(path))
+        target = record['target']
+        art.require(target in art.CLIENTS and target not in targets and record['schema'] == 1 and
+                    record['kind'] == 'cli' and record['publishable'] is False and
+                    record['version'] == expected_version and record['development'] is False and
+                    record['build_profile'] == 'release', 'CLI target/version/profile conflict')
+        targets.add(target)
+        clean_source(record, sha, revisions)
+        archive_name = f'meshbus-{expected_version}-{target}.' + ('zip' if 'windows' in target else 'tar.gz')
+        archives = list(part.glob('*.zip')) + list(part.glob('*.tar.gz'))
+        art.require([p.name for p in archives] == [archive_name], 'CLI archive identity conflict')
+        archive = archives[0]
+        art.verify_sidecar(archive)
+        root = unpack(archive, temporary / target, 'meshbus')
+        art.verify_checksums(root)
+        art.require(json.loads(art.read(root / 'manifest.json')) == record, 'CLI archive manifest conflict')
+        executable = 'meshbus.exe' if 'windows' in target else 'meshbus'
+        art.require(record['binary']['file'] == executable, 'CLI executable identity conflict')
+        data = art.read(root / executable, MAX_ASSET)
+        art.require(art.digest(data) == record['binary']['sha256'], 'CLI binary digest conflict')
+        artifact.verify_architecture(data, target)
+        proof = next(p for p in proofs if p['target'] == target)
+        art.require(proof['result'] == 'passed' and proof['binary_sha256'] == record['binary']['sha256'] and
+                    proof['checks'] == expected_checks and proof['hardware'] == 'not-run', 'CLI native proof conflict')
+        art.require(art.read(root / 'THIRD-PARTY-NOTICES.txt').strip(), 'missing CLI notices')
+        dependencies = json.loads(art.read(root / 'dependencies.json'))
+        art.require(dependencies, 'missing CLI dependency materials')
+        for dependency in dependencies:
+            directory = root / 'licenses' / art.relative(dependency['name'] + '-' + dependency['version'])
+            files = art.files(directory)
+            art.require(files and all(art.read(p).strip() for p in files), 'missing/empty CLI dependency notice')
+        generated = json.loads(art.read(root / 'generated-materials.json'))['protobuf_descriptor']
+        art.require(generated['component'] == 'meshbus-protobufs' and generated['materials'] and
+                    generated['sha256'] == record['protobuf_descriptor_sha256'], 'CLI generated material conflict')
+        for name in generated['materials']:
+            art.relative(name)
+            art.require(name.startswith('licenses/') and art.read(root / name).strip(), 'missing CLI generated notice')
+        for p in art.files(root):
+            art.require('spdx-private' not in p.parts and p.name != 'release-source.json', 'private evidence in public CLI')
+            if p.suffix == '.json':
+                portable(art.read(p).decode())
+        material_hashes = {p.relative_to(root).as_posix(): art.digest(art.read(p)) for p in art.files(root / 'licenses')}
+        material_hashes['THIRD-PARTY-NOTICES.txt'] = art.digest(art.read(root / 'THIRD-PARTY-NOTICES.txt'))
+        scopes.append({'target': target, 'dependencies': dependencies, 'generated_materials': generated,
+                       'notice_hashes': material_hashes, 'native_evidence_sha256': art.digest(json.dumps(proof, sort_keys=True).encode())})
+        clients.append({'target': target, 'archive': archive_name, 'binary_sha256': record['binary']['sha256'],
+                        'cargo_lock_sha256': record['cargo_lock_sha256'],
+                        'protobuf_descriptor_sha256': record['protobuf_descriptor_sha256'],
+                        'qualification': {**record['validation'], 'native': 'passed'}, 'native_checks': proof['checks']})
+        payload[archive_name] = art.read(archive, MAX_ASSET)
+    art.require(targets == art.CLIENTS, 'missing CLI platform')
+    return {'version': expected_version, 'targets': sorted(clients, key=lambda p: p['target'])}, scopes, payload
+
+def collect(candidate, snapshot, output, evidence, tag, sha, run_id, evidence_only=False, cli=None, native=None):
     import yaml
     import release
+    art.require(cli is not None and native is not None, 'complete CLI parts and native evidence are required')
     art.verify_checksums(candidate)
     assembled = json.loads(art.read(candidate / 'release.json'))
     art.require(assembled['schema'] == 1 and assembled['publishable'] is False and
@@ -204,89 +426,46 @@ def collect(candidate, snapshot, output, evidence, tag, sha, run_id, evidence_on
         clean_source(record, sha, revisions)
         art.require(record['version'] == version(tag) and record['engineering'] is False and
                     record['validation']['build'] == 'passed', 'unqualified production-profile candidate')
-    selected = next(p for p in products if p['target'] == TARGET)
-    art.require(selected['format'] == 'uf2' and selected['authentication'] == 'none' and
-                selected['capabilities']['llext'] is True, 'unexpected R1 product profile')
-    parts = [p.parent for p in candidate.rglob('release-part.json')
-             if json.loads(art.read(p)) == selected]
-    art.require(len(parts) == 1, 'missing/duplicate selected product part')
-    part = parts[0]
-    art.verify_checksums(part)
-    qualification = json.loads(art.read(part / 'candidate-validation.json'))
-    art.require(qualification['source_revision'] == sha and qualification['target'] == TARGET and
-                qualification['checks'] == ['production-packaging', 'edk-verify', 'edk-c-and-cxx-qualify'],
-                'missing successful EDK qualification evidence')
-    image = next(i for i in selected['images'] if i['domain'] == 'app')
-    binary, uf2 = art.read(part / 'app.bin'), art.read(part / 'app.uf2')
-    art.require(art.digest(binary) == image['sha256'], 'retained APP differs from image')
-    art.require(release.verify_uf2(uf2, binary, image['address'], image['partition_address'] + image['partition_size'],
-                selected['uf2']['family_id'], art.read(part / 'app.hex') if 'hex_sha256' in selected['uf2'] else None)
-                == selected['uf2'], 'UF2 metadata conflict')
-    firmware_archives, edk_archives = list(part.glob('*-firmware.tar.gz')), list(part.glob('*-edk.tar.xz'))
-    art.require(len(firmware_archives) == len(edk_archives) == 1, 'missing firmware/EDK archives')
-    firmware_archive, edk_archive = firmware_archives[0], edk_archives[0]
-    for archive in (firmware_archive, edk_archive):
-        art.verify_sidecar(archive)
-    edk_manifest = release.cli_json('edk', 'verify', edk_archive)['manifest']
-    art.require(edk_manifest['target'] == TARGET and edk_manifest['host']['version'] == version(tag) and
-                edk_manifest['host']['source-revision'] == sha and edk_manifest['publishable'] is True,
-                'EDK version/source conflict')
-    clean_source(edk_manifest, sha, revisions)
-    image_digest = edk_manifest['host'].get('image-sha256')
-    if image_digest:
-        art.require(image_digest == art.digest(binary), 'EDK image identity conflict')
+    descriptions, scopes, payload = [], [], {}
     with tempfile.TemporaryDirectory() as temporary:
         temp = Path(temporary)
-        firmware = unpack(firmware_archive, temp / 'fw', 'firmware')
-        edk = unpack(edk_archive, temp / 'edk')
-        art.verify_checksums(firmware)
-        art.require(json.loads(art.read(firmware / 'flash-map.json')) == selected and
-                    art.read(firmware / 'app.uf2') == uf2 and art.read(firmware / 'app.bin') == binary,
-                    'archive UF2/APP disagrees with retained product')
-        for name in ('LICENSE.txt', 'NOTICE.txt', 'SBOM.spdx', 'license-materials.json'):
-            art.require(art.read(firmware / name).strip(), 'missing required firmware material')
-        for p in art.files(firmware):
-            relative = p.relative_to(firmware).as_posix()
-            art.require(relative.startswith('licenses/') or relative in {
-                'app.bin', 'app.uf2', 'app.hex', 'LICENSE.txt', 'NOTICE.txt', 'flash-map.json',
-                'SHA256SUMS', 'SBOM.spdx', 'license-materials.json'}, 'unexpected firmware archive file')
-            art.require('spdx-private' not in p.parts, 'private SPDX inventory in public archive')
-            if p.suffix in ('.json', '.spdx'):
-                portable(art.read(p).decode())
-        portable(edk_manifest)
-        for path in art.files(edk):
-            art.require('spdx-private' not in path.parts and path.name != 'release-source.json',
-                        'private evidence in public EDK')
-            if path.suffix == '.json':
-                portable(art.read(path).decode())
-        scope = license_scope(firmware, edk, selected, edk_manifest)
-        evidence.mkdir(parents=True, exist_ok=True)
-        art.write_json(evidence / 'license-evidence.json', {'schema': 1, 'scope': scope,
-            'scope_sha256': art.digest(json.dumps(scope, sort_keys=True, separators=(',', ':')).encode())})
-        if evidence_only:
-            return
-        art.clean_destination(output)
-        stem = f'meshbus-{version(tag)}-mesh_probe_r1_nrf52840'
-        (output / (stem + '.uf2')).write_bytes(uf2)
-        (output / (stem + '-SBOM.spdx')).write_bytes(art.read(firmware / 'SBOM.spdx'))
-    for archive in (firmware_archive, edk_archive):
-        art.relative(archive.name)
-        shutil.copyfile(archive, output / archive.name)
-    art.require({p.name for p in art.files(output)} == payload_names(tag), 'unexpected public payload filename')
+        for index, record in enumerate(sorted(products, key=lambda p: p['target'])):
+            parts = [p.parent for p in candidate.rglob('release-part.json') if json.loads(art.read(p)) == record]
+            art.require(len(parts) == 1, 'missing/duplicate selected product part')
+            description, scope, assets = collect_product(record, parts[0], tag, sha, revisions, temp / str(index))
+            art.require(not set(payload) & assets.keys(), 'asset name collision')
+            descriptions.append(description)
+            scopes.append(scope)
+            payload.update(assets)
+        clients, cli_scopes, cli_payload = collect_cli(cli, native, sha, revisions, temp / 'cli')
+        art.require(not set(payload) & cli_payload.keys(), 'asset name collision')
+        payload.update(cli_payload)
+    scope = {'products': scopes, 'cli': cli_scopes}
+    evidence.mkdir(parents=True, exist_ok=True)
+    art.write_json(evidence / 'license-evidence.json', {'schema': 2, 'scope': scope,
+        'scope_sha256': art.digest(json.dumps(scope, sort_keys=True, separators=(',', ':')).encode())})
+    if evidence_only:
+        return
+    art.require(set(payload) == payload_names(tag, descriptions, clients), 'unexpected public payload filename')
     image = (snapshot / 'image.txt').read_text().strip()
     art.require(re.fullmatch(r'ghcr.io/meshbus/sdk-meshbus-builder@sha256:[0-9a-f]{64}', image), 'builder must be immutable')
-    manifest = {'schema': 1, 'tag': tag, 'version': version(tag), 'repository': REPOSITORY,
+    manifest = {'schema': 2, 'tag': tag, 'version': version(tag), 'repository': REPOSITORY,
         'source_revision': sha, 'dependencies': revisions, 'manifest_sha256': source['manifest_sha256'],
-        'builder_image': image, 'run_id': run_id,
-        'sdk_validation': sdk_validation,
-        'run_url': f'https://github.com/{REPOSITORY}/actions/runs/{run_id}', 'target': TARGET,
-        'toolchain': selected['build'], 'edk_tool': selected['edk_tool'],
-        'assets': inventory(output),
-        'qualification': {'alpha_eligible': True, 'production_qualified': False,
-                          'authentication': selected['authentication'], 'hardware': 'not-run',
-                          'candidate_validation': selected['validation'],
+        'builder_image': image, 'run_id': run_id, 'sdk_validation': sdk_validation,
+        'run_url': f'https://github.com/{REPOSITORY}/actions/runs/{run_id}',
+        'products': descriptions, 'cli': clients,
+        'assets': [entry(name, data) for name, data in sorted(payload.items())],
+        'qualification': {'alpha_eligible': True, 'production_qualified': False, 'hardware': 'not-run',
                           'candidate_unverified_gates': assembled['unverified_gates']}}
     portable(manifest)
+    import publish
+    publish.validate_manifest(manifest, tag, sha)
+    for name, data in payload.items():
+        art.relative(name)
+        art.require(len(data) <= MAX_ASSET, 'public asset exceeds size limit')
+    art.clean_destination(output)
+    for name, data in payload.items():
+        (output / name).write_bytes(data)
     art.write_json(output / 'release-manifest.json', manifest)
     art.checksums(output)
     art.write_json(evidence / 'inventory.json', inventory(output))
@@ -295,6 +474,8 @@ def collect(candidate, snapshot, output, evidence, tag, sha, run_id, evidence_on
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--candidate', type=Path, required=True)
+    parser.add_argument('--cli', type=Path, required=True)
+    parser.add_argument('--native', type=Path, required=True)
     parser.add_argument('--snapshot', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--evidence', type=Path, required=True)
@@ -306,7 +487,7 @@ def main():
         return
     checkout_identity(Path(__file__).resolve().parents[2], tag, os.environ['GITHUB_SHA'])
     collect(args.candidate, args.snapshot, args.output, args.evidence, tag,
-            os.environ['GITHUB_SHA'], os.environ['GITHUB_RUN_ID'], args.evidence_only)
+            os.environ['GITHUB_SHA'], os.environ['GITHUB_RUN_ID'], args.evidence_only, cli=args.cli, native=args.native)
 
 
 if __name__ == '__main__':

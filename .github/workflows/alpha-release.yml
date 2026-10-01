@@ -67,9 +67,18 @@ jobs:
           name: cli-x86_64-unknown-linux-gnu
           path: internal-part
       - run: python meshbus/scripts/ci/artifact.py internal-part internal-cli
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: cli-*
+          path: cli-parts
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: native-validation-*
+          path: cli-native
       - run: >-
           python meshbus/scripts/ci/alpha.py --candidate firmware-candidate
-          --snapshot snapshot --output alpha-assets --evidence alpha-evidence
+          --snapshot snapshot --cli cli-parts --native cli-native
+          --output alpha-assets --evidence alpha-evidence
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
         with:

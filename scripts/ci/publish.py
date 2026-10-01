@@ -122,7 +122,24 @@ def marker(tag, sha, run_id, inventory):
     return f'<!-- meshbus-alpha-ci:{tag}:{sha}:{run_id}:{inventory_hash(inventory)} -->'
 
 
-def notes(tag, sha, run_id, inventory):
+def notes(tag, sha, run_id, inventory, manifest=None):
+    if manifest and manifest["schema"] == 2:
+        boards = ", ".join(f"`{p['target']}`" for p in manifest["products"])
+        return (marker(tag, sha, run_id, inventory) + "\n\n"
+                f"Meshbus Alpha {alpha.version(tag)}. Products: {boards}.\n\n"
+                "CI build, package integrity and applicable EDK compiler checks passed. "
+                "Each firmware archive retains its flash map, licenses, notices and SBOM. "
+                "Standalone UF2 files contain only the APP and require an existing compatible "
+                "UF2 bootloader and SoftDevice. MCUboot BIN files are application-slot images; "
+                "use the firmware archive and flash map for matching boot components and merged images. "
+                "Preserve storage and existing boot components; do not infer erase-all authorization.\n\n"
+                f"Companion CLI {manifest['cli']['version']} archives cover arm64/x86-64 macOS, Windows "
+                "and Linux and passed native archive, version, architecture and offline integrity checks. "
+                "CLI versions are independent; binaries are not code-signed or notarized. "
+                "No device, RF, recovery, soak or MBA runtime qualification was performed. "
+                "This Alpha is not production-qualified and has no image authentication.\n\n"
+                f"Source: `{sha}`. [CI evidence](https://github.com/{alpha.REPOSITORY}/actions/runs/{run_id}). "
+                "Use a new Alpha number for content corrections.\n")
     return (marker(tag, sha, run_id, inventory) + '\n\n'
             f'Mesh Probe R1 Alpha {alpha.version(tag)}. CI build, package integrity and EDK compiler checks passed.\n\n'
             'APP-only UF2: requires an existing compatible UF2 bootloader and SoftDevice. '
@@ -169,15 +186,39 @@ def validate_staging(assets, inventory, tag, sha):
 
 
 def validate_manifest(manifest, tag, sha):
-    alpha.art.require(manifest['version'] == alpha.version(tag) and manifest['target'] == alpha.TARGET,
-                      'public firmware version/target conflict')
-    alpha.art.require({p['name'] for p in manifest['assets']} == alpha.payload_names(tag) and
-                      len(manifest['assets']) == 4, 'public payload allowlist conflict')
-    alpha.portable(manifest)
-    alpha.art.require(manifest['schema'] == 1 and manifest['tag'] == tag and manifest['source_revision'] == sha and
+    alpha.art.require(manifest['schema'] in (1, 2) and manifest['version'] == alpha.version(tag) and
+                      manifest['tag'] == tag and manifest['source_revision'] == sha and
                       manifest['repository'] == alpha.REPOSITORY and
                       manifest['qualification']['alpha_eligible'] is True and
                       manifest['qualification']['production_qualified'] is False, 'public release manifest conflict')
+    if manifest['schema'] == 1:
+        alpha.art.require(manifest['target'] == alpha.TARGET, 'public firmware version/target conflict')
+        names = alpha.payload_names(tag)
+    else:
+        import tomllib
+        products, cli = manifest['products'], manifest['cli']
+        targets = [p['target'] for p in products]
+        alpha.art.require(len(set(targets)) == len(targets) == len(alpha.product_profiles()) and
+                          {t.replace('/', '_') for t in targets} == alpha.product_profiles(), 'public product matrix conflict')
+        platforms = [p['target'] for p in cli['targets']]
+        expected_version = tomllib.loads((Path(__file__).resolve().parents[1] / 'meshbus/Cargo.toml').read_text())['package']['version']
+        alpha.art.require(cli['version'] == expected_version and len(platforms) == len(alpha.art.CLIENTS) and
+                          set(platforms) == alpha.art.CLIENTS, 'public CLI matrix/version conflict')
+        for product in products:
+            alpha.art.require(product['assets'] == sorted(alpha.payload_names(tag, [product])) and
+                              product['authentication'] == 'none' and
+                              product['qualification']['build'] == 'passed' and
+                              product['qualification']['hardware'] == 'not-run', 'public product qualification/assets conflict')
+        for row in cli['targets']:
+            alpha.art.require({row['archive']} == alpha.payload_names(tag, [], {'version': cli['version'], 'targets': [row]}) and
+                              re.fullmatch(r'[0-9a-f]{64}', row['binary_sha256']) and
+                              row['qualification']['native'] == 'passed' and
+                              row['qualification']['code_signing'] == row['qualification']['notarization'] == 'not-run',
+                              'public CLI qualification/assets conflict')
+        names = alpha.payload_names(tag, products, cli)
+    alpha.art.require({p['name'] for p in manifest['assets']} == names and
+                      len(manifest['assets']) == len(names), 'public payload allowlist conflict')
+    alpha.portable(manifest)
 
 
 def preflight(github, tag, sha):
@@ -220,7 +261,7 @@ def publish(github, assets, inventory, tag, sha, run_id):
         alpha.art.require((release.get('body') or '').startswith(marker(tag, sha, run_id, inventory)), 'conflicting retained draft inventory')
         owned(release, tag, sha)
     else:
-        release = github.create(tag, sha, notes(tag, sha, run_id, inventory))
+        release = github.create(tag, sha, notes(tag, sha, run_id, inventory, manifest))
         owned(release, tag, sha)
     summary('Draft retained until all uploads and authenticated downloads pass.', release)
     present = verify_remote(github, release, inventory, partial=True)

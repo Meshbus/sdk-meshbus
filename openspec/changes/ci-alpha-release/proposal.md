@@ -67,3 +67,12 @@ requirements remain applicable without changes.
 
 Local implementation is authorized. Consequential Git/publication operations
 still require separate explicit user instructions.
+
+## Full matrix follow-up
+
+The first alpha.1 pilot is public and remains immutable. The user now requests
+a normal CI release containing every registered APP product and all six CLI
+platform archives. Extend staging and material checks to the complete matrix,
+retain firmware/CLI independent versions and publish alpha.2 after exact-source
+full CI and Candidate acceptance. New public manifests use schema 2 for per-target
+products and CLI identities; existing schema 1 downloads remain verifiable.

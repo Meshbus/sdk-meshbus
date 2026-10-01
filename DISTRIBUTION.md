@@ -7,8 +7,9 @@ does not establish that a release is published or qualified on hardware.
 
 Device qualification and host-platform packaging have different constraints,
 so their release cycles are independent. Each firmware release records compatible
-CLI versions without bundling them as one product. Assembly may need a verified
-CLI executable, but does not require publishing all supported CLI archives.
+CLI versions. Alpha releases include the six CLI platform archives as companion
+downloads with their own CLI version. Firmware assembly consumes firmware parts
+only; Alpha staging verifies the CLI parts separately.
 CLI code signing, notarization and platform coverage belong to the CLI release.
 
 A GA Release is production-qualified firmware made available for supported
@@ -61,8 +62,8 @@ This explicitly invokes Cargo, applies path remapping, and rejects binaries
 containing the current workspace or home path. The supported archive targets
 are arm64 and x86-64 for macOS, Windows and Linux. Use `--target` with a
 configured Cargo linker/SDK to cross-compile; the default target is the build
-host. The command does not sign or notarize the executable. CLI archives belong
-to their own release and are not inputs to firmware assembly.
+host. The command does not sign or notarize the executable. CLI archives retain their independent version and may accompany a
+firmware Alpha release; they are not inputs to firmware assembly.
 CLI archives carry `THIRD-PARTY-NOTICES.txt` from the CLI's own `NOTICE` and
 `licenses/` collected from the target-filtered Cargo graph. `dependencies.json`
 labels runtime packages and conservatively retained code generators;
@@ -464,10 +465,11 @@ notarization and host-platform qualification are separate release work.
 
 ## CI Alpha publication
 
-The first public Alpha pilot selects `mesh_probe_r1/nrf52840`. Firmware uses
-`1.0.0-alpha.1` and a fixed `v1.0.0-alpha.1` Git tag; later content changes use
-the next Alpha number. CLI `Cargo.toml` versioning is independent. The six CLI
-packages remain CI validation/tool inputs rather than public pilot downloads.
+The immutable first public pilot, `v1.0.0-alpha.1`, contains R1 downloads.
+Subsequent Alpha releases include every registered APP target and all six CLI
+platform archives. Firmware uses a canonical `vMAJOR.MINOR.PATCH-alpha.N` tag
+matching its committed VERSION; companion CLI packages keep their Cargo version.
+Use a new Alpha number for the expanded matrix; never replace alpha.1 assets.
 
 An Engineering Candidate remains unpublished and records `publishable: false`.
 An eligible public Alpha adds a separate publication manifest: full CI Twister
@@ -479,16 +481,21 @@ under the existing admission policy. Hardware validation stays `not-run`, produc
 stays false and R1 UF2 authentication stays `none`. CI cannot establish boot,
 RF, recovery, resource/soak or MBA runtime acceptance.
 
-The allowlisted public set contains the standalone R1 APP-only UF2, its original
-firmware archive, original matching EDK archive, curated public SBOM,
-`release-manifest.json` and `SHA256SUMS`. The raw UF2's applicable notices and
-license texts travel in the companion firmware archive; retain both when
-redistributing. Install with an existing compatible UF2 bootloader and
-SoftDevice. This pilot supplies neither component and does not authorize
-erasing settings or replacing the boot chain. The firmware archive also retains
-these instructions in `NOTICE.txt` and its generated `flash-map.json`.
+The public set contains each original firmware archive, standalone APP UF2 or
+MCUboot BIN, curated public SBOM and matching EDK when the product supports
+LLEXT. Original CLI archives cover arm64 and x86-64 macOS, Windows and Linux and
+must carry matching native validation evidence. UF2 notices and license texts
+travel in the companion firmware archive; retain both when redistributing.
+UF2 requires an existing compatible bootloader and SoftDevice. MCUboot BIN is
+an application-slot image; merged images and matching bootloader are inside the
+firmware archive, with addresses and recovery requirements in `flash-map.json`.
+CLI packages are not code-signed or notarized. Registration and CI packaging
+provide no hardware qualification or erase-all authorization.
 
-The public manifest enumerates payload names, sizes and SHA256 values, the
+Public manifest schema 2 records every product and CLI platform, their separate
+versions, source and actual qualification. Schema 1 remains supported for the
+original R1 pilot. The public manifest enumerates payload names, sizes and
+SHA256 values, the
 fixed source/tag, frozen dependencies, immutable builder, compiler/CLI identity,
 Actions run and actual qualification. `SHA256SUMS` covers the payloads and
 manifest; it excludes itself. A complete inventory hashing both metadata files
@@ -499,8 +506,10 @@ existing flash map are references, not bundled source-file inventories.
 
 ### Distribution material evidence
 
-Candidate and Alpha export automatically check the actual firmware/EDK archives
-and retain `license-evidence.json`. Its schema 1 `scope` and `scope_sha256`
+Candidate and Alpha export automatically check every actual firmware/EDK archive
+and each CLI archive, including native proofs, dependency notices and generated
+protobuf materials. They retain `license-evidence.json`; schema 2 groups product
+and CLI material scopes. Its `scope` and `scope_sha256`
 structure records selected declarations, dependency revisions, notice hashes,
 fonts, compiler/runtime inputs and EDK notices. The digest describes material
 inputs for provenance; it is not an approval and changes do not require a new
@@ -524,9 +533,9 @@ An SBOM `NOASSERTION` field alone does not determine whether the actual source
 permission is known. CI does not assert ownership or legal clearance.
 
 There is no per-Alpha approval file or approval digest in the public manifest.
-The release manifest remains schema 1 and retains source, dependency, builder,
-asset and qualification identities. Material evidence remains in Actions;
-licenses and notices remain in the public companion firmware/EDK archives.
+New releases use manifest schema 2 with product and CLI identities; the published
+schema 1 pilot remains immutable and verifiable. Material evidence remains in
+Actions; licenses and notices remain in the firmware, EDK and CLI archives.
 
 Only CI-owned drafts can be resumed from their original verified upload set.
 Uploaded bytes are downloaded and checked before public visibility. The final

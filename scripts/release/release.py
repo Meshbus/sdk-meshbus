@@ -27,11 +27,8 @@ import licensing
 from meshbus_cli import cli_command
 from board_profiles import discover
 
-CLIENTS = {
-    "aarch64-apple-darwin", "x86_64-apple-darwin",
-    "aarch64-pc-windows-msvc", "x86_64-pc-windows-msvc",
-    "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu",
-}
+CLIENTS = art.CLIENTS
+
 MAX_IMAGE = 16 * 1024 * 1024
 MAX_HOST_TOOL = 256 * 1024 * 1024
 SPDX_DOCUMENTS = {"app.spdx", "build.spdx", "modules-deps.spdx", "zephyr.spdx"}

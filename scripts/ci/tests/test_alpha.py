@@ -209,7 +209,7 @@ class Collection(unittest.TestCase):
                       'projects': {'meshbus': {'revision': SHA, 'dirty': False},
                                    'zephyr': {'revision': 'b' * 40, 'dirty': False}}}
         self.matrix = [{'board': target, 'id': target.split('/')[0]} for target in
-                       (alpha.TARGET, 'mesh_probe_r2/soc', 'devkit/soc', 'wio/soc')]
+                       (alpha.TARGET,)]
         self.records = [dict(target=t['board'], id=t['id'], version=TAG[1:], engineering=False,
                              provenance=provenance, validation={'build': 'passed', 'hardware': 'not-run'})
                         for t in self.matrix]
@@ -270,9 +270,54 @@ class Collection(unittest.TestCase):
             stream.add(edk, arcname='llext-edk')
         alpha.art.sidecar(edk_path)
         self.repack()
+        self.cli, self.native = self.root / 'cli-parts', self.root / 'native'
+        self.cli.mkdir()
+        self.native.mkdir()
+        for target in alpha.art.CLIENTS:
+            part = self.cli / target
+            part.mkdir()
+            root = self.root / ('cli-root-' + target)
+            (root / 'licenses/meshbus-cli-1.0.0').mkdir(parents=True)
+            (root / 'licenses/meshbus-protobufs').mkdir()
+            (root / 'licenses/meshbus-cli-1.0.0/LICENSE').write_text('CLI license fixture')
+            (root / 'licenses/meshbus-protobufs/LICENSE').write_text('schema license fixture')
+            (root / 'THIRD-PARTY-NOTICES.txt').write_text('CLI attribution fixture')
+            arm = target.startswith('aarch64-')
+            if 'linux' in target:
+                data = bytearray(20)
+                data[:6] = b'\x7fELF\x02\x01'
+                data[18:20] = (183 if arm else 62).to_bytes(2, 'little')
+            elif 'darwin' in target:
+                data = b'\xcf\xfa\xed\xfe' + (0x100000c if arm else 0x1000007).to_bytes(4, 'little')
+            else:
+                data = bytearray(70)
+                data[:2] = b'MZ'
+                data[60:64] = (64).to_bytes(4, 'little')
+                data[64:68] = b'PE\x00\x00'
+                data[68:70] = (0xaa64 if arm else 0x8664).to_bytes(2, 'little')
+            executable = 'meshbus.exe' if 'windows' in target else 'meshbus'
+            (root / executable).write_bytes(data)
+            record = {'schema': 1, 'kind': 'cli', 'target': target, 'version': '1.0.0',
+                      'publishable': False, 'development': False, 'build_profile': 'release',
+                      'provenance': provenance, 'binary': {'file': executable, 'sha256': alpha.art.digest(data)},
+                      'cargo_lock_sha256': 'e' * 64, 'protobuf_descriptor_sha256': 'f' * 64,
+                      'validation': {'code_signing': 'not-run', 'notarization': 'not-run', 'hardware': 'not-run'}}
+            alpha.art.write_json(root / 'manifest.json', record)
+            alpha.art.write_json(part / 'release-part.json', record)
+            alpha.art.write_json(root / 'dependencies.json', [{'name': 'meshbus-cli', 'version': '1.0.0'}])
+            alpha.art.write_json(root / 'generated-materials.json', {'protobuf_descriptor': {
+                'component': 'meshbus-protobufs', 'materials': ['licenses/meshbus-protobufs/LICENSE'], 'sha256': 'f' * 64}})
+            alpha.art.checksums(root)
+            archive = part / (f'meshbus-1.0.0-{target}.' + ('zip' if 'windows' in target else 'tar.gz'))
+            alpha.art.pack(root, archive, 'meshbus')
+            alpha.art.checksums(part)
+            alpha.art.write_json(self.native / (target + '.json'), {'target': target,
+                'binary_sha256': record['binary']['sha256'], 'result': 'passed', 'hardware': 'not-run',
+                'checks': ['archive-checksums', 'binary-architecture', 'native-version', 'help', 'signed-fixture', 'tamper-rejection']})
         self.output = self.root / 'public'
         self.evidence = self.root / 'evidence'
         self.patchers = [patch.object(release, 'targets', return_value=self.matrix),
+                         patch.object(alpha, 'product_profiles', side_effect=lambda: {t['board'].replace('/', '_') for t in self.matrix}),
                          patch.object(release, 'cli_json', side_effect=lambda *args: {'manifest': self.edk_manifest})]
         for p in self.patchers:
             p.start()
@@ -296,11 +341,12 @@ class Collection(unittest.TestCase):
         self.refresh()
 
     def collect(self, evidence_only=False):
-        alpha.collect(self.candidate, self.snapshot, self.output, self.evidence, TAG, SHA, '123', evidence_only)
+        alpha.collect(self.candidate, self.snapshot, self.output, self.evidence, TAG, SHA, '123', evidence_only,
+                      cli=self.cli, native=self.native)
 
     def test_complete_public_set_reuses_original_archives_and_checksums(self):
         self.collect()
-        expected = alpha.payload_names(TAG) | {'release-manifest.json', 'SHA256SUMS'}
+        expected = alpha.payload_names(TAG, self.records, {'version': '1.0.0', 'targets': [{'target': t} for t in alpha.art.CLIENTS]}) | {'release-manifest.json', 'SHA256SUMS'}
         self.assertEqual({p.name for p in self.output.iterdir()}, expected)
         for p in list(self.part.glob('*.tar.gz')) + list(self.part.glob('*.tar.xz')):
             self.assertEqual(p.read_bytes(), (self.output / p.name).read_bytes())
@@ -308,7 +354,7 @@ class Collection(unittest.TestCase):
         inventory = json.loads((self.evidence / 'inventory.json').read_text())
         publish.validate_staging(self.output, inventory, TAG, SHA)
         manifest = json.loads((self.output / 'release-manifest.json').read_text())
-        self.assertEqual(manifest['schema'], 1)
+        self.assertEqual(manifest['schema'], 2)
         self.assertFalse(manifest['qualification']['production_qualified'])
         self.assertNotIn('license_review_scope_sha256', manifest)
         self.assertFalse((self.root / 'review.json').exists())
@@ -360,7 +406,7 @@ class Collection(unittest.TestCase):
         self.collect()
         after = json.loads((self.evidence / 'license-evidence.json').read_text())
         self.assertNotEqual(before['scope_sha256'], after['scope_sha256'])
-        self.assertEqual(after['scope']['notice_hashes']['licenses/meshbus/LICENSE'],
+        self.assertEqual(after['scope']['products'][0]['notice_hashes']['licenses/meshbus/LICENSE'],
                          alpha.art.digest(b'changed notice'))
         self.assertNotIn('approved', after)
 
@@ -397,7 +443,7 @@ class Collection(unittest.TestCase):
         self.repack()
         self.collect()
         evidence = json.loads((self.evidence / 'license-evidence.json').read_text())
-        self.assertEqual(evidence['scope']['toolchain_runtimes'][0]['libraries'][0]['sha256'], 'e' * 64)
+        self.assertEqual(evidence['scope']['products'][0]['toolchain_runtimes'][0]['libraries'][0]['sha256'], 'e' * 64)
 
     def test_missing_edk_notice_blocks_public_export(self):
         edk = self.root / 'edk'
@@ -463,7 +509,8 @@ class Collection(unittest.TestCase):
     def test_cli_evidence_only_and_removed_review_arguments(self):
         import contextlib
         arguments = ['alpha.py', '--candidate', str(self.candidate), '--snapshot', str(self.snapshot),
-                     '--output', str(self.output), '--evidence', str(self.evidence)]
+                     '--output', str(self.output), '--evidence', str(self.evidence),
+                     '--cli', str(self.cli), '--native', str(self.native)]
         for obsolete in (['--review', 'review.json'], ['--review-only']):
             with self.subTest(obsolete=obsolete), patch.object(sys, 'argv', arguments + obsolete), \
                     contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as result:
@@ -488,11 +535,11 @@ class Collection(unittest.TestCase):
             self.collect()
 
     def test_missing_matrix_product_and_edk_version_conflict_fail(self):
-        self.records.pop()
+        saved = self.records.pop()
         self.refresh()
         with self.assertRaisesRegex(ValueError, 'assembled products'):
             self.collect()
-        self.records.append(dict(self.records[-1], target='wio/soc'))
+        self.records.append(saved)
         self.refresh()
         self.edk_manifest['host']['version'] = '1.0.0-alpha.2'
         with self.assertRaisesRegex(ValueError, 'EDK version/source'):
@@ -525,6 +572,190 @@ class Collection(unittest.TestCase):
                 stream.addfile(member, io.BytesIO())
             with self.assertRaises(ValueError):
                 alpha.unpack(archive, self.root / 'extracted')
+
+    def test_manifest_cannot_omit_board_cli_or_change_native_qualification(self):
+        import copy
+        self.collect()
+        manifest = json.loads((self.output / 'release-manifest.json').read_text())
+        for mutation in ('board', 'cli', 'qualification', 'archive'):
+            changed = copy.deepcopy(manifest)
+            if mutation == 'board':
+                changed['products'].pop()
+            elif mutation == 'cli':
+                changed['cli']['targets'].pop()
+            elif mutation == 'qualification':
+                changed['cli']['targets'][0]['qualification']['native'] = 'failed'
+            else:
+                changed['cli']['targets'][0]['archive'] = 'unexpected.zip'
+            with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                publish.validate_manifest(changed, TAG, SHA)
+
+    def test_zip_symlink_and_duplicate_members_are_rejected(self):
+        import zipfile
+        for symlink in (True, False):
+            archive = self.root / 'unsafe.zip'
+            with zipfile.ZipFile(archive, 'w') as stream:
+                info = zipfile.ZipInfo('meshbus/entry')
+                info.create_system = 3
+                info.external_attr = (0o120777 if symlink else 0o100644) << 16
+                stream.writestr(info, 'fixture')
+                if not symlink:
+                    import warnings
+                    with warnings.catch_warnings():
+                        warnings.simplefilter('ignore', UserWarning)
+                        stream.writestr('meshbus/entry', 'duplicate')
+            with self.assertRaises(ValueError):
+                alpha.unpack(archive, self.root / 'unsafe-output', 'meshbus')
+
+    def repack_cli(self, target):
+        part = self.cli / target
+        root = self.root / ('cli-root-' + target)
+        alpha.art.checksums(root)
+        archive = next(iter(list(part.glob('*.zip')) + list(part.glob('*.tar.gz'))))
+        alpha.art.pack(root, archive, 'meshbus')
+        alpha.art.checksums(part)
+
+    def test_missing_or_duplicate_cli_and_native_evidence_block_staging(self):
+        import shutil
+        target = sorted(alpha.art.CLIENTS)[0]
+        proof = self.native / (target + '.json')
+        saved = proof.read_bytes()
+        proof.unlink()
+        with self.assertRaisesRegex(ValueError, 'CLI native evidence'):
+            self.collect()
+        proof.write_bytes(saved)
+        shutil.copytree(self.cli / target, self.cli / 'duplicate')
+        with self.assertRaisesRegex(ValueError, 'CLI native evidence'):
+            self.collect()
+        self.assertFalse(self.output.exists())
+
+    def test_stale_cli_native_digest_blocks_staging(self):
+        path = next(self.native.iterdir())
+        proof = json.loads(path.read_text())
+        proof['binary_sha256'] = '0' * 64
+        alpha.art.write_json(path, proof)
+        with self.assertRaisesRegex(ValueError, 'CLI native proof'):
+            self.collect()
+        self.assertFalse(self.output.exists())
+
+    def test_missing_cli_license_and_generated_materials_block_staging(self):
+        target = sorted(alpha.art.CLIENTS)[0]
+        root = self.root / ('cli-root-' + target)
+        notice = root / 'licenses/meshbus-cli-1.0.0/LICENSE'
+        saved = notice.read_bytes()
+        notice.unlink()
+        self.repack_cli(target)
+        with self.assertRaises((ValueError, FileNotFoundError)):
+            self.collect()
+        notice.write_bytes(saved)
+        (root / 'licenses/meshbus-protobufs/LICENSE').unlink()
+        self.repack_cli(target)
+        with self.assertRaises(FileNotFoundError):
+            self.collect()
+        self.assertFalse(self.output.exists())
+
+    def test_cli_version_and_source_conflicts_block_staging(self):
+        path = next(self.cli.rglob('release-part.json'))
+        record = json.loads(path.read_text())
+        record['version'] = TAG[1:]
+        alpha.art.write_json(path, record)
+        alpha.art.checksums(path.parent)
+        with self.assertRaisesRegex(ValueError, 'CLI target/version/profile'):
+            self.collect()
+        record['version'] = '1.0.0'
+        record['provenance']['firmware']['revision'] = '0' * 40
+        alpha.art.write_json(path, record)
+        alpha.art.checksums(path.parent)
+        with self.assertRaisesRegex(ValueError, 'dirty/off-manifest'):
+            self.collect()
+
+    def test_four_products_include_verified_mcuboot_images_and_all_cli(self):
+        import copy
+        import shutil
+        targets = ['mesh_probe_r2/nrf54l15/cpuapp', 'tracker_t1000_e/nrf52840', 'wio_tracker_l1/nrf52840']
+        manifests = {alpha.TARGET: self.edk_manifest}
+        for target in targets:
+            record = copy.deepcopy(self.record)
+            record.update(target=target, id=target.split('/')[0])
+            part = self.candidate / 'firmware' / record['id']
+            part.mkdir()
+            firmware = self.root / ('firmware-' + record['id'])
+            shutil.copytree(self.firmware, firmware)
+            if target.startswith('mesh_probe_r2/'):
+                record.update(format='mcuboot', capabilities={'llext': False})
+                record.pop('uf2')
+                record.pop('edk_tool')
+                (firmware / 'app.uf2').unlink()
+                header = struct.pack('<IIHHIIBBHII', 0x96F3B83D, 0, 32, 0, 4, 0, 1, 0, 0, 0, 0)
+                body = header + b'app!'
+                binary = body + struct.pack('<HHHH', 0x6907, 40, 0x10, 32) + bytes.fromhex(alpha.art.digest(body))
+                (firmware / 'app.bin').write_bytes(binary)
+                (firmware / 'mcuboot.bin').write_bytes(b'boot')
+                record['images'] = [dict(domain=domain, file=domain + '.bin', address=address,
+                    partition_address=address, partition_size=4096, size=len(data), sha256=alpha.art.digest(data))
+                    for domain, address, data in [('mcuboot', 0x1000, b'boot'), ('app', 0x2000, binary)]]
+                segments = [(0x1000, b'boot'), (0x2000, binary)]
+                (firmware / 'full.bin').write_bytes(b'boot' + b'\xff' * (4096 - 4) + binary)
+                (firmware / 'full.hex').write_text(self.release.full_hex(segments))
+                record['full_bin'] = {'file': 'full.bin', 'address': 0x1000, 'fill': 255}
+                materials = json.loads((firmware / 'license-materials.json').read_text())
+                materials['toolchain_runtimes'].append({**materials['toolchain_runtimes'][0], 'domain': 'mcuboot'})
+                alpha.art.write_json(firmware / 'license-materials.json', materials)
+                record['license_materials'] = {'manifest': 'license-materials.json', 'selection': 'spdx-source-components'}
+            else:
+                (part / 'app.uf2').write_bytes((firmware / 'app.uf2').read_bytes())
+                manifest = copy.deepcopy(self.edk_manifest)
+                manifest['target'] = target
+                manifests[target] = manifest
+                archive = part / f'app-{TAG[1:]}-{target.replace("/", "-")}-edk.tar.xz'
+                shutil.copyfile(next(self.part.glob('*-edk.tar.xz')), archive)
+                alpha.art.sidecar(archive)
+            (part / 'app.bin').write_bytes((firmware / 'app.bin').read_bytes())
+            alpha.art.write_json(firmware / 'flash-map.json', record)
+            alpha.art.checksums(firmware)
+            alpha.art.pack(firmware, part / f'meshbus-{TAG[1:]}-{target.replace("/", "_")}-firmware.tar.gz', 'firmware')
+            alpha.art.write_json(part / 'release-part.json', record)
+            alpha.art.write_json(part / 'candidate-validation.json', {'target': target, 'source_revision': SHA,
+                'checks': ['production-packaging'] + (['edk-verify', 'edk-c-and-cxx-qualify'] if record['capabilities']['llext'] else [])})
+            alpha.art.checksums(part)
+            self.records.append(record)
+            self.matrix.append({'board': target, 'id': record['id']})
+        self.refresh()
+        def verify(*args):
+            target = next(t for t in manifests if t.replace('/', '-') in str(args[-1]))
+            return {'manifest': manifests[target]}
+        with patch.object(self.release, 'cli_json', side_effect=verify):
+            self.collect()
+        manifest = json.loads((self.output / 'release-manifest.json').read_text())
+        self.assertEqual(len(manifest['products']), 4)
+        self.assertEqual(len(manifest['cli']['targets']), 6)
+        self.assertEqual(manifest['cli']['version'], '1.0.0')
+        self.assertIn('meshbus-1.0.0-alpha.1-mesh_probe_r2_nrf54l15_cpuapp.bin', {p.name for p in self.output.iterdir()})
+        publish.validate_staging(self.output, alpha.inventory(self.output), TAG, SHA)
+        scope = json.loads((self.evidence / 'license-evidence.json').read_text())['scope']
+        r2 = next(p for p in scope['products'] if p['target'].startswith('mesh_probe_r2/'))
+        self.assertEqual({r['domain'] for r in r2['toolchain_runtimes']}, {'app', 'mcuboot'})
+        self.assertFalse(any('full.bin' == p.name for p in self.output.iterdir()))
+
+
+
+class MatrixPublication(unittest.TestCase):
+    def test_matrix_names_include_mcuboot_and_all_cli_archives(self):
+        products = [{'target': alpha.TARGET, 'format': 'uf2', 'capabilities': {'llext': True}},
+                    {'target': 'mesh_probe_r2/nrf54l15/cpuapp', 'format': 'mcuboot',
+                     'capabilities': {'llext': False}}]
+        clients = {'version': '1.0.0', 'targets': [{'target': t} for t in alpha.art.CLIENTS]}
+        names = alpha.payload_names(TAG, products, clients)
+        self.assertIn('meshbus-1.0.0-alpha.1-mesh_probe_r2_nrf54l15_cpuapp.bin', names)
+        self.assertIn('meshbus-1.0.0-x86_64-pc-windows-msvc.zip', names)
+        self.assertIn('meshbus-1.0.0-aarch64-apple-darwin.tar.gz', names)
+        self.assertEqual(len(names), 13)
+
+    def test_matrix_missing_cli_inputs_block_collection(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.assertRaisesRegex(ValueError, 'CLI'):
+                alpha.collect(root, root, root / 'out', root / 'evidence', TAG, SHA, '123')
 
 
 class Workflow(unittest.TestCase):
