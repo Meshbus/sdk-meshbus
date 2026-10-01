@@ -38,6 +38,14 @@ Checkouts in called workflows must resolve the same commit; snapshots and
 package records must agree with it. The workflow operates only in the owning
 repository, and published tags remain fixed.
 
+A tag push can have an all-zero or unavailable previous ref. Patch-style
+checks then use the target commit's available parent, as manual CI does,
+rather than treating all existing source as a new patch. New branches and
+root commits retain the conservative complete-tree fallback. The first pilot
+exposed this boundary; the user separately authorized correcting the unpublished
+alpha.1 tag only after full CI and Candidate pass for the corrected source.
+Published tags and assets remain immutable.
+
 Tag-triggered operation fits releases made when a version is ready. Branch-based
 dispatch with a free-form version would introduce two authorities and tempt
 in-run VERSION edits, which conflict with clean candidate requirements.

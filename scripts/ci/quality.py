@@ -17,10 +17,17 @@ def run(*args, cwd=ROOT, **kwargs):
 
 def comparison_base(base):
     requested = os.environ.get('DIFF_BASE') or base or 'HEAD^'
-    if requested != '0' * 40:
+    # Tag creation/correction can lack a resolvable previous ref. Check the
+    # target commit's patch as in manual CI; a new branch stays conservative.
+    candidates = [requested]
+    if os.environ.get('GITHUB_REF_TYPE') == 'tag' and requested != 'HEAD^':
+        candidates.append('HEAD^')
+    for candidate in candidates:
+        if candidate == '0' * 40:
+            continue
         resolved = subprocess.run(
             ['git', 'rev-parse', '--verify', '--quiet', '--end-of-options',
-             f'{requested}^{{commit}}'], cwd=ROOT, text=True,
+             f'{candidate}^{{commit}}'], cwd=ROOT, text=True,
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         if resolved.returncode == 0:
             return resolved.stdout.strip()

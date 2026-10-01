@@ -53,6 +53,13 @@ preparation. Other strict validation and packaging checks SHALL run afresh.
   failed or unexpectedly skipped
 - **THEN** the workflow fails before public publication
 
+#### Scenario: Tag push has no usable previous ref
+- **WHEN** a tag push supplies an all-zero or unavailable previous ref and the
+  target commit has an available parent
+- **THEN** patch-style checks inspect the target commit against that parent
+- **AND** root commits and ordinary branches without a usable baseline retain
+  complete-tree checks
+
 ### Requirement: Review permissions during contribution
 
 Contributors SHALL identify applicable provenance, terms, selected alternatives

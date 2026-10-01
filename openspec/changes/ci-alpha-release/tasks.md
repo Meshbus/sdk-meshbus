@@ -254,3 +254,46 @@ both to pass for that exact source before creating/pushing the fixed Alpha tag
 under public-publication authorization. The tag-triggered pipeline performs its
 fresh candidate/staging/upload checks and reuses only matching full CI Twister
 evidence. Tasks 5.3-5.4 remain incomplete until their real hosted acceptance.
+
+### Authorized hosted pilot and tag-event regression (2026-10-01)
+
+The user authorized committing/pushing the refinements, full CI and Candidate
+execution, then the tag-triggered public pilot after both passed. Commit
+`75898e1eaf81141b2cacdb996081c6f253597b05` was pushed to main.
+
+- [Full CI](https://github.com/Meshbus/sdk-meshbus/actions/runs/36850535364)
+  passed all 30 jobs, including all eight runtime/compile Twister shards.
+  The automatically triggered narrowed push run was cancelled to avoid
+  duplicating non-Twister work. Hosted license policy had zero remaining
+  findings and 54 documented exemptions.
+- [Manual Candidate](https://github.com/Meshbus/sdk-meshbus/actions/runs/36851843539)
+  passed 28 jobs with one expected Twister-reuse skip. Its source, frozen graph
+  and Builder matched full CI. All four production packages and EDK checks,
+  assembly and material checks passed. The actual `alpha-license-evidence`
+  contains only `license-evidence.json`, schema 1 and 13 SBOM components, with
+  a verified input digest and no approval field.
+- Builder:
+  `ghcr.io/meshbus/sdk-meshbus-builder@sha256:edeed0755c6379c5553696f9456c3ea1ca0c8c6df9836effba4ba9df2e537300`.
+- The fixed annotated `v1.0.0-alpha.1` tag triggered
+  [Alpha run](https://github.com/Meshbus/sdk-meshbus/actions/runs/36854476663).
+  Preflight and exact-source Twister reuse passed, but Workspace checks failed
+  at C/C++ patch style. GitHub supplies an all-zero `before` for a new tag;
+  the quality gate treated it as a new branch and checked the complete tree,
+  reporting 3,885 historical style errors. Full CI and manual Candidate had
+  checked the target commit against its available parent instead. Packaging,
+  public staging and publication were skipped; no Release was created.
+
+The local correction uses the available parent when a tag event has no resolvable
+previous ref; ordinary new branches and root commits retain complete-tree
+fallback. Real Git fixture regressions reproduce the tag failure and retain
+C/header patch checks and those conservative fallbacks. The user explicitly
+authorized correcting the tag before any Release, preserving alpha.1. The tag
+remains unchanged until the corrected source passes hosted acceptance.
+The final corrected source still needs complete hosted CI and
+Candidate acceptance. Tasks 5.3-5.4 remain open; no public acceptance is claimed.
+
+Local correction validation: 142 CI boundary tests passed, including the tag,
+missing-old-ref, new-branch and root-commit regression cases. Ruff, actionlint,
+local documentation, strict OpenSpec and repository license policy passed;
+the policy retains zero findings and 54 exemptions. Release code is unchanged;
+the preceding 101-test release regression remains its local evidence.

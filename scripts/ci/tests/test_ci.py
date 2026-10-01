@@ -76,6 +76,40 @@ class Gates(unittest.TestCase):
                     quality.quality('west-vulnerabilities', None)
                     self.assertEqual(invoked.call_args.args[-2:], ('--base', parent))
 
+    def test_new_tag_checks_release_commit_patch_and_branch_keeps_full_fallback(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            checkout = self.quality_checkout(root)
+            (checkout / 'historical.c').write_text('int historical(void) { return 0; }\n')
+            self.commit_quality_fixture(checkout)
+            parent = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=checkout, text=True).strip()
+            (checkout / 'release.h').write_text('#define RELEASE_CHANGE 1\n')
+            self.commit_quality_fixture(checkout)
+            for ref_type, before in (('tag', '0' * 40), ('tag', 'f' * 40),
+                                     ('branch', '0' * 40), ('branch', 'f' * 40)):
+                with self.subTest(ref_type=ref_type, before=before), \
+                        patch.object(quality, 'ROOT', checkout), \
+                        patch.object(quality, 'OUT', root / 'reports'), \
+                        patch.object(quality, 'run') as invoked, \
+                        patch.dict(os.environ, {'DIFF_BASE': before, 'GITHUB_REF_TYPE': ref_type}):
+                    self.assertEqual(quality.comparison_base(None), parent if ref_type == 'tag' else None)
+                    quality.quality('checkpatch', None)
+                    checked = invoked.call_args.kwargs['input'].decode()
+                    self.assertIn('release.h', checked)
+                    self.assertEqual('historical.c' in checked, ref_type == 'branch')
+
+    def test_root_tag_still_checks_complete_tree(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            checkout = self.quality_checkout(root)
+            with patch.object(quality, 'ROOT', checkout), \
+                    patch.object(quality, 'OUT', root / 'reports'), \
+                    patch.object(quality, 'run') as invoked, \
+                    patch.dict(os.environ, {'DIFF_BASE': '0' * 40, 'GITHUB_REF_TYPE': 'tag'}):
+                self.assertIsNone(quality.comparison_base(None))
+                quality.quality('style', None)
+                invoked.assert_any_call('ruff', 'check', '--select', 'E4,E7,E9,F', 'initial.py')
+
     def test_python_tool_checks_do_not_consume_release_workspace(self):
         with patch.object(runner, 'run') as invoked:
             runner.host(python_only=True)
