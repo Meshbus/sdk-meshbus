@@ -55,7 +55,7 @@ impl FlashMap {
     }
 
     fn validate(&self) -> Result<(), FirmwareError> {
-        if self.schema != 1
+        if !matches!(self.schema, 1 | 2)
             || self.kind != "firmware"
             || self.target.is_empty()
             || self.soc.is_empty()

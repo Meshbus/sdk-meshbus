@@ -4,13 +4,10 @@ FoBE Studio-owned SDK, product firmware, CLI, tools, examples and documentation
 use [Apache-2.0](LICENSE). Copyright attribution is **FoBE Studio**. Original
 third-party copyright and license notices remain applicable to their portions.
 
-This permits proprietary use while preserving notice and attribution obligations.
-The default does not relicense upstream or derived material, independently owned
-dependencies, or every component of a firmware distribution. Keep file metadata,
-generator templates, packaging, verification and current documentation consistent
-with actual ownership. Retain unresolved provenance findings instead of relabeling
-third-party material. Publication, signing and history rewriting remain subject
-to [repository authorization](AGENTS.md).
+Preserve upstream terms and attribution. Dependency admission happens in
+contribution review; release CI checks the materials actually distributed.
+[CONTRIBUTING.md](CONTRIBUTING.md) owns the review workflow and
+[DISTRIBUTION.md](DISTRIBUTION.md) owns archive layout and publication procedure.
 
 ## Per-file metadata
 
@@ -68,38 +65,17 @@ and does not itself grant rights to third-party material.
 
 ### Contribution review and distribution checks
 
-For a dependency addition, update, or newly enabled feature, record the exact
-source revision, applicable file-level license, selected alternative or
-exception, and how the component enters the output. Check the final configuration
-and compiler/linker inputs, including generated and header-only content, rather
-than just a repository's root license. For CLI dependencies, inspect each
-supported release target's resolved dependency graph.
+For additions, updates or newly enabled features, follow
+[contribution review](CONTRIBUTING.md#rights-and-third-party-material). Review
+actual linked, generated and exported inputs across supported targets. Reuse
+existing decisions when terms and usage are unchanged; record new selections
+and exceptions below. Resolve unknown grants before merging. `NOASSERTION`
+alone is not unknown permission, and a SBOM or GPL text search is not legal
+clearance. No per-Alpha approval file or separate approval registry is required.
 
-Use the [contribution guide](CONTRIBUTING.md#rights-and-third-party-material) and
-PR template to describe these inputs. Maintainers review them before merging;
-reuse existing decisions when terms and usage are unchanged. Keep selections
-and exceptions here without a separate approval registry. Ordinary contributions
-can mark the external-material section as not applicable.
-
-Preserve the component notices and reconcile them with the delivered files.
-Genuinely unknown permission or attribution requires resolution during review.
-An SPDX `NOASSERTION` field can mean the producer made no assertion; inspect
-actual source terms rather than treating the field alone as missing permission.
-The curated release SBOM and a text search for `GPL` are not complete admission checks.
-Standalone tool or source redistribution has its own notice/source obligations
-even when excluded from this compiled-output rule.
-
-Release CI checks actual material presence and integrity and retains evidence.
-It does not require a per-Alpha approval file, repeat an exhaustive component
-review or prove legal clearance. Resolve newly discovered permission gaps
-through contribution review before publication. Existing metadata and font
-checks remain blocking; automated success does not replace maintainer review.
-
-Record component-specific choices under
-[external dependency license selections](#external-dependency-license-selections)
-and font provenance and exclusions in the [font inventory](docs/licensing/fonts.md).
-New language packs and fonts require the same review. The
-[distribution guide](DISTRIBUTION.md#publication-requirements) owns release procedure.
+Release CI checks notices, selected fonts, runtime materials and integrity;
+source delivery obligations remain part of contribution review. Font provenance
+lives in the [font inventory](docs/licensing/fonts.md).
 
 ## Third-party exceptions
 
@@ -198,52 +174,35 @@ upstream ownership.
 the retained upstream declarations. Upstream portions keep their own provenance
 and ownership.
 
-## CLI distributions
+## Distribution notices and evidence
 
-Release packaging copies the CLI `NOTICE` to `THIRD-PARTY-NOTICES.txt` and
-collects package license files from Cargo's target-filtered resolve graph.
-`dependencies.json` distinguishes runtime dependencies from proc-macro/code
-generators whose notices are conservatively retained. Development dependencies
-and unreachable packages are excluded. Host build tools are recorded separately
-in `build-tools.json`; their presence does not imply their code is distributed.
+Each firmware, CLI and EDK archive contains one `NOTICE.txt`. Identical text is
+stored once with its component/path associations; original copyright, complete
+terms and applicable exceptions remain. This is an aggregation of existing
+notices, not a change of license or a claim of distribution rights.
 
-The collector honors Cargo `license-file`, uses upstream license/notice files
-first, and retains limited Apache/Boost/protoc fallbacks. Missing required text
-fails packaging. `generated-materials.json` records the embedded protobuf
-descriptor digest and the schema project's retained materials, using the same
-schema root as the CLI build. The standalone protoc executable is not shipped.
-Other generated templates and build-script outputs still require release review.
+Firmware selects components from private SPDX/build inputs and fonts from the
+final ELF. Only selected font terms are included; restricted/unreviewed fonts
+still fail. Installed GCC runtime exceptions and Picolibc/Newlib notices remain
+required. EDK notices cover exported headers, whose original declarations remain
+in place. Full applicable standard texts occur once in NOTICE.txt instead of
+duplicating every header banner. Apache/GPL dual-licensed headers use Apache-2.0;
+BSD-2-Clause/CC0 dual-licensed headers use BSD-2-Clause. AND expressions retain
+both texts. These choices do not relicense portions with separate terms.
+Font arrays and the full font inventory are not exported.
 
-## Source, EDK and firmware distributions
+CLI selection uses Cargo's target-filtered runtime and code-generator graph.
+Development/unreachable dependencies are excluded; build tools are recorded
+separately. Cargo license-file and existing Apache/Boost/protoc fallbacks remain
+supported. Generated protobuf descriptors retain schema attribution. MPL-2.0
+packages include exact-version source download locations in the notice.
 
-Source distributions retain `LICENSE`, `LICENSES/`, REUSE metadata, this guide,
-component-local declarations and applicable source records. Independent west
-projects retain their own materials at the resolved revision; their complete
-texts are not mirrored into this repository.
+Detailed component, generator, font and runtime files stay in private
+`material-evidence/` CI parts. Their manifests and hashes permit notice
+regeneration and integrity checks without requiring a human approval artifact.
+See [distribution evidence](DISTRIBUTION.md#distribution-material-evidence).
 
-EDKs include Apache-2.0 `LICENSE.txt`, `LICENSES/Apache-2.0.txt`,
-`NOTICE.txt` and file declarations. Exported ZUI headers additionally carry
-`ZUI-NOTICES.md`; exported U8g2 headers retain `U8G2-NOTICES.md`. The verifier
-requires the root and standard Apache-2.0 license texts to match and checks
-the notices for exported components.
-
-Firmware archives include `licenses/` and `license-materials.json`. Packaging
-selects component roots from both images' private SPDX source inventories and
-build module records, copies their root/standard license materials, and retains
-nested licenses and leading C/C++ source notices. Protobuf schema materials are
-included explicitly for generated bindings; the built-in predictive dictionary
-keeps its ISC notice. Custom dictionaries use adjacent license/notice files
-and optional `<dictionary>.license` sidecars; missing declarations fail packaging.
-
-U8g2 font arrays are selected from the final unstripped ELF's defined object
-symbols. The collector preserves per-font attribution, catalog license/status,
-selected family notices and the dependency's supplemental full license texts.
-Those generic texts form a conservative superset; inclusion is not a license
-choice or approval of a restricted font. Source hashes for retained font notices
-remain checked against the external module's own records.
-
-Development builds without SPDX are marked `partial-no-spdx`; they are not
-complete dependency collections. Even with SPDX, the bundle is component-level
-evidence: toolchain runtimes, other generated material, compatibility, required
-source delivery and unresolved grants remain release-review responsibilities.
-See [distribution guidance](DISTRIBUTION.md#candidate-assembly-and-provenance).
+Source distributions retain their existing declarations, REUSE metadata and
+component-local texts, including unselected source and fonts. External projects
+keep their own notices at the resolved revision. Do not delete original source
+notices to simplify binary downloads.

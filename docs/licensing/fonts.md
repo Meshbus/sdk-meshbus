@@ -17,8 +17,9 @@ The drawing implementation (`modules/lib/zui/src/zui_draw.c`) maps these to the 
 shown below. This is source configuration evidence, not an inspection
 of every released firmware image. Firmware packaging reads defined font
 array object symbols from each final unstripped ELF and includes their
-attributions, family notices and supplemental full terms under
-`licenses/u8g2/fonts/`. `selected-fonts.json` retains catalog status and license;
+attributions, family notices and selected supplemental terms in NOTICE.txt.
+Private CI `material-evidence/licenses/u8g2/fonts/selected-fonts.json` retains
+catalog status and license;
 collection does not approve restricted or review-required selections.
 
 | Array / role | Recorded permission | Relevant conditions and retained evidence |

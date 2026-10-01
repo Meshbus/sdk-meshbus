@@ -201,8 +201,7 @@ def scan(root, output):
     counts = Counter(item['category'] for item in result['exempted_files'].values())
     print(f'Metadata exemptions: {len(result["exempted_files"])} ({dict(counts)})')
     print(f'Remaining metadata findings: {len(result["remaining_files"])} files; '
-          f'repository license policy passed: {result["policy_compliant"]}; '
-          f'full REUSE compliant: {report["summary"]["compliant"]}')
+          f'repository license policy passed: {result["policy_compliant"]}')
     return result['policy_compliant']
 
 

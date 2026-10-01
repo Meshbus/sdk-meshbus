@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 use crate::host;
-use anyhow::{Result, ensure};
+use anyhow::{Context, Result, ensure};
 use std::{
     collections::BTreeSet,
     fs,
@@ -224,6 +224,44 @@ pub fn sidecar(path: &Path) -> Result<()> {
     Ok(())
 }
 pub fn verify_sidecar(path: &Path) -> Result<()> {
+    let sidecar = PathBuf::from(format!("{}.sha256", path.display()));
+    if !sidecar.exists() {
+        // Public releases bind archive bytes in the adjacent manifest. Private
+        // build parts and standalone EDK exports still use their own sidecars.
+        let manifest_path = path
+            .parent()
+            .unwrap_or(Path::new("."))
+            .join("release-manifest.json");
+        let manifest: serde_json::Value =
+            serde_json::from_slice(&host::read(&manifest_path, 4 * 1024 * 1024)?)?;
+        ensure!(
+            matches!(manifest["schema"].as_u64(), Some(1..=3))
+                && manifest["repository"] == "Meshbus/sdk-meshbus",
+            "unsupported release checksum manifest"
+        );
+        let name = path
+            .file_name()
+            .context("archive filename missing")?
+            .to_string_lossy();
+        let assets = manifest["assets"]
+            .as_array()
+            .context("release checksum inventory missing")?;
+        let entries = assets
+            .iter()
+            .filter(|a| a["name"].as_str() == Some(name.as_ref()))
+            .collect::<Vec<_>>();
+        ensure!(
+            entries.len() == 1,
+            "missing/duplicate release archive checksum"
+        );
+        let data = host::read(path, 256 * 1024 * 1024)?;
+        ensure!(
+            entries[0]["size"].as_u64() == Some(data.len() as u64)
+                && entries[0]["sha256"].as_str() == Some(host::hash(&data).as_str()),
+            "release archive checksum mismatch"
+        );
+        return Ok(());
+    }
     ensure!(
         fs::read_to_string(format!("{}.sha256", path.display()))?.trim()
             == format!(
@@ -234,4 +272,40 @@ pub fn verify_sidecar(path: &Path) -> Result<()> {
         "archive checksum mismatch"
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod release_checksum_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn public_manifest_checks_exact_archive_bytes_and_inventory() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("edk.tar.xz");
+        fs::write(&path, b"archive bytes").unwrap();
+        let entry = json!({"name":"edk.tar.xz","size":13,"sha256":host::hash(b"archive bytes")});
+        let manifest =
+            json!({"schema":3,"repository":"Meshbus/sdk-meshbus","assets":[entry.clone()]});
+        let metadata = temp.path().join("release-manifest.json");
+        host::json(&metadata, &manifest).unwrap();
+        verify_sidecar(&path).unwrap();
+        fs::write(&path, b"changed bytes").unwrap();
+        assert!(verify_sidecar(&path).is_err());
+        fs::write(&path, b"archive bytes").unwrap();
+        let mut duplicate = manifest.clone();
+        duplicate["assets"] = json!([entry.clone(), entry]);
+        host::json(&metadata, &duplicate).unwrap();
+        assert!(verify_sidecar(&path).is_err());
+        let mut wrong_size = manifest.clone();
+        wrong_size["assets"][0]["size"] = json!(0);
+        host::json(&metadata, &wrong_size).unwrap();
+        assert!(verify_sidecar(&path).is_err());
+        host::json(&metadata, &manifest).unwrap();
+        fs::write(path.with_file_name("edk.tar.xz.sha256"), "corrupt sidecar").unwrap();
+        assert!(verify_sidecar(&path).is_err());
+        fs::remove_file(path.with_file_name("edk.tar.xz.sha256")).unwrap();
+        fs::remove_file(metadata).unwrap();
+        assert!(verify_sidecar(&path).is_err());
+    }
 }

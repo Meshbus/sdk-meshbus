@@ -62,15 +62,12 @@ This explicitly invokes Cargo, applies path remapping, and rejects binaries
 containing the current workspace or home path. The supported archive targets
 are arm64 and x86-64 for macOS, Windows and Linux. Use `--target` with a
 configured Cargo linker/SDK to cross-compile; the default target is the build
-host. The command does not sign or notarize the executable. CLI archives retain their independent version and may accompany a
-firmware Alpha release; they are not inputs to firmware assembly.
-CLI archives carry `THIRD-PARTY-NOTICES.txt` from the CLI's own `NOTICE` and
-`licenses/` collected from the target-filtered Cargo graph. `dependencies.json`
-labels runtime packages and conservatively retained code generators;
-`build-tools.json` records host tools separately. Development and unreachable
-packages are excluded. The embedded protobuf descriptor's source materials and
-digest are recorded in `generated-materials.json`; build tools and their outputs
-must not be treated as the same distribution input.
+host. The command does not sign or notarize the executable. Names use the
+firmware release version: `meshbus-cli-<release>-<target>.tar.gz` (Windows `.zip`).
+The manifest separately records the independent Cargo/executable version.
+Each `meshbus/` archive root contains the executable, manifest.json, SHA256SUMS
+and NOTICE.txt. Detailed dependency/generator materials stay in the private CI
+part; see [licensing](LICENSING.md#distribution-notices-and-evidence).
 
 See [CLI usage](scripts/meshbus/README.md).
 
@@ -232,15 +229,15 @@ boot components as described above.
 
 | Format | Images |
 | --- | --- |
-| MCUboot | Bootloader and bootable APP BINs, available HEX files, merged `full.bin` / `full.hex`; public verification PEM only when authenticated |
+| MCUboot | Bootloader and bootable APP BINs, available HEX files, merged `firmware.bin` / `firmware.hex`; public verification PEM only when authenticated |
 | UF2 | `app.uf2`, `app.bin`, available `app.hex`; no bootloader, SoftDevice or merged image |
 
-Archives also include `flash-map.json`, checksums, license texts and notices,
+Archives also include `flash-map.json`, SHA256SUMS, NOTICE.txt,
 and an SBOM when metadata is available. Image addresses and bounds come from
 the final build. `flash-map.json` also records `CONFIG_SOC` and native image
 SHA-256 values. It is copied beside `release-part.json` and consumed by
 `meshbus firmware inspect/flash --manifest` after extracting the matching images;
-the CLI does not maintain a separate product partition table. `full.bin` begins
+the CLI does not maintain a separate product partition table. `firmware.bin` begins
 at its recorded address and fills gaps with
 `0xff`; it is not an application-slot image or a delta-package input.
 
@@ -265,8 +262,8 @@ and physical application execution establish different results.
 
 ```sh
 "$MESHBUS_CLI" edk -d 'build/<sysbuild-dir>' -o build/edk --development
-"$MESHBUS_CLI" edk verify 'build/edk/<artifact>-edk.tar.xz'
-"$MESHBUS_CLI" edk qualify 'build/edk/<artifact>-edk.tar.xz' \
+"$MESHBUS_CLI" edk verify 'build/edk/meshbus-edk-<version>-<board>.tar.xz'
+"$MESHBUS_CLI" edk qualify 'build/edk/meshbus-edk-<version>-<board>.tar.xz' \
   --zephyr-sdk /path/to/zephyr-sdk \
   --packages-root /path/to/c-extension \
   --packages-root /path/to/cxx-extension --packages-output build/extensions
@@ -279,11 +276,14 @@ a toolchain. `edk qualify` adds compiler/header checks and builds the supplied
 extensions. Compiler selection must match the EDK's target ABI and C library;
 availability of a CLI archive for a host does not qualify its compiler.
 
-EDKs include the Apache-2.0 text in `LICENSE.txt` and
-`LICENSES/Apache-2.0.txt` for Meshbus-owned and Zephyr headers, together with
-`NOTICE.txt` and retained file-level third-party notices. Independent ZUI
-headers include `ZUI-NOTICES.md` with their complete Apache-2.0 terms. The CLI verifies this
-Apache-2.0 layout.
+EDKs use `meshbus-edk-<version>-<board>.tar.xz`. They retain compiler inputs,
+source header declarations and one NOTICE.txt covering actual exported headers.
+Schema 2 binds this notice to its digest; schema 1 archives remain verifiable.
+Font arrays and the full font catalog are not part of the EDK.
+
+For public downloads, keep release-manifest.json beside the EDK archive;
+`edk verify` checks its archive size and SHA256 from that manifest. Private
+exports retain their `.sha256` sidecars. Missing or conflicting checksums fail.
 
 The low-level `llext` builder needs the CLI, extracted EDK, extension source,
 CMake, Ninja and compatible compiler tools. Its built-in compiler forwarding
@@ -388,33 +388,16 @@ references and license information with the release. Resolve permission gaps
 through contribution review; an SPDX `NOASSERTION` field alone does not establish
 that the actual permission is unknown.
 
-Firmware archives carry `licenses/` and `license-materials.json`. The collector
-uses the APP and bootloader's private SPDX source inventories and build module
-roots to select components, retaining root/standard terms, nested source licenses
-and leading C/C++ attribution banners. It also includes schema materials for
-generated bindings and the built-in predictive dictionary's ISC notice.
+Firmware archives contain one NOTICE.txt with applicable component, selected
+font, schema, dictionary and toolchain runtime terms. Detailed selection and
+material files stay under `material-evidence/` beside the archive in private CI
+parts. Staging regenerates the notice and checks the existing material and font
+constraints. Missing/changed required materials fail; development collections
+without SPDX remain `partial-no-spdx` and are ineligible for public staging.
 
-U8g2 font notices are selected from defined font-array object symbols in the
-unstripped ELF. The package retains individual attribution, family notices,
-catalog license/status, source hashes and supplemental full terms. Generic
-terms may cover more than the selected fonts; their inclusion does not approve
-restricted/review-required fonts. Missing records or changed notice hashes fail
-packaging. Custom predictive dictionaries must carry adjacent license/notice
-files or a `<dictionary>.license` sidecar with the applicable standard texts.
-
-For SDK GCC builds, packaging records the SDK version and final link map's
-runtime archive paths/digests. It retains installed GCC runtime exception terms
-and Picolibc/Newlib copyright/permission materials under `licenses/toolchain-*`.
-Missing configured archives or installed notices fail collection. This binds
-review to the actual SDK inputs without inferring grants from a compiler name.
-
-Development builds without SPDX carry `partial-no-spdx` notice selection.
-Collected component materials do not determine every toolchain runtime, generated
-input, license choice or source-delivery obligation. Contributors and maintainers
-review these when the applicable inputs or usage change; reuse the recorded
-choices in [licensing](LICENSING.md#external-dependency-license-selections).
-For source distributions, retain all applicable declarations, including for
-unselected fonts and test libraries.
+[Licensing](LICENSING.md#distribution-notices-and-evidence) owns selection and
+contribution obligations; binary packaging does not change source redistribution
+requirements.
 
 Technical flash maps, release-part and EDK manifests retain exact source SHAs.
 Raw SPDX data can also include local source origins and generation times.
@@ -481,61 +464,44 @@ under the existing admission policy. Hardware validation stays `not-run`, produc
 stays false and R1 UF2 authentication stays `none`. CI cannot establish boot,
 RF, recovery, resource/soak or MBA runtime acceptance.
 
-The public set contains each original firmware archive, standalone APP UF2 or
-MCUboot BIN, curated public SBOM and matching EDK when the product supports
-LLEXT. Original CLI archives cover arm64 and x86-64 macOS, Windows and Linux and
-must carry matching native validation evidence. UF2 notices and license texts
-travel in the companion firmware archive; retain both when redistributing.
-UF2 requires an existing compatible bootloader and SoftDevice. MCUboot BIN is
-an application-slot image; merged images and matching bootloader are inside the
-firmware archive, with addresses and recovery requirements in `flash-map.json`.
-CLI packages are not code-signed or notarized. Registration and CI packaging
-provide no hardware qualification or erase-all authorization.
+The current public set contains **14 assets**:
 
-Public manifest schema 2 records every product and CLI platform, their separate
-versions, source and actual qualification. Schema 1 remains supported for the
-original R1 pilot. The public manifest enumerates payload names, sizes and
-SHA256 values, the
-fixed source/tag, frozen dependencies, immutable builder, compiler/CLI identity,
-Actions run and actual qualification. `SHA256SUMS` covers the payloads and
-manifest; it excludes itself. A complete inventory hashing both metadata files
-is retained in Actions. Original archives are copied without rebuilding or
-repacking. Private SPDX inventories, build logs and `release-source.json` remain
-outside the public download set. Relative private-evidence locators in an
-existing flash map are references, not bundled source-file inventories.
+| Count | Download | Archive contents |
+| --- | --- | --- |
+| 4 | `meshbus-<release>-<board>.tar.gz` | Actual app.bin/hex/uf2; MCUboot products also mcuboot.bin/hex and firmware.bin/hex; flash-map.json, SBOM.spdx, SHA256SUMS, NOTICE.txt |
+| 3 | `meshbus-edk-<release>-<board>.tar.xz` | Public compiler inputs, source headers, edk-release.json, NOTICE.txt |
+| 6 | `meshbus-cli-<release>-<target>.tar.gz` (Windows `.zip`) | meshbus (or meshbus.exe), manifest.json, SHA256SUMS, NOTICE.txt |
+| 1 | `release-manifest.json` | Product/CLI identity, qualification and payload hashes |
+
+Firmware and CLI archive roots remain `firmware/` and `meshbus/`; EDK remains
+`llext-edk/`. No standalone APP, SBOM or outer SHA256SUMS is published. Full
+qualified targets remain in metadata; conflicting board basenames fail.
+UF2 still requires an existing compatible bootloader and SoftDevice. MCUboot
+app.bin is a slot image; firmware.bin/hex are merged images whose addresses come
+from flash-map.json. Preserve storage and existing boot components.
+
+Manifest schema 3 records the matrix, release and independent CLI versions,
+source/tag, frozen dependencies, immutable builder, qualification and every
+payload's size/SHA256. Internal Actions inventory additionally hashes the public
+manifest, covering all fourteen files. Schemas 1/2 remain supported for immutable
+alpha.1/2. Staging can normalize retained legacy candidates after validation;
+newly produced archives are already compact. Private SPDX, raw material files,
+build logs and release-source.json are excluded from public downloads.
 
 ### Distribution material evidence
 
-Candidate and Alpha export automatically check every actual firmware/EDK archive
-and each CLI archive, including native proofs, dependency notices and generated
-protobuf materials. They retain `license-evidence.json`; schema 2 groups product
-and CLI material scopes. Its `scope` and `scope_sha256`
-structure records selected declarations, dependency revisions, notice hashes,
-fonts, compiler/runtime inputs and EDK notices. The digest describes material
-inputs for provenance; it is not an approval and changes do not require a new
-release-specific approval record. No `approved` field is produced.
+Candidate preparation checks the complete matrix's component, font, runtime,
+generated-code and EDK materials and native proofs. `--evidence-only` retains
+`alpha-license-evidence/license-evidence.json` without public assets. Alpha
+staging performs the same checks and then generates its public set.
 
-Manual Candidate preparation uses `--evidence-only` and retains the
-`alpha-license-evidence` artifact without staging public assets. Alpha staging
-performs the same checks before generating its public set. Missing/empty
-required notices, invalid runtime inventory, corrupt checksums or font notices,
-restricted/unreviewed fonts and missing EDK material remain blocking. The
-existing source-policy and font checks remain required.
-
-Contributors identify rights, license alternatives, exceptions and applicable
-source/notice obligations when introducing or updating external code, fonts,
-generated inputs, runtime inputs or exported headers. Maintainers review those
-changes before merging under [contribution review](CONTRIBUTING.md#maintainer-review-and-ci)
-and record selections in [licensing](LICENSING.md#external-dependency-license-selections).
-Reuse existing conclusions when applicable terms and usage are unchanged;
-resolve genuinely unknown grants and newly discovered gaps before publication.
-An SBOM `NOASSERTION` field alone does not determine whether the actual source
-permission is known. CI does not assert ownership or legal clearance.
-
-There is no per-Alpha approval file or approval digest in the public manifest.
-New releases use manifest schema 2 with product and CLI identities; the published
-schema 1 pilot remains immutable and verifiable. Material evidence remains in
-Actions; licenses and notices remain in the firmware, EDK and CLI archives.
+Evidence schema 2 preserves product/CLI scopes, selected declarations, dependency
+revisions, material hashes and qualification. `scope_sha256` is provenance,
+not approval. Missing/empty notices, corrupt hashes, incomplete runtime evidence,
+restricted/unreviewed fonts and source/version/asset conflicts remain blocking.
+No approval field or per-Alpha approval file is required. Contribution obligations
+and license choices live in [licensing](LICENSING.md); each public archive retains
+its applicable terms in NOTICE.txt.
 
 Only CI-owned drafts can be resumed from their original verified upload set.
 Uploaded bytes are downloaded and checked before public visibility. The final

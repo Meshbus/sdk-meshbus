@@ -9,8 +9,120 @@ decision or a guarantee that a distribution's source obligations are fulfilled.
 import json
 from pathlib import Path
 import re
+import shutil
 
 import artifacts as art
+
+
+def font_term_ids(font):
+    identifiers = re.findall(r"[A-Za-z0-9][A-Za-z0-9.-]*", font["license"])
+    terms = {"u8g2-texts-" + identifier.lower().replace(".", "-") for identifier in identifiers}
+    terms |= {name + "-txt" for name in terms}
+    family = (font.get("family", "") + " " + font.get("group", "")).lower()
+    if "iconic" in family:
+        terms |= {"u8g2-texts-open-iconic-font-license-txt", "u8g2-texts-open-iconic-icon-license-txt"}
+    if "siji" in family:
+        terms.add("u8g2-texts-siji-license-txt")
+    return terms
+
+
+def combined_notice(root):
+    """Deduplicate exact text, keeping associations and selected attribution."""
+    groups = {}
+    fonts = root / "licenses/u8g2/fonts/selected-fonts.json"
+    selected_fonts = json.loads(art.read(fonts)) if fonts.exists() else []
+    font_terms = set().union(*(font_term_ids(font) for font in selected_fonts))
+
+    def retain(name, text):
+        art.require(text.strip(), f"empty notice: {name}")
+        key = art.digest(text.encode())
+        groups.setdefault(key, {"text": text, "sources": []})["sources"].append(name)
+
+    for path in art.files(root):
+        name = path.relative_to(root).as_posix()
+        if path.suffix == ".json" or path.name in ("REUSE.toml", "LICENSING.md"):
+            continue
+        if name.startswith("licenses/u8g2/fonts/u8g2-texts-") and path.stem not in font_terms:
+            continue
+        if name.startswith("licenses/") or path.name in ("LICENSE.txt", "NOTICE.txt", "THIRD-PARTY-NOTICES.txt"):
+            retain(name, art.notice_text(path))
+    for font in selected_fonts:
+        retain("font " + font["symbol"], font["attribution"])
+    dependencies = root / "dependencies.json"
+    if dependencies.exists():
+        for row in json.loads(art.read(dependencies)):
+            if "MPL-2.0" in (row.get("license") or ""):
+                name, version = row["name"], row["version"]
+                art.relative(f"{name}/{version}")
+                retain(f"source availability: {name}-{version}",
+                       f"The MPL-2.0 covered source for {name} {version} is available at "
+                       f"https://crates.io/api/v1/crates/{name}/{version}/download\n")
+    art.require(groups, "missing notice materials")
+    return ("Meshbus distribution notices. Original terms apply to their associated components.\n"
+            + "".join("\n=== " + ", ".join(sorted(row["sources"])) + " ===\n"
+                      + row["text"] + "\n" for _, row in sorted(groups.items()))).encode()
+
+
+def separate_evidence(root, part):
+    """Move collected materials out of the download and bind its one notice."""
+    evidence = part / "material-evidence"
+    evidence.mkdir()
+    for path in list(root.iterdir()):
+        if path.name in {"licenses", "license-materials.json", "dependencies.json", "build-tools.json",
+                         "generated-materials.json", "LICENSE.txt", "NOTICE.txt", "THIRD-PARTY-NOTICES.txt"}:
+            shutil.move(str(path), evidence / path.name)
+    notice = combined_notice(evidence)
+    (root / "NOTICE.txt").write_bytes(notice)
+    return {"notice": "NOTICE.txt", "sha256": art.digest(notice)}
+
+
+EDK_NOTICE = ("Meshbus public EDK. Original copyright and permission declarations remain in the exported headers.\n"
+              "The terms below supplement those declarations. Apache/GPL dual-licensed headers use Apache-2.0;\n"
+              "BSD-2-Clause/CC0 dual-licensed headers use BSD-2-Clause. Font arrays are not exported.\n")
+
+
+def edk_license_ids(root):
+    identifiers = {"Apache-2.0"}
+    include = root / "include"
+    marker = "SPDX" + r"-License-Identifier:\s*([^\n]+)"
+    for path in art.files(include) if include.exists() else []:
+        text = art.read(path).decode("utf-8", errors="replace")
+        for expression in re.findall(marker, text):
+            expression = expression.split(r"\n")[0].strip().removesuffix("*/").strip()
+            art.require(re.fullmatch(r"[A-Za-z0-9.+-]+(?:\s+(?:AND|OR|WITH)\s+[A-Za-z0-9.+-]+)*", expression)
+                        and not {"AND", "OR"} <= set(expression.split()),
+                        f"unsupported exported-header license expression: {expression}")
+            names = set(expression.split()) - {"AND", "OR", "WITH"}
+            if "OR" in expression.split() and "Apache-2.0" in names:
+                names = {"Apache-2.0"}
+            elif "OR" in expression.split() and "BSD-2-Clause" in names:
+                names = {"BSD-2-Clause"}
+            identifiers.update(names)
+    if (root / "include/modules/lib/u8g2/include/display").exists():
+        identifiers.add("BSD-2-Clause")
+    return identifiers
+
+
+def edk_terms(root, apache):
+    sdk = Path(__file__).resolve().parents[2]
+    result = {}
+    for identifier in sorted(edk_license_ids(root)):
+        if identifier == "Apache-2.0":
+            result[identifier] = apache
+        else:
+            paths = [directory / f"{identifier}.txt" for directory in
+                     (sdk / "LICENSES", sdk.parent / "zephyr/LICENSES")]
+            path = next((p for p in paths if p.is_file()), None)
+            art.require(path is not None, f"missing exported-header license text: {identifier}")
+            result[identifier] = art.notice_text(path)
+    return result
+
+
+def edk_notice(root, apache, terms=None):
+    """Source headers retain attribution; include each applicable full text once."""
+    terms = terms if terms is not None else edk_terms(root, apache)
+    return (EDK_NOTICE + "".join(f"\n=== {name} ===\n{text}\n"
+                                for name, text in sorted(terms.items()))).encode()
 
 
 def cargo_packages(metadata, root_id):
@@ -63,8 +175,8 @@ def material_files(root):
     """Root declarations and standard license directories; no full source walk."""
     result = set()
     for path in root.iterdir():
-        if path.is_file() and (path.name == "REUSE.toml" or
-                              path.name.lower().startswith(("license", "licensing", "copying", "copyright", "notice"))):
+        if path.is_file() and path.name not in ("REUSE.toml", "LICENSING.md") and \
+                path.name.lower().startswith(("license", "copying", "copyright", "notice")):
             result.add(path)
         elif path.is_dir() and path.name.lower() in ("licenses", "license"):
             result.update(art.files(path))
@@ -159,9 +271,7 @@ def font_notices(module, symbols, output):
     sources = json.loads(art.read(fonts / "sources.json"))
     records = {entry["id"]: entry for entry in sources["notices"]}
     art.require(len(records) == len(sources["notices"]), "duplicate font notice record")
-    # These are generic full terms referenced by group notices. Keep the small
-    # set together rather than infer license choices from free-form strings.
-    wanted = {name for name in records if name.startswith("u8g2-texts-")}
+    wanted = set()
     source = art.read(module / "src/u8g2_fonts.c", 32 * 1024 * 1024).decode()
     entries = []
     for symbol in sorted(symbols):
@@ -170,6 +280,15 @@ def font_notices(module, symbols, output):
         family = max(matches, key=len)
         entry = catalog["families"][family]
         group = catalog["groups"][entry["group"]]
+        license_id = entry.get("license", group["license"])
+        # Supplemental Creative Commons terms have stable SPDX-derived names.
+        # Family notices carry the other grants (MIT, Adobe/DEC and BSD).
+        for identifier in re.findall(r"[A-Za-z0-9][A-Za-z0-9.-]*", license_id):
+            term = "u8g2-texts-" + identifier.lower().replace(".", "-")
+            selected_terms = {name for name in records if name in (term, term + "-txt")}
+            art.require(not identifier.startswith(("CC-", "CC0-")) or selected_terms,
+                        f"missing supplemental font terms: {identifier}")
+        wanted.update(records.keys() & font_term_ids({"license": license_id, "family": family, "group": entry["group"]}))
         art.require(group.get("notice"), f"missing family notice: {symbol}")
         for key in ("notice", "baseline_notice"):
             if group.get(key):

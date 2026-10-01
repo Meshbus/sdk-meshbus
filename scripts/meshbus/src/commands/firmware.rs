@@ -611,11 +611,23 @@ mod tests {
     }
 
     #[test]
+    fn compact_flash_map_keeps_image_validation_and_programming_plan() {
+        let fixture = Fixture::new();
+        let mut manifest = fixture.manifest.clone();
+        manifest["schema"] = json!(2);
+        manifest["license_materials"] = json!({"notice":"NOTICE.txt", "sha256":"f".repeat(64)});
+        let args = fixture.args();
+        fs::write(&args.manifest, serde_json::to_vec(&manifest).unwrap()).unwrap();
+        let plan = build_plan(&args, false).unwrap();
+        assert_eq!(plan.images.len(), 1);
+    }
+
+    #[test]
     fn invalid_manifest_fails_before_programming() {
         let original = Fixture::new();
         let mut variants = vec![];
         for (key, value) in [
-            ("schema", json!(2)),
+            ("schema", json!(3)),
             ("kind", json!("cli")),
             ("soc", json!("other")),
             ("format", json!("unknown")),

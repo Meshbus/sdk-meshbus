@@ -4,6 +4,7 @@ import gzip
 import hashlib
 import io
 import json
+import lzma
 from pathlib import Path, PurePosixPath
 import re
 import shutil
@@ -109,8 +110,18 @@ def pack(root, destination, prefix):
                 archive.writestr(entry, read(path))
     else:
         with destination.open("wb") as output:
-            with gzip.GzipFile(filename="", mode="wb", fileobj=output, mtime=0) as compressed:
+            with (lzma.LZMAFile(output, "wb") if destination.name.endswith(".tar.xz") else
+                  gzip.GzipFile(filename="", mode="wb", fileobj=output, mtime=0)) as compressed:
                 with tarfile.open(fileobj=compressed, mode="w", format=tarfile.GNU_FORMAT) as archive:
+                    if destination.name.endswith(".tar.xz"):
+                        # EDK flags can refer to empty include directories.
+                        for directory in sorted(p for p in root.rglob("*") if p.is_dir()):
+                            name = directory.relative_to(root).as_posix()
+                            relative(name)
+                            entry = tarfile.TarInfo(f"{prefix}/{name}")
+                            entry.type = tarfile.DIRTYPE
+                            entry.mode = 0o755
+                            archive.addfile(entry)
                     for path in paths:
                         data = read(path)
                         entry = tarfile.TarInfo(f"{prefix}/{path.relative_to(root).as_posix()}")

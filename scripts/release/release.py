@@ -685,16 +685,16 @@ def firmware(build_dir, output, development, image_public_key=None, app_sdk=None
         for address, data in segments:
             full[address - first:address - first + len(data)] = data
         if mcuboot:
-            (root / "full.bin").write_bytes(full)
-            (root / "full.hex").write_text(full_hex(segments), encoding="ascii", newline="\n")
+            (root / "firmware.bin").write_bytes(full)
+            (root / "firmware.hex").write_text(full_hex(segments), encoding="ascii", newline="\n")
         sbom = generate_spdx(
             build, sysbuild, root,
             {"full_bin_sha256": art.digest(full), "images": images, "provenance": source,
              "target": target, "version": version},
             source_root, not development, domains=domains)
-        notices = licensing.firmware(source_root, domains, sbom, sysbuild, root,
-                                     {name: config(path / "zephyr/.config") for name, path in domains.items()}, cache)
-        record = {"schema": 1, "kind": "firmware", "id": product["id"], "version": version,
+        licensing.firmware(source_root, domains, sbom, sysbuild, root,
+                           {name: config(path / "zephyr/.config") for name, path in domains.items()}, cache)
+        record = {"schema": 2, "kind": "firmware", "id": product["id"], "version": version,
                   "format": format_name,
                   "authentication": authentication,
                   "target": target, "soc": soc, "publishable": False, "engineering": development,
@@ -706,28 +706,28 @@ def firmware(build_dir, output, development, image_public_key=None, app_sdk=None
                             "west_version": run(["west", "--version"], capture=True)},
                   "images": images,
                   "sbom": sbom,
-                  "license_materials": notices,
                   "validation": {"build": "passed", "hardware": "not-run", "production_release": "not-qualified"}}
         if mcuboot:
-            record["full_bin"] = {"file": "full.bin", "address": first, "fill": 255}
+            record["full_bin"] = {"file": "firmware.bin", "address": first, "fill": 255}
         if uf2:
             record["uf2"] = uf2
         if edk_tool:
             record["edk_tool"] = edk_tool
         if signing:
             record["signing"] = signing
-        art.write_json(root / "flash-map.json", record)
         shutil.copyfile(source_root / "LICENSE", root / "LICENSE.txt")
         (root / "NOTICE.txt").write_text(
-            ("Meshbus engineering firmware candidate. Not production-qualified. full.bin starts at the address in "
+            ("Meshbus engineering firmware candidate. Not production-qualified. firmware.bin starts at the address in "
             "flash-map.json; it is not an application-slot image or a DFOTA source. Preserve storage; do not infer "
-            "erase-all authorization. See licenses/ and license-materials.json for collected declarations.\n") if mcuboot else
+            "erase-all authorization. Applicable terms follow below.\n") if mcuboot else
             ("Meshbus UF2 application candidate. Not production-qualified. Install app.uf2 using the existing "
              "compatible UF2 bootloader and SoftDevice. This archive contains only the application; it does not "
              "include or replace the bootloader, SoftDevice or settings. UF2 payload verification is not a "
-             "cryptographic signature. See licenses/ and license-materials.json for collected declarations.\n"), encoding="utf-8")
+             "cryptographic signature. Applicable terms follow below.\n"), encoding="utf-8")
+        record["license_materials"] = licensing.separate_evidence(root, part)
+        art.write_json(root / "flash-map.json", record)
         art.checksums(root)
-        art.pack(root, part / f"meshbus-{normalize(version)}-{product_name(product)}-firmware.tar.gz", "firmware")
+        art.pack(root, part / f"meshbus-{normalize(version)}-{target.split('/')[0]}.tar.gz", "firmware")
         shutil.copyfile(root / "flash-map.json", part / "flash-map.json")
         shutil.copyfile(root / "app.bin", part / "app.bin")
         if uf2:
@@ -739,7 +739,7 @@ def firmware(build_dir, output, development, image_public_key=None, app_sdk=None
         art.require(all(art.digest(art.read(path)) == sha for path, sha in inputs.items()),
                     "EDK export changed the firmware build. Run 'west release build' into a fresh output "
                     "directory; this partial package has no success record.")
-        archives = list(part.glob("*-edk.tar.xz"))
+        archives = list(part.glob("*.tar.xz"))
         art.require(len(archives) == 1, "LLEXT product must produce exactly one EDK")
         art.verify_sidecar(archives[0])
         manifest = cli_json("edk", "verify", archives[0], command=edk_command)["manifest"]
@@ -901,11 +901,6 @@ def client(args):
         shutil.copyfile(source_root / "LICENSE", root / "LICENSE.txt")
         (root / "THIRD-PARTY-NOTICES.txt").write_text(
             art.notice_text(crate / "NOTICE"), encoding="utf-8")
-        (root / "README.txt").write_text(
-            "Meshbus Rust CLI. Use meshbus --help. Offline package tools and device commands require no Python/west/protoc. "
-            "Extension builds require external CMake, Ninja and Zephyr SDK. Linux USB/serial permissions and Windows probe "
-            "drivers are OS prerequisites. Firmware/EDK production requires a standard west workspace. "
-            "This candidate has no production code signature or notarization.\n", encoding="utf-8")
         art.collect_licenses(source_root, root, runtime_packages)
         generated = licensing.copy_component(proto_root, root, "meshbus-protobufs",
                                              [p.relative_to(proto_root).as_posix()
@@ -915,7 +910,12 @@ def client(args):
                      "Generated material requires separate review.", "packages": build_tools})
         art.write_json(root / "generated-materials.json", {
             "protobuf_descriptor": {**generated, "sha256": art.digest(art.read(descriptor))}})
-        record = {"schema": 1, "kind": "cli", "target": target, "version": package["version"], "publishable": False,
+        fields = dict(re.findall(r"^([A-Z_]+)\s*=\s*(.*?)\s*$", (source_root / "apps/meshbus/VERSION").read_text(), re.M))
+        release_version = ".".join(str(int(fields[k])) for k in ("VERSION_MAJOR", "VERSION_MINOR", "PATCHLEVEL"))
+        if fields.get("EXTRAVERSION"):
+            release_version += "-" + fields["EXTRAVERSION"]
+        notice = licensing.separate_evidence(root, part)
+        record = {"schema": 2, "kind": "cli", "release_version": release_version, "license_materials": notice, "target": target, "version": package["version"], "publishable": False,
                   "provenance": source, "build_host": host, "cross_compiled": target != host,
                   "development": development, "build_profile": profile,
                   "source_snapshot": ({"sha256": art.digest(art.read(source_snapshot / "cli-source.json")),
@@ -928,7 +928,7 @@ def client(args):
         art.write_json(root / "manifest.json", record)
         art.checksums(root)
         extension = "zip" if "windows" in target else "tar.gz"
-        art.pack(root, part / f"meshbus-{package['version']}-{target}.{extension}", "meshbus")
+        art.pack(root, part / f"meshbus-cli-{release_version}-{target}.{extension}", "meshbus")
     art.write_json(part / "release-part.json", record)
     art.checksums(part)
     return part
@@ -945,7 +945,7 @@ def assemble(args):
         part = path.parent
         art.verify_checksums(part)
         record = json.loads(art.read(path, 4 * 1024 * 1024))
-        art.require(record.get("schema") == 1 and record.get("publishable") is False, "invalid candidate record")
+        art.require(record.get("schema") in (1, 2) and record.get("publishable") is False, "invalid candidate record")
         if record["kind"] == "firmware":
             identity = record["target"]
             expected = inventory.get(identity)
@@ -971,10 +971,10 @@ def assemble(args):
                 art.require(image["address"] == image["partition_address"] and
                             len(art.read(part / "app.bin", MAX_IMAGE)) <= image["partition_size"],
                             "MCUboot application exceeds recorded partition")
-            firmware_archives = list(part.glob("*-firmware.tar.gz"))
+            firmware_archives = list(part.glob("*.tar.gz"))
             art.require(len(firmware_archives) == 1, "product must have exactly one firmware archive")
             if record["capabilities"]["llext"]:
-                archives = list(part.glob("*-edk.tar.xz"))
+                archives = list(part.glob("*.tar.xz"))
                 art.require(len(archives) == 1, "LLEXT product must have exactly one EDK")
                 if edk_command is None:
                     edk_command = cli_command(require_explicit=True)
@@ -994,6 +994,8 @@ def assemble(args):
             raise ValueError("unknown release part")
         records.append(record)
     art.require(products == set(inventory), "release is missing required firmware targets")
+    art.require(len({target.split("/")[0] for target in products}) == len(products),
+                "asset name collision: board basename")
     art.require(len(versions) == 1, "mixed firmware versions")
     for path in files:
         if path.name.endswith((".tar.gz", ".tar.xz", ".zip")):

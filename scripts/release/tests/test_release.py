@@ -123,7 +123,7 @@ class ArtifactTests(unittest.TestCase):
         self.assertEqual(one.read_bytes(), two.read_bytes())
         self.assertEqual((first / "app.bin").read_bytes(), hash_image(b"application"))
         with tarfile.open(one) as archive:
-            merged = archive.extractfile("firmware/full.bin").read()
+            merged = archive.extractfile("firmware/firmware.bin").read()
             self.assertEqual(merged[:4], b"boot")
             self.assertEqual(merged[4:4096], b"\xff" * 4092)
             self.assertEqual(merged[4096:], hash_image(b"application"))
@@ -666,7 +666,7 @@ class UF2Tests(unittest.TestCase):
         with tarfile.open(next(part.glob("*.tar.gz"))) as archive:
             names = archive.getnames()
             self.assertIn("firmware/app.uf2", names)
-            self.assertNotIn("firmware/full.bin", names)
+            self.assertNotIn("firmware/firmware.bin", names)
             self.assertNotIn("firmware/mcuboot.bin", names)
             self.assertNotIn("firmware/image-public.pem", names)
         art.verify_checksums(part)
@@ -1102,6 +1102,9 @@ class EntryTests(unittest.TestCase):
         shutil.copyfile(SCRIPTS.parent / "LICENSE", repo / "LICENSE")
         shutil.copytree(SCRIPTS.parent / "LICENSES", repo / "LICENSES")
         shutil.copyfile(SCRIPTS / "meshbus/NOTICE", crate / "NOTICE")
+        version_path = repo / "apps/meshbus/VERSION"
+        version_path.parent.mkdir(parents=True)
+        version_path.write_text("VERSION_MAJOR = 1\nVERSION_MINOR = 0\nPATCHLEVEL = 0\nVERSION_TWEAK = 0\nEXTRAVERSION = alpha.3\n")
         (crate / "Cargo.lock").write_text("fixture lock\n")
         (workspace / "meshbus-cli").write_bytes(b"fixture CLI executable")
         (workspace / "meshbus.pb").write_bytes(b"fixture descriptors")
@@ -1140,17 +1143,20 @@ class EntryTests(unittest.TestCase):
         self.assertTrue(record["cross_compiled"])
         art.verify_checksums(part)
         with zipfile.ZipFile(next(part.glob("*.zip"))) as archive:
-            self.assertEqual(archive.read("meshbus/THIRD-PARTY-NOTICES.txt"), (crate / "NOTICE").read_bytes())
-            self.assertEqual(archive.read("meshbus/licenses/clipboard-win-1.0.0/BSL-1.0.txt"),
-                             (repo / "LICENSES/BSL-1.0.txt").read_bytes())
-            self.assertEqual(archive.read("meshbus/licenses/meshbus-protobufs/LICENSE"),
-                             (proto / "LICENSE").read_bytes())
-            self.assertIn("meshbus/licenses/meshbus-cli-1.0.0/Apache-2.0.txt", archive.namelist())
-            self.assertFalse(any("licenses/protoc-bin-vendored" in name for name in archive.namelist()))
-            self.assertEqual([p["name"] for p in json.loads(archive.read("meshbus/dependencies.json"))],
-                             ["clipboard-win", "meshbus-cli"])
-            self.assertEqual(json.loads(archive.read("meshbus/build-tools.json"))["packages"][0]["name"],
-                             "protoc-bin-vendored")
+            self.assertEqual(set(archive.namelist()), {"meshbus/meshbus.exe", "meshbus/manifest.json",
+                                                      "meshbus/NOTICE.txt", "meshbus/SHA256SUMS"})
+            notice = archive.read("meshbus/NOTICE.txt").decode()
+            self.assertIn((crate / "NOTICE").read_text(), notice)
+            self.assertIn((repo / "LICENSES/BSL-1.0.txt").read_text(), notice)
+            self.assertIn((proto / "LICENSE").read_text(), notice)
+        self.assertEqual(record["release_version"], "1.0.0-alpha.3")
+        self.assertEqual(record["version"], "1.0.0")
+        self.assertTrue((part / "meshbus-cli-1.0.0-alpha.3-aarch64-pc-windows-msvc.zip").is_file())
+        evidence = part / "material-evidence"
+        self.assertEqual([p["name"] for p in json.loads((evidence / "dependencies.json").read_text())],
+                         ["clipboard-win", "meshbus-cli"])
+        self.assertEqual(json.loads((evidence / "build-tools.json").read_text())["packages"][0]["name"],
+                         "protoc-bin-vendored")
 
     def test_matrix_identifies_one_firmware_per_device(self):
         expected = [{"id": "mesh_probe_r1", "board": "mesh_probe_r1/nrf52840"},

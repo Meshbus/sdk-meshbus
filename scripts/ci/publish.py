@@ -123,13 +123,13 @@ def marker(tag, sha, run_id, inventory):
 
 
 def notes(tag, sha, run_id, inventory, manifest=None):
-    if manifest and manifest["schema"] == 2:
+    if manifest and manifest["schema"] in (2, 3):
         boards = ", ".join(f"`{p['target']}`" for p in manifest["products"])
         return (marker(tag, sha, run_id, inventory) + "\n\n"
                 f"Meshbus Alpha {alpha.version(tag)}. Products: {boards}.\n\n"
                 "CI build, package integrity and applicable EDK compiler checks passed. "
-                "Each firmware archive retains its flash map, licenses, notices and SBOM. "
-                "Standalone UF2 files contain only the APP and require an existing compatible "
+                "Each firmware archive retains its flash map, NOTICE.txt and SBOM. "
+                "UF2 images inside archives contain only the APP and require an existing compatible "
                 "UF2 bootloader and SoftDevice. MCUboot BIN files are application-slot images; "
                 "use the firmware archive and flash map for matching boot components and merged images. "
                 "Preserve storage and existing boot components; do not infer erase-all authorization.\n\n"
@@ -176,17 +176,19 @@ def verify_remote(github, release, expected, anonymous=False, partial=False):
 
 
 def validate_staging(assets, inventory, tag, sha):
-    alpha.art.verify_checksums(assets)
-    alpha.art.require(alpha.inventory(assets) == inventory, 'retained staging inventory conflict')
     manifest = json.loads(alpha.art.read(assets / 'release-manifest.json'))
+    if manifest['schema'] < 3:
+        alpha.art.verify_checksums(assets)
+    alpha.art.require(alpha.inventory(assets) == inventory, 'retained staging inventory conflict')
     validate_manifest(manifest, tag, sha)
-    alpha.art.require(manifest['assets'] == [p for p in inventory if p['name'] not in ('release-manifest.json', 'SHA256SUMS')],
+    alpha.art.require(manifest['assets'] == [p for p in inventory if p['name'] not in (('release-manifest.json', 'SHA256SUMS')
+                      if manifest['schema'] < 3 else ('release-manifest.json',))],
                       'publication manifest payload inventory conflict')
     return manifest
 
 
 def validate_manifest(manifest, tag, sha):
-    alpha.art.require(manifest['schema'] in (1, 2) and manifest['version'] == alpha.version(tag) and
+    alpha.art.require(manifest['schema'] in (1, 2, 3) and manifest['version'] == alpha.version(tag) and
                       manifest['tag'] == tag and manifest['source_revision'] == sha and
                       manifest['repository'] == alpha.REPOSITORY and
                       manifest['qualification']['alpha_eligible'] is True and
@@ -197,6 +199,9 @@ def validate_manifest(manifest, tag, sha):
     else:
         import tomllib
         products, cli = manifest['products'], manifest['cli']
+        schema = manifest['schema']
+        if schema == 3:
+            alpha.art.require(cli['release_version'] == alpha.version(tag), 'public CLI release version conflict')
         targets = [p['target'] for p in products]
         alpha.art.require(len(set(targets)) == len(targets) == len(alpha.product_profiles()) and
                           {t.replace('/', '_') for t in targets} == alpha.product_profiles(), 'public product matrix conflict')
@@ -205,17 +210,17 @@ def validate_manifest(manifest, tag, sha):
         alpha.art.require(cli['version'] == expected_version and len(platforms) == len(alpha.art.CLIENTS) and
                           set(platforms) == alpha.art.CLIENTS, 'public CLI matrix/version conflict')
         for product in products:
-            alpha.art.require(product['assets'] == sorted(alpha.payload_names(tag, [product])) and
+            alpha.art.require(product['assets'] == sorted(alpha.payload_names(tag, [product], schema=schema)) and
                               product['authentication'] == 'none' and
                               product['qualification']['build'] == 'passed' and
                               product['qualification']['hardware'] == 'not-run', 'public product qualification/assets conflict')
         for row in cli['targets']:
-            alpha.art.require({row['archive']} == alpha.payload_names(tag, [], {'version': cli['version'], 'targets': [row]}) and
+            alpha.art.require({row['archive']} == alpha.payload_names(tag, [], {'version': cli['version'], 'targets': [row]}, schema=schema) and
                               re.fullmatch(r'[0-9a-f]{64}', row['binary_sha256']) and
                               row['qualification']['native'] == 'passed' and
                               row['qualification']['code_signing'] == row['qualification']['notarization'] == 'not-run',
                               'public CLI qualification/assets conflict')
-        names = alpha.payload_names(tag, products, cli)
+        names = alpha.payload_names(tag, products, cli, schema=schema)
     alpha.art.require({p['name'] for p in manifest['assets']} == names and
                       len(manifest['assets']) == len(names), 'public payload allowlist conflict')
     alpha.portable(manifest)

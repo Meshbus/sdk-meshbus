@@ -344,17 +344,20 @@ class Collection(unittest.TestCase):
         alpha.collect(self.candidate, self.snapshot, self.output, self.evidence, TAG, SHA, '123', evidence_only,
                       cli=self.cli, native=self.native)
 
-    def test_complete_public_set_reuses_original_archives_and_checksums(self):
+    def test_complete_public_set_has_compact_archives_and_manifest_integrity(self):
         self.collect()
-        expected = alpha.payload_names(TAG, self.records, {'version': '1.0.0', 'targets': [{'target': t} for t in alpha.art.CLIENTS]}) | {'release-manifest.json', 'SHA256SUMS'}
+        expected = alpha.payload_names(TAG, self.records, {'version': '1.0.0', 'targets': [{'target': t} for t in alpha.art.CLIENTS]}) | {'release-manifest.json'}
         self.assertEqual({p.name for p in self.output.iterdir()}, expected)
-        for p in list(self.part.glob('*.tar.gz')) + list(self.part.glob('*.tar.xz')):
-            self.assertEqual(p.read_bytes(), (self.output / p.name).read_bytes())
-        alpha.art.verify_checksums(self.output)
+        with tarfile.open(self.output / 'meshbus-1.0.0-alpha.1-mesh_probe_r1.tar.gz') as archive:
+            self.assertEqual({m.name for m in archive if m.isfile()}, {
+                'firmware/app.bin', 'firmware/app.uf2', 'firmware/flash-map.json',
+                'firmware/SBOM.spdx', 'firmware/NOTICE.txt', 'firmware/SHA256SUMS'})
+        self.assertFalse((self.output / 'SHA256SUMS').exists())
+        publish.validate_staging(self.output, alpha.inventory(self.output), TAG, SHA)
         inventory = json.loads((self.evidence / 'inventory.json').read_text())
         publish.validate_staging(self.output, inventory, TAG, SHA)
         manifest = json.loads((self.output / 'release-manifest.json').read_text())
-        self.assertEqual(manifest['schema'], 2)
+        self.assertEqual(manifest['schema'], 3)
         self.assertFalse(manifest['qualification']['production_qualified'])
         self.assertNotIn('license_review_scope_sha256', manifest)
         self.assertFalse((self.root / 'review.json').exists())
@@ -363,6 +366,59 @@ class Collection(unittest.TestCase):
         self.collect(evidence_only=True)
         self.assertTrue((self.evidence / 'license-evidence.json').is_file())
         self.assertFalse(self.output.exists())
+
+    def compact_parts(self):
+        self.record['schema'] = 2
+        self.record['license_materials'] = alpha.licensing.separate_evidence(self.firmware, self.part)
+        alpha.art.write_json(self.firmware / 'flash-map.json', self.record)
+        self.repack()
+        for target in alpha.art.CLIENTS:
+            part = self.cli / target
+            root = self.root / ('cli-root-' + target)
+            record = json.loads((part / 'release-part.json').read_text())
+            record.update(schema=2, release_version=TAG[1:],
+                          license_materials=alpha.licensing.separate_evidence(root, part))
+            for path in list(part.glob('*.zip')) + list(part.glob('*.tar.gz')):
+                path.unlink()
+                path.with_name(path.name + '.sha256').unlink()
+            alpha.art.write_json(part / 'release-part.json', record)
+            alpha.art.write_json(root / 'manifest.json', record)
+            alpha.art.checksums(root)
+            archive = part / (f'meshbus-cli-{TAG[1:]}-{target}.' + ('zip' if 'windows' in target else 'tar.gz'))
+            alpha.art.pack(root, archive, 'meshbus')
+            alpha.art.checksums(part)
+        self.refresh()
+
+    def test_compact_parts_stage_and_evidence_only_keep_private_materials(self):
+        self.compact_parts()
+        self.collect(evidence_only=True)
+        self.assertFalse(self.output.exists())
+        self.collect()
+        self.assertTrue((self.part / 'material-evidence/license-materials.json').is_file())
+        archive = self.output / f'meshbus-cli-{TAG[1:]}-aarch64-apple-darwin.tar.gz'
+        with tarfile.open(archive) as stream:
+            self.assertEqual({m.name for m in stream if m.isfile()}, {
+                'meshbus/meshbus', 'meshbus/manifest.json', 'meshbus/NOTICE.txt', 'meshbus/SHA256SUMS'})
+
+    def test_compact_notice_tamper_fails_even_with_fresh_archive_checksums(self):
+        self.compact_parts()
+        (self.firmware / 'NOTICE.txt').write_text('truncated')
+        self.repack()
+        with self.assertRaisesRegex(ValueError, 'notice/material conflict'):
+            self.collect()
+
+    def test_compact_missing_runtime_material_still_blocks(self):
+        self.compact_parts()
+        (self.part / 'material-evidence/licenses/toolchain-picolibc/COPYING.picolibc').unlink()
+        self.refresh()
+        with self.assertRaises((ValueError, FileNotFoundError)):
+            self.collect()
+
+    def test_schema_three_rejects_outer_checksum_asset(self):
+        self.collect()
+        alpha.art.checksums(self.output)
+        with self.assertRaisesRegex(ValueError, 'payload inventory conflict'):
+            publish.validate_staging(self.output, alpha.inventory(self.output), TAG, SHA)
 
     def test_public_manifest_identifies_reused_twister_baseline(self):
         source = json.loads((self.snapshot / 'source.json').read_text())
@@ -415,7 +471,8 @@ class Collection(unittest.TestCase):
         path.write_text(path.read_text().replace('Apache-2.0', 'NOASSERTION'))
         self.repack()
         self.collect()
-        public_sbom = next(self.output.glob('*.spdx')).read_text()
+        with tarfile.open(self.output / 'meshbus-1.0.0-alpha.1-mesh_probe_r1.tar.gz') as archive:
+            public_sbom = archive.extractfile('firmware/SBOM.spdx').read().decode()
         self.assertIn('PackageLicenseDeclared: NOASSERTION', public_sbom)
         self.assertIn('PackageLicenseConcluded: NOASSERTION', public_sbom)
 
@@ -722,7 +779,7 @@ class Collection(unittest.TestCase):
             self.matrix.append({'board': target, 'id': record['id']})
         self.refresh()
         def verify(*args):
-            target = next(t for t in manifests if t.replace('/', '-') in str(args[-1]))
+            target = next(t for t in manifests if t.split('/')[0] in str(args[-1]))
             return {'manifest': manifests[target]}
         with patch.object(self.release, 'cli_json', side_effect=verify):
             self.collect()
@@ -730,7 +787,7 @@ class Collection(unittest.TestCase):
         self.assertEqual(len(manifest['products']), 4)
         self.assertEqual(len(manifest['cli']['targets']), 6)
         self.assertEqual(manifest['cli']['version'], '1.0.0')
-        self.assertIn('meshbus-1.0.0-alpha.1-mesh_probe_r2_nrf54l15_cpuapp.bin', {p.name for p in self.output.iterdir()})
+        self.assertIn('meshbus-1.0.0-alpha.1-mesh_probe_r2.tar.gz', {p.name for p in self.output.iterdir()})
         publish.validate_staging(self.output, alpha.inventory(self.output), TAG, SHA)
         scope = json.loads((self.evidence / 'license-evidence.json').read_text())['scope']
         r2 = next(p for p in scope['products'] if p['target'].startswith('mesh_probe_r2/'))
@@ -740,16 +797,22 @@ class Collection(unittest.TestCase):
 
 
 class MatrixPublication(unittest.TestCase):
+    def test_board_basename_collision_is_rejected(self):
+        products = [{'target': 'board/soc', 'format': 'uf2', 'capabilities': {'llext': False}},
+                    {'target': 'board/other', 'format': 'uf2', 'capabilities': {'llext': False}}]
+        with self.assertRaisesRegex(ValueError, 'asset name collision'):
+            alpha.payload_names(TAG, products)
+
     def test_matrix_names_include_mcuboot_and_all_cli_archives(self):
         products = [{'target': alpha.TARGET, 'format': 'uf2', 'capabilities': {'llext': True}},
                     {'target': 'mesh_probe_r2/nrf54l15/cpuapp', 'format': 'mcuboot',
                      'capabilities': {'llext': False}}]
         clients = {'version': '1.0.0', 'targets': [{'target': t} for t in alpha.art.CLIENTS]}
         names = alpha.payload_names(TAG, products, clients)
-        self.assertIn('meshbus-1.0.0-alpha.1-mesh_probe_r2_nrf54l15_cpuapp.bin', names)
-        self.assertIn('meshbus-1.0.0-x86_64-pc-windows-msvc.zip', names)
-        self.assertIn('meshbus-1.0.0-aarch64-apple-darwin.tar.gz', names)
-        self.assertEqual(len(names), 13)
+        self.assertIn('meshbus-1.0.0-alpha.1-mesh_probe_r2.tar.gz', names)
+        self.assertIn('meshbus-cli-1.0.0-alpha.1-x86_64-pc-windows-msvc.zip', names)
+        self.assertIn('meshbus-cli-1.0.0-alpha.1-aarch64-apple-darwin.tar.gz', names)
+        self.assertEqual(len(names), 9)
 
     def test_matrix_missing_cli_inputs_block_collection(self):
         with tempfile.TemporaryDirectory() as temporary:

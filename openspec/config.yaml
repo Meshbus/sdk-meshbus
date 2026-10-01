@@ -9,7 +9,7 @@ context: |
   Specs describe agreed behavior; use current source and tests to establish implementation.
   Shared artifacts use English; discuss work in the user's language.
   Markdown artifacts need no per-file SPDX declarations; do not add them.
-  Follow AGENTS.md and LICENSING.md for metadata on other file types and preserve upstream notices.
+  AGENTS.md defines SPDX scope; retrieve LICENSING.md for external inputs or distribution changes.
   Use npm run openspec -- <arguments> from the Git root.
 
 rules:

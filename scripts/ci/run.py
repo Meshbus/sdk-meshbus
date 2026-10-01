@@ -102,7 +102,7 @@ def product(board, candidate):
     if candidate:
         run('west', 'release', 'build', '--workspace', WORKSPACE, '--target', board,
             '--build-root', WORKSPACE / 'product-build', '--output', OUT / 'firmware-parts', cwd=WORKSPACE)
-        archives = list((OUT / 'firmware-parts').rglob('*-edk.tar.xz'))
+        archives = list((OUT / 'firmware-parts').rglob('*.tar.xz'))
         for index, archive in enumerate(archives):
             # The CLI emits compiler output before its JSON summary.
             with (OUT / f'edk-qualification-{index}.log').open('w') as report:

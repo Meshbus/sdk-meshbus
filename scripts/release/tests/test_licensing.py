@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+import tarfile
 import unittest
 from unittest.mock import patch
 
@@ -85,6 +86,57 @@ class LicensingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "has no license text"):
             art.collect_licenses(self.root, self.output, [{"name": "unknown", "version": "1", "license": "MIT",
                                                          "manifest_path": str(self.root / "crate/Cargo.toml")}])
+
+    def test_combined_notice_deduplicates_terms_retains_authors_and_mpl_source(self):
+        self.write("output/licenses/a-1/LICENSE", "Complete shared permission\n")
+        self.write("output/licenses/b-2/LICENSE", "Complete shared permission\n")
+        self.write("output/licenses/b-2/NOTICE", "Copyright Original Author\n")
+        self.write("output/REUSE.toml", "metadata, not permission")
+        art.write_json(self.output / "dependencies.json", [
+            {"name": "b", "version": "2", "license": "MPL-2.0"}])
+        text = licensing.combined_notice(self.output).decode()
+        self.assertEqual(text.count("Complete shared permission"), 1)
+        self.assertIn("licenses/a-1/LICENSE", text)
+        self.assertIn("licenses/b-2/LICENSE", text)
+        self.assertIn("Copyright Original Author", text)
+        self.assertIn("https://crates.io/api/v1/crates/b/2/download", text)
+        self.assertNotIn("metadata, not permission", text)
+
+    def test_edk_repack_preserves_empty_compiler_include_directory(self):
+        (self.output / "include/empty").mkdir(parents=True)
+        self.write("output/include/header.h", "/* Copyright Header Author */")
+        archive = self.root / "edk.tar.xz"
+        art.pack(self.output, archive, "llext-edk")
+        with tarfile.open(archive) as stream:
+            self.assertTrue(stream.getmember("llext-edk/include/empty").isdir())
+
+    def test_edk_does_not_silently_drop_complex_license_obligations(self):
+        marker = "SPDX" + "-License-Identifier: "
+        for expression in ('Apache-2.0 AND (MIT OR BSD-2-Clause)', 'Apache-2.0 AND MIT OR BSD-3-Clause'):
+            self.write('output/include/a.h', f'/* {marker}{expression} */')
+            with self.assertRaisesRegex(ValueError, 'unsupported exported-header license expression'):
+                licensing.edk_license_ids(self.output)
+
+    def test_font_terms_exclude_unselected_restricted_license(self):
+        module = self.font_fixture()
+        path = module / "fonts/sources.json"
+        records = json.loads(path.read_text())
+        name = "u8g2-texts-cc-by-nc-sa-3-0-txt"
+        text = "Unselected noncommercial terms"
+        self.write(f"u8g2/fonts/notices/{name}.txt", text)
+        records["notices"].append({"id": name, "sha256": art.digest(text.encode())})
+        art.write_json(path, records)
+        licensing.font_notices(module, {"u8g2_font_alpha_tr"}, self.output)
+        self.assertFalse((self.output / "licenses/u8g2/fonts" / (name + ".txt")).exists())
+
+    def test_selected_font_requires_its_supplemental_terms(self):
+        module = self.font_fixture()
+        path = module / "fonts/catalog.json"
+        catalog = json.loads(path.read_text())
+        catalog["groups"]["group"]["license"] = "CC-BY-SA-3.0"
+        art.write_json(path, catalog)
+        with self.assertRaisesRegex(ValueError, 'missing supplemental font terms'):
+            licensing.font_notices(module, {"u8g2_font_alpha_tr"}, self.output)
 
     def font_fixture(self):
         self.write("u8g2/LICENSE", "BSD U8g2 core")

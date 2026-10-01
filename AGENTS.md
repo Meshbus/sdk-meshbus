@@ -20,18 +20,18 @@ small corrections need no new change. Read the relevant active change, not all
 changes. Run `npm run openspec -- <arguments>` from the Git root. Keep generated
 skills unchanged; project customization belongs in `openspec/config.yaml`.
 
-SPDX metadata follows [licensing](LICENSING.md#per-file-metadata):
+SPDX scope:
 
-- Do not add per-file SPDX declarations to Markdown (`.md`), including READMEs,
-  agent instructions, PR templates and active or archived OpenSpec documents.
-- Source, scripts, build files, device/configuration data, test metadata and CI
-  workflows remain in scope. Use native-syntax SPDX headers when supported;
-  otherwise use provenance-backed `REUSE.toml` metadata, never invalid comments.
-- Board documentation raster images and plain version values need no headers.
-  Other configuration exemptions follow the exact reviewed license policy;
-  a filename alone does not make a new configuration exempt.
-- Preserve third-party copyright/permission notices and generated skill files.
-  Do not infer ownership or remove license texts to satisfy a metadata check.
+- Markdown needs no per-file SPDX declarations, including guidance and OpenSpec.
+- Source, scripts, build/device/configuration files, test metadata and CI remain
+  in scope: use native comments or provenance-backed REUSE metadata. Board
+  documentation raster images and plain version values are exempt; other
+  configuration exceptions follow the exact reviewed policy.
+- Preserve upstream notices and generated skills; never infer ownership or
+  remove license texts to satisfy a scanner.
+
+Read [licensing](LICENSING.md) for external inputs, attribution or distribution
+changes. Ordinary work uses the scope above without loading release history.
 
 For design reasons, regressions or earlier work, use
 [targeted history retrieval](DEVELOPMENT.md#history-retrieval). Ordinary searches

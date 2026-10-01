@@ -308,7 +308,8 @@ python scripts/ci/license_policy.py --output "$license_tmp"
 ## Interpreting validation results
 
 Use each run's license report for active exemptions and remaining findings;
-repository-policy compliance and raw REUSE compliance are separate results.
+routine summaries report repository-policy compliance. Raw REUSE results stay
+in the diagnostic artifact and need discussion only when relevant to a failure.
 The font inventory check verifies catalog consistency. Distribution and font
 selections must also respect the terms of the selected fonts.
 
@@ -415,13 +416,14 @@ are implied by local unit/static checks.
 
 ### Complete Alpha download matrix
 
-After the immutable R1 alpha.1 pilot, Alpha staging publishes all targets from
-`west release matrix`, each native APP image, firmware archive, public SBOM and
-applicable EDK, plus all six native-validated CLI archives. Both Candidate
-assembly and Alpha staging download `cli-*` and `native-validation-*` separately
-from firmware assembly and pass `--cli` and `--native` to `alpha.py`. Missing or
-conflicting product, CLI, native or material evidence fails the complete release.
-CLI archives keep their Cargo version; no host signing or notarization is implied.
-Manifest schema 2 records the per-product and CLI matrix. Schema 1 verification
-remains available for original alpha.1 downloads. Advance firmware VERSION and
-the Alpha tag together; do not add downloads to an existing public version.
+Alpha staging publishes four compact firmware archives, three applicable EDKs,
+six native-validated CLI archives and release-manifest.json (14 assets today).
+No standalone APP/SBOM or outer checksum download is exported. Archive names use
+the release version; the CLI executable's Cargo version remains separately
+recorded. See [download layout](../DISTRIBUTION.md#ci-alpha-publication).
+
+Both Candidate and Alpha pass separate `--cli` and `--native` inputs to alpha.py.
+Missing or conflicting product, native or material evidence fails the release.
+Manifest schema 3 covers the new layout; schemas 1/2 preserve original public
+alpha.1/2 verification. Advance firmware VERSION and the tag together; never add
+or replace assets in an existing public version.

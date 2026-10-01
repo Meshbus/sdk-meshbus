@@ -51,4 +51,4 @@ automatic checks of actual firmware and EDK license materials. Candidate and
 Alpha jobs retain material evidence without requiring a per-Alpha approval
 file or repeating an exhaustive component review. A newly discovered permission
 gap must be resolved through the same contribution review before publication.
-Keep the firmware archive's applicable licenses and notices with its raw UF2.
+Redistribute the applicable NOTICE.txt with extracted firmware or CLI binaries.

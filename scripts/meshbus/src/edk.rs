@@ -740,7 +740,9 @@ pub fn manifest(root: &Path) -> Result<Value> {
     let m: Value =
         serde_json::from_slice(&host::read(&root.join("edk-release.json"), 1024 * 1024)?)?;
     ensure!(
-        m["schema"] == 1 && m["publishable"].is_boolean() && m.get("profile").is_none(),
+        (m["schema"] == 1 || m["schema"] == 2)
+            && m["publishable"].is_boolean()
+            && m.get("profile").is_none(),
         "invalid EDK manifest"
     );
     metadata::string(&m, "target")?;
@@ -754,6 +756,13 @@ pub fn manifest(root: &Path) -> Result<Value> {
     );
     paths_valid(root)?;
     public_roots(root)?;
+    if m["schema"] == 2 {
+        ensure!(
+            !root.join("LICENSE.txt").exists(),
+            "unexpected legacy EDK materials"
+        );
+        verify_notices(root)?;
+    }
     if exported_symbols(&m)?.is_none() {
         ensure!(
             config(&root.join(AUTOCONF))?
@@ -798,6 +807,56 @@ fn scrub(root: &Path, ctx: &ContextData, sdk: &Path) -> Result<()> {
 }
 
 fn verify_notices(root: &Path) -> Result<()> {
+    if !root.join("LICENSE.txt").exists() {
+        let notice = host::read(&root.join("NOTICE.txt"), 1024 * 1024)?;
+        let text = std::str::from_utf8(&notice)?;
+        ensure!(
+            text.starts_with(EDK_NOTICE) && text.contains(include_str!("../../../LICENSE")),
+            "EDK notice missing Apache-2.0 terms"
+        );
+        if root.join("edk-release.json").exists() {
+            let m: Value = serde_json::from_slice(&fs::read(root.join("edk-release.json"))?)?;
+            ensure!(
+                m["schema"] == 2 && m["edk"]["notice-sha256"] == host::hash(&notice),
+                "EDK notice digest mismatch"
+            );
+            ensure!(
+                m["edk"]["sdk-sha256"] == digest(root)?,
+                "EDK compiler-input digest mismatch"
+            );
+            let hashes = m["edk"]["license-texts"]
+                .as_object()
+                .context("EDK license text inventory missing")?;
+            let ids = header_license_ids(root)?;
+            ensure!(
+                hashes.keys().cloned().collect::<BTreeSet<_>>() == ids,
+                "EDK header license inventory mismatch"
+            );
+            let mut terms = BTreeMap::new();
+            for (id, hash) in hashes {
+                let marker = format!("\n=== {id} ===\n");
+                let body = text
+                    .split_once(&marker)
+                    .context("EDK license text missing")?
+                    .1;
+                let body = body.split("\n=== ").next().unwrap();
+                let body = body
+                    .strip_suffix('\n')
+                    .context("EDK license text truncated")?;
+                ensure!(
+                    hash == &json!(host::hash(body.as_bytes())),
+                    "EDK license text digest mismatch"
+                );
+                terms.insert(id.clone(), body.to_owned());
+            }
+            ensure!(
+                text == render_notices(&terms),
+                "unexpected EDK notice material"
+            );
+        }
+        return Ok(());
+    }
+
     if root.join(ZUI_INCLUDE).is_dir() {
         ensure!(
             !host::read(&root.join("ZUI-NOTICES.md"), 1024 * 1024)?.is_empty(),
@@ -828,102 +887,100 @@ fn verify_notices(root: &Path) -> Result<()> {
     Ok(())
 }
 
-// Collect the independent module's current license and font notice inventory.
-fn u8g2_notices(module: &Path) -> Result<String> {
-    let mut output = String::new();
-    for path in [
-        "LICENSING.md",
-        "LICENSES/Apache-2.0.txt",
-        "LICENSES/BSD-2-Clause.txt",
-        "fonts/README.md",
-        "fonts/catalog.json",
-        "fonts/sources.json",
-    ] {
-        output.push_str(&format!(
-            "\n<a id=\"{}\"></a>\n\n## {path}\n\n",
-            path.replace(['/', '.'], "-")
-        ));
-        output.push_str(&fs::read_to_string(module.join(path))?);
-        output.push('\n');
+const EDK_NOTICE: &str = "Meshbus public EDK. Original copyright and permission declarations remain in the exported headers.\nThe terms below supplement those declarations. Apache/GPL dual-licensed headers use Apache-2.0;\nBSD-2-Clause/CC0 dual-licensed headers use BSD-2-Clause. Font arrays are not exported.\n";
+
+fn header_license_ids(root: &Path) -> Result<BTreeSet<String>> {
+    let mut ids = BTreeSet::from(["Apache-2.0".to_owned()]);
+    let marker = ["SPDX", r"-License-Identifier:\s*([^\n]+)"].concat();
+    let declarations = regex::Regex::new(&marker)?;
+    let supported =
+        regex::Regex::new(r"\A[A-Za-z0-9.+-]+(?:\s+(?:AND|OR|WITH)\s+[A-Za-z0-9.+-]+)*\z")?;
+    if root.join("include").exists() {
+        for path in host::files(&root.join("include"))? {
+            let bytes = host::read(&path, 64 * 1024 * 1024)?;
+            let text = String::from_utf8_lossy(&bytes);
+            for m in declarations.captures_iter(&text) {
+                let raw = m[1].split(r"\n").next().unwrap().trim();
+                let raw = raw.strip_suffix("*/").unwrap_or(raw).trim();
+                let expression = raw.split_whitespace().collect::<BTreeSet<_>>();
+                ensure!(
+                    supported.is_match(raw)
+                        && !(expression.contains("AND") && expression.contains("OR")),
+                    "unsupported exported-header license expression: {raw}"
+                );
+                if expression.contains("OR") && expression.contains("Apache-2.0") {
+                    ids.insert("Apache-2.0".to_owned());
+                } else if expression.contains("OR") && expression.contains("BSD-2-Clause") {
+                    ids.insert("BSD-2-Clause".to_owned());
+                } else {
+                    ids.extend(
+                        expression
+                            .into_iter()
+                            .filter(|v| !["AND", "OR", "WITH"].contains(v))
+                            .map(str::to_owned),
+                    );
+                }
+            }
+        }
     }
-    let sources: Value = serde_json::from_slice(&fs::read(module.join("fonts/sources.json"))?)?;
-    let notices = sources["notices"]
-        .as_array()
-        .context("U8g2 notice inventory missing")?;
-    ensure!(!notices.is_empty(), "U8g2 notice inventory empty");
-    // Source documentation links must resolve inside the standalone EDK notice.
-    for entry in notices {
-        let id = entry["id"].as_str().context("U8g2 notice ID missing")?;
-        output = output.replace(&format!("(notices/{id}.txt)"), &format!("(#{id})"));
+    if root.join(U8G2_INCLUDE).exists() {
+        ids.insert("BSD-2-Clause".to_owned());
     }
-    for (source, target) in [
-        ("fonts/README.md", "fonts-README-md"),
-        ("fonts/catalog.json", "fonts-catalog-json"),
-        ("fonts/sources.json", "fonts-sources-json"),
-        ("catalog.json", "fonts-catalog-json"),
-        ("sources.json", "fonts-sources-json"),
-        ("fonts/notices/", "fonts-sources-json"),
-    ] {
-        output = output.replace(&format!("({source})"), &format!("(#{target})"));
-    }
-    let mut seen = BTreeSet::new();
-    for entry in notices {
-        let id = entry["id"].as_str().context("U8g2 notice ID missing")?;
-        ensure!(
-            !id.is_empty()
-                && id
-                    .bytes()
-                    .all(|c| c.is_ascii_alphanumeric() || c == b'_' || c == b'-'),
-            "Invalid U8g2 notice ID"
-        );
-        ensure!(seen.insert(id), "Duplicate U8g2 notice ID");
-        let data = fs::read(module.join("fonts/notices").join(format!("{id}.txt")))?;
-        ensure!(
-            entry["sha256"].as_str() == Some(host::hash(&data).as_str()),
-            "U8g2 notice hash mismatch: {id}"
-        );
-        output.push_str(&format!("\n<a id=\"{id}\"></a>\n\n## {id}\n\n"));
-        output.push_str(std::str::from_utf8(&data)?);
-        output.push('\n');
-    }
-    Ok(output)
+    Ok(ids)
 }
 
-fn write_notices(root: &Path, sdk: &Path) -> Result<()> {
-    fs::create_dir_all(root.join("LICENSES"))?;
+fn render_notices(terms: &BTreeMap<String, String>) -> String {
+    let mut output = EDK_NOTICE.to_owned();
+    for (name, text) in terms {
+        output.push_str(&format!("\n=== {name} ===\n{text}\n"));
+    }
+    output
+}
+
+fn write_notices(root: &Path, sdk: &Path) -> Result<BTreeMap<String, String>> {
     let license = fs::read_to_string(sdk.join("LICENSE"))?;
     let apache = fs::read_to_string(sdk.join("LICENSES/Apache-2.0.txt"))?;
     ensure!(
         license.split_whitespace().eq(apache.split_whitespace()),
         "SDK root and SPDX Apache-2.0 license texts differ"
     );
-    fs::write(root.join("LICENSES/Apache-2.0.txt"), &license)?;
-    fs::copy(sdk.join("LICENSE"), root.join("LICENSE.txt"))?;
-    if root.join(U8G2_INCLUDE).is_dir() {
-        let module = sdk
-            .parent()
-            .context("SDK workspace missing")?
-            .join("modules/lib/u8g2");
-        fs::write(root.join("U8G2-NOTICES.md"), u8g2_notices(&module)?)?;
+    ensure!(
+        license
+            .split_whitespace()
+            .eq(include_str!("../../../LICENSE").split_whitespace()),
+        "EDK license text does not match Apache-2.0"
+    );
+    let mut terms = BTreeMap::new();
+    for identifier in header_license_ids(root)? {
+        let text = if identifier == "Apache-2.0" {
+            include_str!("../../../LICENSE").to_owned()
+        } else {
+            let filename = format!("{identifier}.txt");
+            let candidates = [
+                sdk.join("LICENSES").join(&filename),
+                sdk.parent()
+                    .context("SDK workspace missing")?
+                    .join("zephyr/LICENSES")
+                    .join(filename),
+            ];
+            let path = candidates
+                .iter()
+                .find(|p| p.is_file())
+                .with_context(|| format!("missing exported-header license text: {identifier}"))?;
+            fs::read_to_string(path)?
+        };
+        ensure!(
+            !text.trim().is_empty(),
+            "empty exported-header license text"
+        );
+        terms.insert(identifier, text);
     }
-    if root.join(ZUI_INCLUDE).is_dir() {
-        let module = sdk
-            .parent()
-            .context("SDK workspace missing")?
-            .join("modules/lib/zui");
-        let license = fs::read_to_string(module.join("LICENSE"))?;
-        fs::write(
-            root.join("ZUI-NOTICES.md"),
-            format!(
-                "# ZUI public headers\n\nCopyright (c) 2026 FoBE Studio. These headers use Apache-2.0.\n\n{license}"
-            ),
-        )?;
-    }
-    fs::write(
-        root.join("NOTICE.txt"),
-        "Meshbus public EDK. Meshbus-owned headers use Apache-2.0; see LICENSE.txt and LICENSES/Apache-2.0.txt. Zephyr headers use Apache-2.0. Headers with their own license or copyright notices retain those terms; these defaults do not relicense third-party content. Generated from the exact host identified by edk-release.json; no firmware signing keys or compiler binaries are included.\n",
-    )?;
-    verify_notices(root)
+    fs::create_dir_all(root)?;
+    fs::write(root.join("NOTICE.txt"), render_notices(&terms))?;
+    Ok(terms
+        .into_iter()
+        .map(|(id, text)| (id, host::hash(text.as_bytes())))
+        .collect())
 }
 
 pub fn create(build: &Path, out: &Path, development: bool, force: bool) -> Result<PathBuf> {
@@ -982,7 +1039,7 @@ pub fn create(build: &Path, out: &Path, development: bool, force: bool) -> Resul
     } else {
         Some(Elf::parse(&host_bytes)?.builtin_exports(&host_bytes)?)
     };
-    let mut manifest = json!({"schema":1,"exported-symbols":exports,"metadata-version":ctx.metadata_version()?,"publishable":!development&&clean(&ctx.provenance),"host":{"application":"app","version":ctx.version,"build-revision":macro_value(&ctx.build.join("zephyr/include/generated/zephyr/app_version.h"),"APP_BUILD_VERSION")?,"source-revision":ctx.provenance["firmware"]["revision"]},"target":ctx.target,"edk":{"header-policy":"meshbus-public-v1","sdk-sha256":digest(&root)?},"zephyr":{"version":ctx.info["cmake"]["zephyr"]["version"],"revision":ctx.provenance["projects"]["zephyr"]["revision"]},"toolchain":{"name":ctx.info["cmake"]["toolchain"]["name"],"identity":format!("{}/{}-{compiler_version}",ctx.toolchain()?.file_name().unwrap().to_string_lossy(),compiler.file_name().unwrap().to_string_lossy()),"compiler":compiler.file_name().unwrap().to_string_lossy()},"provenance":ctx.provenance});
+    let mut manifest = json!({"schema":2,"exported-symbols":exports,"metadata-version":ctx.metadata_version()?,"publishable":!development&&clean(&ctx.provenance),"host":{"application":"app","version":ctx.version,"build-revision":macro_value(&ctx.build.join("zephyr/include/generated/zephyr/app_version.h"),"APP_BUILD_VERSION")?,"source-revision":ctx.provenance["firmware"]["revision"]},"target":ctx.target,"edk":{"header-policy":"meshbus-public-v1","sdk-sha256":digest(&root)?},"zephyr":{"version":ctx.info["cmake"]["zephyr"]["version"],"revision":ctx.provenance["projects"]["zephyr"]["revision"]},"toolchain":{"name":ctx.info["cmake"]["toolchain"]["name"],"identity":format!("{}/{}-{compiler_version}",ctx.toolchain()?.file_name().unwrap().to_string_lossy(),compiler.file_name().unwrap().to_string_lossy()),"compiler":compiler.file_name().unwrap().to_string_lossy()},"provenance":ctx.provenance});
     if ctx
         .config
         .get("CONFIG_MBS_FIRMWARE_IMAGE_IDENTITY")
@@ -997,12 +1054,14 @@ pub fn create(build: &Path, out: &Path, development: bool, force: bool) -> Resul
         let data = host::read(&image, 16 * 1024 * 1024)?;
         manifest["host"]["image-sha256"] = Value::String(image_identity(&data)?);
     }
+    manifest["edk"]["license-texts"] = json!(write_notices(&root, &sdk)?);
+    manifest["edk"]["notice-sha256"] = json!(host::hash(&fs::read(root.join("NOTICE.txt"))?));
     host::json(&root.join("edk-release.json"), &manifest)?;
-    write_notices(&root, &sdk)?;
+    verify_notices(&root)?;
     let name = format!(
-        "app-{}-{}{}-edk.tar.xz",
+        "meshbus-edk-{}-{}{}.tar.xz",
         normalize(&ctx.version),
-        normalize(&ctx.target),
+        normalize(ctx.target.split('/').next().context("missing board")?),
         if development { "-dev" } else { "" }
     );
     let output = out.join(name);
@@ -1197,104 +1256,125 @@ mod license_tests {
     use super::*;
 
     #[test]
-    fn external_zui_notices_travel_with_public_headers() {
+    fn notices_cover_only_exported_headers_and_detect_tampering() {
         let temp = tempfile::tempdir().unwrap();
         let root = temp.path().join("edk");
-        let sdk = temp.path().join("meshbus");
-        let module = temp.path().join("modules/lib/zui");
-        fs::create_dir_all(root.join(ZUI_INCLUDE)).unwrap();
-        fs::create_dir_all(sdk.join("LICENSES")).unwrap();
-        fs::create_dir_all(&module).unwrap();
-        let license = include_str!("../../../LICENSE");
-        fs::write(sdk.join("LICENSE"), license).unwrap();
-        fs::write(sdk.join("LICENSES/Apache-2.0.txt"), license).unwrap();
-        assert!(write_notices(&root, &sdk).is_err());
-        fs::write(module.join("LICENSE"), license).unwrap();
-        write_notices(&root, &sdk).unwrap();
-        assert_eq!(
-            header_include(&root, &root.join(ZUI_INCLUDE).join("zui.h")).unwrap(),
-            "zui/zui.h"
-        );
+        let sdk = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        fs::create_dir_all(root.join("include")).unwrap();
+        let header = root.join("include/a.h");
+        fs::write(
+            &header,
+            "/* Copyright Header Author. Permission to use. */\nextern int font;",
+        )
+        .unwrap();
+        let license_texts = write_notices(&root, &sdk).unwrap();
+        verify_notices(&root).unwrap();
+        let notice = fs::read_to_string(root.join("NOTICE.txt")).unwrap();
+        assert!(notice.contains(include_str!("../../../LICENSE")));
         assert!(
-            fs::read_to_string(root.join("ZUI-NOTICES.md"))
+            fs::read_to_string(&header)
                 .unwrap()
-                .contains(license)
+                .contains("Copyright Header Author")
         );
-        fs::remove_file(root.join("ZUI-NOTICES.md")).unwrap();
+        assert!(!notice.contains("fonts/catalog.json"));
+        assert_eq!(fs::read_dir(&root).unwrap().count(), 2);
+        fs::write(root.join("cmake.cflags"), "set(CMAKE_C_FLAGS \"\")").unwrap();
+        fs::write(root.join("Makefile.cflags"), "CFLAGS =").unwrap();
+        host::json(
+            &root.join("edk-release.json"),
+            &json!({"schema":2,"edk":{"notice-sha256":host::hash(notice.as_bytes()),"license-texts":license_texts,"sdk-sha256":digest(&root).unwrap()}}),
+        )
+        .unwrap();
+        verify_notices(&root).unwrap();
+        host::json(
+            &root.join("edk-release.json"),
+            &json!({"schema":2,"edk":{"notice-sha256":"f".repeat(64)}}),
+        )
+        .unwrap();
+        assert!(verify_notices(&root).is_err());
+        host::json(&root.join("edk-release.json"),
+                   &json!({"schema":2,"edk":{"notice-sha256":host::hash(notice.as_bytes()),"license-texts":license_texts,"sdk-sha256":digest(&root).unwrap()}})).unwrap();
+        fs::write(
+            &header,
+            "/* Copyright Changed Author. Permission to use. */",
+        )
+        .unwrap();
+        assert!(verify_notices(&root).is_err());
+        fs::remove_file(root.join("edk-release.json")).unwrap();
+        write_notices(&root, &sdk).unwrap();
+        fs::write(root.join("NOTICE.txt"), "truncated").unwrap();
         assert!(verify_notices(&root).is_err());
     }
 
-    fn u8g2_fixture(module: &Path) {
-        fs::create_dir_all(module.join("fonts/notices")).unwrap();
-        fs::create_dir_all(module.join("LICENSES")).unwrap();
-        for path in [
-            "LICENSING.md",
-            "LICENSES/Apache-2.0.txt",
-            "LICENSES/BSD-2-Clause.txt",
-            "fonts/README.md",
-            "fonts/catalog.json",
-        ] {
-            fs::write(module.join(path), format!("content of {path}")).unwrap();
+    #[test]
+    fn notices_include_each_required_license_once_and_keep_source_headers() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
+        fs::create_dir_all(root.join("include")).unwrap();
+        for name in ["a.h", "b.h"] {
+            let marker = ["SPDX", "-License-Identifier: Apache-2.0"].concat();
+            fs::write(
+                root.join("include").join(name),
+                format!("/* Copyright Original Author\n{marker} */\nint x;"),
+            )
+            .unwrap();
         }
-        let notice = "Copyright and complete font permission\n";
-        fs::write(module.join("fonts/notices/font.txt"), notice).unwrap();
-        fs::write(
-            module.join("fonts/sources.json"),
-            json!({
-                "notices": [{"id": "font", "sha256": host::hash(notice.as_bytes())}]
-            })
-            .to_string(),
-        )
-        .unwrap();
+        let ids = header_license_ids(root).unwrap();
+        assert_eq!(ids, BTreeSet::from(["Apache-2.0".to_owned()]));
+        let notice = render_notices(&BTreeMap::from([(
+            "Apache-2.0".to_owned(),
+            include_str!("../../../LICENSE").to_owned(),
+        )]));
+        assert_eq!(notice.matches("=== Apache-2.0 ===").count(), 1);
+        assert!(
+            fs::read_to_string(root.join("include/a.h"))
+                .unwrap()
+                .contains("Original Author")
+        );
     }
 
     #[test]
-    fn external_u8g2_notices_travel_with_exported_headers() {
+    fn exported_license_selection_requires_full_texts_and_keeps_and_terms() {
         let temp = tempfile::tempdir().unwrap();
         let root = temp.path().join("edk");
-        let sdk = temp.path().join("meshbus");
-        let module = temp.path().join("modules/lib/u8g2");
-        fs::create_dir_all(root.join(U8G2_INCLUDE)).unwrap();
-        assert_eq!(
-            header_include(&root, &root.join(U8G2_INCLUDE).join("u8g2.h")).unwrap(),
-            "display/u8g2.h"
-        );
+        let sdk = temp.path().join("sdk");
+        fs::create_dir_all(root.join("include")).unwrap();
         fs::create_dir_all(sdk.join("LICENSES")).unwrap();
-        fs::create_dir_all(&module).unwrap();
-        fs::write(sdk.join("LICENSE"), include_str!("../../../LICENSE")).unwrap();
+        for name in ["LICENSE", "LICENSES/Apache-2.0.txt"] {
+            fs::write(sdk.join(name), include_str!("../../../LICENSE")).unwrap();
+        }
+        let marker = ["SPDX", "-License-Identifier: "].concat();
+        for expression in [
+            "Apache-2.0 AND (MIT OR BSD-2-Clause)",
+            "Apache-2.0 AND MIT OR BSD-3-Clause",
+        ] {
+            fs::write(
+                root.join("include/a.h"),
+                format!("/* {marker}{expression} */"),
+            )
+            .unwrap();
+            assert!(header_license_ids(&root).is_err());
+        }
         fs::write(
-            sdk.join("LICENSES/Apache-2.0.txt"),
-            include_str!("../../../LICENSES/Apache-2.0.txt"),
+            root.join("include/a.h"),
+            format!("/* {marker}Apache-2.0 AND MIT */"),
         )
         .unwrap();
-        // An unrelated combined notice cannot replace the current source inventory.
-        fs::write(module.join("THIRD_PARTY_NOTICES.md"), "Unrelated notices").unwrap();
+        fs::write(
+            root.join("include/b.h"),
+            format!("/* {marker}Apache-2.0 OR GPL-2.0-or-later */"),
+        )
+        .unwrap();
         assert!(write_notices(&root, &sdk).is_err());
-        u8g2_fixture(&module);
-        write_notices(&root, &sdk).unwrap();
-        assert!(
-            fs::read_to_string(root.join("U8G2-NOTICES.md"))
-                .unwrap()
-                .contains("Copyright and complete font permission")
+        fs::write(sdk.join("LICENSES/MIT.txt"), "Complete MIT fixture terms\n").unwrap();
+        let terms = write_notices(&root, &sdk).unwrap();
+        assert_eq!(
+            terms.keys().cloned().collect::<BTreeSet<_>>(),
+            BTreeSet::from(["Apache-2.0".to_owned(), "MIT".to_owned()])
         );
-        fs::remove_file(root.join("U8G2-NOTICES.md")).unwrap();
-        assert!(verify_notices(&root).is_err());
-    }
-
-    #[test]
-    fn split_u8g2_notices_are_complete_and_checked() {
-        let temp = tempfile::tempdir().unwrap();
-        let module = temp.path();
-        u8g2_fixture(module);
-        let notice = "Copyright and complete font permission\n";
-        let output = u8g2_notices(module).unwrap();
-        assert!(output.contains(notice));
-        assert!(output.contains("content of LICENSES/BSD-2-Clause.txt"));
-        assert!(output.contains("content of fonts/catalog.json"));
-        fs::write(module.join("fonts/notices/font.txt"), "truncated").unwrap();
-        assert!(u8g2_notices(module).is_err());
-        fs::remove_file(module.join("fonts/notices/font.txt")).unwrap();
-        assert!(u8g2_notices(module).is_err());
+        let notice = fs::read_to_string(root.join("NOTICE.txt")).unwrap();
+        assert!(notice.contains("Complete MIT fixture terms"));
+        assert!(!notice.contains("=== GPL-2.0-or-later ==="));
     }
 
     #[test]
@@ -1312,25 +1392,16 @@ mod license_tests {
     }
 
     #[test]
-    fn exported_archive_contains_complete_apache_license() {
+    fn legacy_notices_remain_verifiable() {
         let temp = tempfile::tempdir().unwrap();
-        let root = temp.path().join("input");
-        let sdk = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-        write_notices(&root, &sdk).unwrap();
-        let archive_path = temp.path().join("edk.tar.xz");
-        archive::pack(&root, &archive_path, "llext-edk").unwrap();
-        let exported = archive::extract_edk(&archive_path, &temp.path().join("output")).unwrap();
-        assert_eq!(
-            fs::read_to_string(exported.join("LICENSES/Apache-2.0.txt")).unwrap(),
-            include_str!("../../../LICENSE")
-        );
-        assert_eq!(fs::read_dir(exported.join("LICENSES")).unwrap().count(), 1);
-        assert_eq!(
-            fs::read(exported.join("LICENSE.txt")).unwrap(),
-            fs::read(sdk.join("LICENSE")).unwrap()
-        );
-        let notice = fs::read_to_string(exported.join("NOTICE.txt")).unwrap();
-        assert!(notice.contains("Meshbus-owned headers use Apache-2.0"));
-        assert!(notice.contains("Zephyr headers use Apache-2.0"));
+        let root = temp.path();
+        fs::create_dir_all(root.join("LICENSES")).unwrap();
+        for name in ["LICENSE.txt", "LICENSES/Apache-2.0.txt"] {
+            fs::write(root.join(name), include_str!("../../../LICENSE")).unwrap();
+        }
+        fs::write(root.join("NOTICE.txt"), "Legacy notice").unwrap();
+        verify_notices(root).unwrap();
+        fs::remove_file(root.join("LICENSE.txt")).unwrap();
+        assert!(verify_notices(root).is_err());
     }
 }

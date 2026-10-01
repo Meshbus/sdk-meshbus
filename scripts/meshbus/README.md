@@ -164,8 +164,8 @@ Complete MCUboot programming can use `--bootloader` plus `--app`, or one merged
 image. Provisioning requires all native images declared by the manifest:
 
 ```sh
-meshbus firmware flash --manifest firmware/flash-map.json --provision firmware/full.hex
-meshbus firmware flash --manifest firmware/flash-map.json --provision firmware/full.bin \
+meshbus firmware flash --manifest firmware/flash-map.json --provision firmware/firmware.hex
+meshbus firmware flash --manifest firmware/flash-map.json --provision firmware/firmware.bin \
   --erase-all --yes
 ```
 
