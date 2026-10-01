@@ -12,6 +12,23 @@ with actual ownership. Retain unresolved provenance findings instead of relabeli
 third-party material. Publication, signing and history rewriting remain subject
 to [repository authorization](AGENTS.md).
 
+## Per-file metadata
+
+| Files | Repository metadata rule |
+| --- | --- |
+| Markdown (`.md`, case-insensitive), including README, agent guidance, PR templates and OpenSpec artifacts/archives | No per-file SPDX declarations. Project-authored documentation uses the repository license; preserve original third-party notices. |
+| Source and headers, scripts, build files, device/configuration files, test/sample metadata and CI workflows | Keep SPDX copyright and license metadata using native comments where supported, or provenance-backed `REUSE.toml` annotations. |
+| Files whose format cannot carry comments | Use suitable existing `REUSE.toml` metadata; do not insert comments that break the format. |
+| Board documentation raster images and plain version values | No per-file metadata required within the existing scoped policy. |
+| Reviewed tool/workspace configuration exceptions | Apply only the exact paths and content hashes in the existing license policy; new or changed files do not automatically qualify. |
+
+The [license-check scope](.github/CI.md#license-check-scope) waives only missing
+Markdown copyright/license metadata, without a content hash or approval entry.
+It preserves other scanner failures and checks on non-Markdown files. Existing
+central REUSE attribution and third-party license/permission texts remain
+applicable; this policy neither changes those grants nor claims full REUSE
+compliance. Generated skills retain their upstream content and notices.
+
 ## Compiled dependency admission
 
 Meshbus must remain usable in proprietary products. Third-party dependencies
@@ -49,7 +66,7 @@ and does not itself grant rights to third-party material.
   declared license; this policy neither replaces it nor covers third-party
   portions inside a first-party repository.
 
-### Change and release checks
+### Contribution review and distribution checks
 
 For a dependency addition, update, or newly enabled feature, record the exact
 source revision, applicable file-level license, selected alternative or
@@ -58,11 +75,25 @@ and compiler/linker inputs, including generated and header-only content, rather
 than just a repository's root license. For CLI dependencies, inspect each
 supported release target's resolved dependency graph.
 
+Use the [contribution guide](CONTRIBUTING.md#rights-and-third-party-material) and
+PR template to describe these inputs. Maintainers review them before merging;
+reuse existing decisions when terms and usage are unchanged. Keep selections
+and exceptions here without a separate approval registry. Ordinary contributions
+can mark the external-material section as not applicable.
+
 Preserve the component notices and reconcile them with the delivered files.
-Unknown attribution or `NOASSERTION` is an unresolved review item. The curated
-release SBOM and a text search for `GPL` are not complete admission checks.
+Genuinely unknown permission or attribution requires resolution during review.
+An SPDX `NOASSERTION` field can mean the producer made no assertion; inspect
+actual source terms rather than treating the field alone as missing permission.
+The curated release SBOM and a text search for `GPL` are not complete admission checks.
 Standalone tool or source redistribution has its own notice/source obligations
 even when excluded from this compiled-output rule.
+
+Release CI checks actual material presence and integrity and retains evidence.
+It does not require a per-Alpha approval file, repeat an exhaustive component
+review or prove legal clearance. Resolve newly discovered permission gaps
+through contribution review before publication. Existing metadata and font
+checks remain blocking; automated success does not replace maintainer review.
 
 Record component-specific choices under
 [external dependency license selections](#external-dependency-license-selections)
@@ -132,6 +163,24 @@ and delivered files when preparing a distribution.
   under the [GCC Runtime Library Exception](https://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html).
   Keep the exception with its license and review the actual compilation and
   distribution inputs. This selection does not cover unrelated GPL material.
+- Mbed TLS and TF-PSA-Crypto source offering `Apache-2.0 OR GPL-2.0-or-later`
+  uses the Apache-2.0 option. Their resolved `LICENSE` files document that choice;
+  retain applicable copyright and notices, including separately required terms
+  on files not covered by that alternative.
+- Heatshrink's `LICENSE` grants ISC terms; retain Scott Vokes' copyright and
+  permission notice. Nanopb's `LICENSE.txt` grants Zlib terms; preserve origin,
+  mark altered source versions and retain its notice in source distributions.
+  Missing SBOM declarations do not replace these source grants.
+- LoRa Basics Modem's Semtech portions use the BSD-3-Clause-Clear terms in
+  `LICENSE.txt`. Retain its binary-distribution copyright, conditions and
+  disclaimer; the license grants no patent rights. `LICENSES.txt` and nested
+  source terms govern its third-party portions and must remain applicable.
+
+These migration entries fill known declaration/choice gaps using the existing
+dependency terms. They do not approve all files in those repositories or
+replace review of later changes. Selected GCC and Picolibc/Newlib runtime texts
+remain packaged from the actual SDK; their collection is material evidence,
+not a new compiler-wide permission grant.
 
 ## Source provenance
 

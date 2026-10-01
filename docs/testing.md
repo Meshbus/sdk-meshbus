@@ -1,5 +1,3 @@
-<!-- SPDX-FileCopyrightText: 2026 FoBE Studio -->
-<!-- SPDX-License-Identifier: Apache-2.0 -->
 # Testing and evidence
 
 Use the nearest `testcase.yaml` or `sample.yaml` to select a runnable target and

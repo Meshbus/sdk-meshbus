@@ -19,13 +19,16 @@ REQUIRED_FIELDS = {*METADATA, 'bad_licenses', 'deprecated_licenses',
 
 
 def scoped_exemption(root, name):
-    """Exclude board documentation images and plain version data from metadata checks."""
+    """Exclude Markdown, board documentation images and plain version metadata."""
     path = PurePosixPath(name)
     if (path.is_absolute() or '..' in path.parts or path.as_posix() != name):
         return None
     source = root.resolve() / name
     if source.resolve() != source or not source.is_file():
         return None
+    if path.suffix.lower() == '.md':
+        return {'category': 'markdown-documentation',
+                'reason': 'Markdown documents do not require per-file SPDX metadata.'}
     if (len(path.parts) >= 5 and path.parts[0] == 'boards' and path.parts[3] == 'doc'
             and path.suffix.lower() in {'.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.ico'}):
         return {'category': 'board-documentation-image',

@@ -59,6 +59,38 @@ class LicensePolicy(unittest.TestCase):
         self.assertEqual(result['remaining_files'], ['prj.conf'])
         self.assertIn('prj.conf', result['inactive_exemptions'])
 
+    def test_new_and_updated_markdown_needs_no_per_file_metadata(self):
+        paths = ['README.md', 'docs/new.md', '.github/pull_request_template.md',
+                 '.agents/skills/example/SKILL.md', 'openspec/changes/archive/example/tasks.md',
+                 'nested/GUIDE.MD']
+        for content in ('# New documentation\n', '# Updated documentation\n'):
+            for name in paths:
+                source = self.root / name
+                source.parent.mkdir(parents=True, exist_ok=True)
+                source.write_text(content)
+            raw = self.report(paths)
+            original = copy.deepcopy(raw)
+            result = license_policy.evaluate(raw, self.root, self.policy)
+            self.assertTrue(result['policy_compliant'])
+            self.assertFalse(result['raw_summary']['compliant'])
+            self.assertEqual(set(result['exempted_files']), set(paths))
+            self.assertEqual({item['category'] for item in result['exempted_files'].values()},
+                             {'markdown-documentation'})
+            self.assertEqual(raw, original)
+
+    def test_markdown_exemption_preserves_other_failure_classes_and_source_checks(self):
+        (self.root / 'README.md').write_text('# Documentation\n')
+        (self.root / 'main.c').write_text('int main(void) { return 0; }\n')
+        result = license_policy.evaluate(self.report(['README.md', 'main.c']), self.root, self.policy)
+        self.assertEqual(result['remaining_files'], ['main.c'])
+        for field in license_policy.REQUIRED_FIELDS - set(license_policy.METADATA):
+            with self.subTest(field=field):
+                raw = self.report(['README.md'])
+                raw['non_compliant'][field] = ['README.md']
+                result = license_policy.evaluate(raw, self.root, self.policy)
+                self.assertFalse(result['policy_compliant'])
+                self.assertEqual(result['non_compliant'][field], ['README.md'])
+
     def test_board_images_are_exempt_but_runtime_assets_and_text_are_not(self):
         paths = ['boards/vendor/board/doc/photo.webp',
                  'boards/vendor/board/doc/img/photo.PNG',
@@ -122,7 +154,9 @@ class LicensePolicy(unittest.TestCase):
         source = self.root / name
         source.parent.mkdir(parents=True)
         source.symlink_to(self.config)
-        for path in (name, '../tests/VERSION', '/tests/VERSION', './tests/VERSION'):
+        (self.root / 'README.md').symlink_to(self.config)
+        for path in (name, '../tests/VERSION', '/tests/VERSION', './tests/VERSION',
+                     'README.md', '../README.md', '/README.md', './README.md'):
             with self.subTest(path=path):
                 self.assertIsNone(license_policy.scoped_exemption(self.root, path))
 

@@ -1,5 +1,3 @@
-<!-- SPDX-FileCopyrightText: 2026 FoBE Studio -->
-<!-- SPDX-License-Identifier: Apache-2.0 -->
 # OpenSpec workflow
 
 Meshbus uses the upstream `spec-driven` schema and Codex's generated OpenSpec

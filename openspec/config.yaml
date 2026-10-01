@@ -8,6 +8,8 @@ context: |
   DEVELOPMENT.md owns engineering practices; docs/testing.md owns check selection and evidence.
   Specs describe agreed behavior; use current source and tests to establish implementation.
   Shared artifacts use English; discuss work in the user's language.
+  Markdown artifacts need no per-file SPDX declarations; do not add them.
+  Follow AGENTS.md and LICENSING.md for metadata on other file types and preserve upstream notices.
   Use npm run openspec -- <arguments> from the Git root.
 
 rules:

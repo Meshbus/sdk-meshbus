@@ -36,6 +36,9 @@ default to hash-only validation without a private key. Downstream products may
 explicitly enable Ed25519 authentication with their own key. A build alone does
 not establish hardware or release qualification.
 
+See [contributing](CONTRIBUTING.md) for source rights, third-party material and
+maintainer review before merging.
+
 ## Zephyr integration
 
 The Meshbus SDK provides reusable services, public APIs, hardware support and

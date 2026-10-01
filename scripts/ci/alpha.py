@@ -108,7 +108,7 @@ def clean_source(record, sha, revisions):
 
 
 def license_scope(firmware, edk, record, edk_manifest):
-    """Produce exact notice/permission inputs for a separately reviewed decision."""
+    """Check delivered materials and describe their inputs without approving rights."""
     materials = json.loads(art.read(firmware / 'license-materials.json'))
     art.require(materials['selection'] == 'spdx-source-components', 'partial license collection cannot be published')
     retained = set()
@@ -155,7 +155,7 @@ def license_scope(firmware, edk, record, edk_manifest):
             art.require(fields['PackageVersion'] == record['version'], 'SBOM version conflict')
             continue
         if fields['PackageName'] == 'meshbus-sdk':
-            fields.pop('PackageVersion', None)  # First-party source moves with the reviewed release commit.
+            fields.pop('PackageVersion', None)  # Source identity is retained in the release manifest.
         packages.append(fields)
     art.require(packages, 'public SBOM contains no components')
     for name in ('LICENSE.txt', 'LICENSES/Apache-2.0.txt', 'NOTICE.txt'):
@@ -173,25 +173,7 @@ def license_scope(firmware, edk, record, edk_manifest):
             'edk_notices': {p.relative_to(edk).as_posix(): art.digest(art.read(p)) for p in edk_notices}}
 
 
-def approve_license(scope, review):
-    expected = art.digest(json.dumps(scope, sort_keys=True, separators=(',', ':')).encode())
-    art.require(review.get('schema') == 1 and review.get('scope_sha256') == expected and
-                review.get('approved') is True, 'selected license review is missing, stale or unresolved')
-    components = {p['PackageName'] for p in scope['components']}
-    decisions = review.get('components', {})
-    art.require(set(decisions) == components and all(p.get('selected_license') and p.get('evidence') and
-                p.get('obligations') for p in decisions.values()), 'incomplete component permission decisions')
-    for decision in decisions.values():
-        selected = decision['selected_license']
-        art.require('NOASSERTION' not in selected and 'NONE' != selected and
-                    (not re.search(r'\b(?:A?GPL)-3', selected) or
-                     selected == 'GPL-3.0-or-later WITH GCC-exception-3.1'), 'inadmissible selected permission')
-    art.require(review.get('runtime_review') and review.get('generated_inputs_review') and review.get('edk_review'),
-                'runtime/generated/EDK license review is incomplete')
-    return expected
-
-
-def collect(candidate, snapshot, output, evidence, tag, sha, run_id, review_path, review_only=False):
+def collect(candidate, snapshot, output, evidence, tag, sha, run_id, evidence_only=False):
     import yaml
     import release
     art.verify_checksums(candidate)
@@ -279,12 +261,10 @@ def collect(candidate, snapshot, output, evidence, tag, sha, run_id, review_path
                 portable(art.read(path).decode())
         scope = license_scope(firmware, edk, selected, edk_manifest)
         evidence.mkdir(parents=True, exist_ok=True)
-        art.write_json(evidence / 'license-review-input.json', {'schema': 1, 'scope': scope,
+        art.write_json(evidence / 'license-evidence.json', {'schema': 1, 'scope': scope,
             'scope_sha256': art.digest(json.dumps(scope, sort_keys=True, separators=(',', ':')).encode())})
-        if review_only:
+        if evidence_only:
             return
-        art.require(review_path.is_file(), 'missing reviewed scripts/ci/alpha-license-review.json; inspect license-review-input.json')
-        review_sha = approve_license(scope, json.loads(art.read(review_path)))
         art.clean_destination(output)
         stem = f'meshbus-{version(tag)}-mesh_probe_r1_nrf52840'
         (output / (stem + '.uf2')).write_bytes(uf2)
@@ -301,7 +281,7 @@ def collect(candidate, snapshot, output, evidence, tag, sha, run_id, review_path
         'sdk_validation': sdk_validation,
         'run_url': f'https://github.com/{REPOSITORY}/actions/runs/{run_id}', 'target': TARGET,
         'toolchain': selected['build'], 'edk_tool': selected['edk_tool'],
-        'license_review_scope_sha256': review_sha, 'assets': inventory(output),
+        'assets': inventory(output),
         'qualification': {'alpha_eligible': True, 'production_qualified': False,
                           'authentication': selected['authentication'], 'hardware': 'not-run',
                           'candidate_validation': selected['validation'],
@@ -318,16 +298,15 @@ def main():
     parser.add_argument('--snapshot', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--evidence', type=Path, required=True)
-    parser.add_argument('--review', type=Path, required=True)
-    parser.add_argument('--review-only', action='store_true', help='Retain review inputs without approving or staging public assets')
+    parser.add_argument('--evidence-only', action='store_true', help='Check and retain materials without staging public assets')
     args = parser.parse_args()
     tag = os.environ.get('RELEASE_TAG') or 'v' + json.loads(art.read(args.candidate / 'release.json'))['firmware_version']
-    if args.review_only and '-alpha.' not in tag:
-        print('Alpha review input is only generated for Alpha candidates.')
+    if args.evidence_only and '-alpha.' not in tag:
+        print('Alpha license evidence is only generated for Alpha candidates.')
         return
     checkout_identity(Path(__file__).resolve().parents[2], tag, os.environ['GITHUB_SHA'])
     collect(args.candidate, args.snapshot, args.output, args.evidence, tag,
-            os.environ['GITHUB_SHA'], os.environ['GITHUB_RUN_ID'], args.review, args.review_only)
+            os.environ['GITHUB_SHA'], os.environ['GITHUB_RUN_ID'], args.evidence_only)
 
 
 if __name__ == '__main__':

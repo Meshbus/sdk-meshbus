@@ -270,7 +270,6 @@ class Collection(unittest.TestCase):
             stream.add(edk, arcname='llext-edk')
         alpha.art.sidecar(edk_path)
         self.repack()
-        self.review = self.root / 'review.json'
         self.output = self.root / 'public'
         self.evidence = self.root / 'evidence'
         self.patchers = [patch.object(release, 'targets', return_value=self.matrix),
@@ -296,20 +295,10 @@ class Collection(unittest.TestCase):
         alpha.art.pack(self.firmware, archive, 'firmware')
         self.refresh()
 
-    def collect(self):
-        alpha.collect(self.candidate, self.snapshot, self.output, self.evidence, TAG, SHA, '123', self.review)
-
-    def approve(self):
-        with self.assertRaisesRegex(ValueError, 'missing reviewed'):
-            self.collect()
-        scope = json.loads((self.evidence / 'license-review-input.json').read_text())
-        alpha.art.write_json(self.review, {'schema': 1, 'approved': True, 'scope_sha256': scope['scope_sha256'],
-            'components': {'meshbus-sdk': {'selected_license': 'Apache-2.0', 'evidence': 'fixture only',
-                                         'obligations': 'retain fixture notices'}},
-            'runtime_review': 'fixture only', 'generated_inputs_review': 'fixture only', 'edk_review': 'fixture only'})
+    def collect(self, evidence_only=False):
+        alpha.collect(self.candidate, self.snapshot, self.output, self.evidence, TAG, SHA, '123', evidence_only)
 
     def test_complete_public_set_reuses_original_archives_and_checksums(self):
-        self.approve()
         self.collect()
         expected = alpha.payload_names(TAG) | {'release-manifest.json', 'SHA256SUMS'}
         self.assertEqual({p.name for p in self.output.iterdir()}, expected)
@@ -318,15 +307,18 @@ class Collection(unittest.TestCase):
         alpha.art.verify_checksums(self.output)
         inventory = json.loads((self.evidence / 'inventory.json').read_text())
         publish.validate_staging(self.output, inventory, TAG, SHA)
-        self.assertFalse(json.loads((self.output / 'release-manifest.json').read_text())['qualification']['production_qualified'])
+        manifest = json.loads((self.output / 'release-manifest.json').read_text())
+        self.assertEqual(manifest['schema'], 1)
+        self.assertFalse(manifest['qualification']['production_qualified'])
+        self.assertNotIn('license_review_scope_sha256', manifest)
+        self.assertFalse((self.root / 'review.json').exists())
 
-    def test_manual_candidate_can_supply_review_inputs_without_public_export(self):
-        alpha.collect(self.candidate, self.snapshot, self.output, self.evidence, TAG, SHA, '123', self.review, True)
-        self.assertTrue((self.evidence / 'license-review-input.json').is_file())
+    def test_manual_candidate_can_supply_material_evidence_without_public_export(self):
+        self.collect(evidence_only=True)
+        self.assertTrue((self.evidence / 'license-evidence.json').is_file())
         self.assertFalse(self.output.exists())
 
     def test_public_manifest_identifies_reused_twister_baseline(self):
-        self.approve()
         source = json.loads((self.snapshot / 'source.json').read_text())
         baseline = {'schema': 1, 'mode': 'reused', 'repository': alpha.REPOSITORY,
                     'run_id': '456', 'run_attempt': 1,
@@ -348,15 +340,49 @@ class Collection(unittest.TestCase):
             self.collect()
         self.assertFalse(self.output.exists())
 
-    def test_unreviewed_or_changed_license_materials_block_public_export(self):
-        self.approve()
-        (self.firmware / 'licenses/meshbus/LICENSE').write_text('changed notice')
-        self.repack()
-        with self.assertRaisesRegex(ValueError, 'stale or unresolved'):
+    def test_conflicting_edk_license_text_blocks_staging(self):
+        edk = self.root / 'edk'
+        (edk / 'LICENSE.txt').write_text('conflicting license fixture')
+        archive = next(self.part.glob('*-edk.tar.xz'))
+        with tarfile.open(archive, 'w:xz') as stream:
+            stream.add(edk, arcname='llext-edk')
+        alpha.art.sidecar(archive)
+        self.refresh()
+        with self.assertRaisesRegex(ValueError, 'EDK license text conflict'):
             self.collect()
         self.assertFalse(self.output.exists())
 
-    def test_candidate_without_runtime_notice_inventory_cannot_be_reviewed(self):
+    def test_changed_materials_update_evidence_without_reapproval(self):
+        self.collect(evidence_only=True)
+        before = json.loads((self.evidence / 'license-evidence.json').read_text())
+        (self.firmware / 'licenses/meshbus/LICENSE').write_text('changed notice')
+        self.repack()
+        self.collect()
+        after = json.loads((self.evidence / 'license-evidence.json').read_text())
+        self.assertNotEqual(before['scope_sha256'], after['scope_sha256'])
+        self.assertEqual(after['scope']['notice_hashes']['licenses/meshbus/LICENSE'],
+                         alpha.art.digest(b'changed notice'))
+        self.assertNotIn('approved', after)
+
+    def test_noassertion_fields_do_not_require_an_approval_file(self):
+        path = self.firmware / 'SBOM.spdx'
+        path.write_text(path.read_text().replace('Apache-2.0', 'NOASSERTION'))
+        self.repack()
+        self.collect()
+        public_sbom = next(self.output.glob('*.spdx')).read_text()
+        self.assertIn('PackageLicenseDeclared: NOASSERTION', public_sbom)
+        self.assertIn('PackageLicenseConcluded: NOASSERTION', public_sbom)
+
+    def test_corrupt_notice_with_stale_archive_checksum_blocks_staging(self):
+        (self.firmware / 'licenses/meshbus/LICENSE').write_text('corrupt fixture')
+        archive = next(self.part.glob('*-firmware.tar.gz'))
+        alpha.art.pack(self.firmware, archive, 'firmware')
+        self.refresh()
+        with self.assertRaises(ValueError):
+            self.collect()
+        self.assertFalse(self.output.exists())
+
+    def test_candidate_without_runtime_notice_inventory_cannot_be_staged(self):
         materials = json.loads((self.firmware / 'license-materials.json').read_text())
         materials.pop('toolchain_runtimes')
         alpha.art.write_json(self.firmware / 'license-materials.json', materials)
@@ -364,17 +390,16 @@ class Collection(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'missing selected R1 toolchain runtime'):
             self.collect()
 
-    def test_changed_linked_runtime_bytes_invalidate_existing_review(self):
-        self.approve()
+    def test_changed_linked_runtime_digest_updates_material_evidence(self):
         materials = json.loads((self.firmware / 'license-materials.json').read_text())
         materials['toolchain_runtimes'][0]['libraries'][0]['sha256'] = 'e' * 64
         alpha.art.write_json(self.firmware / 'license-materials.json', materials)
         self.repack()
-        with self.assertRaisesRegex(ValueError, 'stale or unresolved'):
-            self.collect()
+        self.collect()
+        evidence = json.loads((self.evidence / 'license-evidence.json').read_text())
+        self.assertEqual(evidence['scope']['toolchain_runtimes'][0]['libraries'][0]['sha256'], 'e' * 64)
 
-    def test_missing_edk_notice_blocks_review_and_public_export(self):
-        self.approve()
+    def test_missing_edk_notice_blocks_public_export(self):
         edk = self.root / 'edk'
         (edk / 'NOTICE.txt').unlink()
         archive = next(self.part.glob('*-edk.tar.xz'))
@@ -385,25 +410,71 @@ class Collection(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             self.collect()
 
-    def test_restricted_fonts_cannot_be_approved_by_a_generic_review(self):
+    def test_restricted_fonts_block_public_export(self):
         root = self.firmware / 'licenses/u8g2/fonts'
         root.mkdir(parents=True)
         font = dict(symbol='u8g2_font_fixture', family='fixture', group='fixture', license='GPL-3.0-only', status='restricted')
+        materials = json.loads((self.firmware / 'license-materials.json').read_text())
+        for status in ('restricted', 'review-required'):
+            with self.subTest(status=status):
+                font['status'] = status
+                alpha.art.write_json(root / 'selected-fonts.json', [font | {'attribution': 'fixture'}])
+                materials['fonts'] = [font]
+                alpha.art.write_json(self.firmware / 'license-materials.json', materials)
+                self.repack()
+                with self.assertRaisesRegex(ValueError, 'restricted/unreviewed'):
+                    self.collect()
+                self.assertFalse(self.output.exists())
+
+    def test_corrupt_or_missing_font_material_blocks_staging(self):
+        root = self.firmware / 'licenses/u8g2/fonts'
+        root.mkdir(parents=True)
+        font = dict(symbol='u8g2_font_fixture', family='fixture', group='fixture',
+                    license='MIT', status='documented')
         alpha.art.write_json(root / 'selected-fonts.json', [font | {'attribution': 'fixture'}])
+        alpha.art.write_json(root / 'sources.json', {'notices': [{'id': 'fixture',
+                             'sha256': alpha.art.digest(b'original notice')}]})
         materials = json.loads((self.firmware / 'license-materials.json').read_text())
         materials['fonts'] = [font]
         alpha.art.write_json(self.firmware / 'license-materials.json', materials)
+        (root / 'fixture.txt').write_text('corrupt notice')
         self.repack()
-        with self.assertRaisesRegex(ValueError, 'restricted/unreviewed'):
+        with self.assertRaisesRegex(ValueError, 'corrupt required font notice'):
             self.collect()
+        (root / 'fixture.txt').unlink()
+        self.repack()
+        with self.assertRaises(FileNotFoundError):
+            self.collect()
+        self.assertFalse(self.output.exists())
 
-    def test_review_cannot_select_gpl3_without_an_applicable_exception(self):
-        self.approve()
-        review = json.loads(self.review.read_text())
-        review['components']['meshbus-sdk']['selected_license'] = 'GPL-3.0-only'
-        alpha.art.write_json(self.review, review)
-        with self.assertRaisesRegex(ValueError, 'inadmissible selected permission'):
-            self.collect()
+    def test_missing_or_empty_runtime_notices_block_staging(self):
+        path = self.firmware / 'licenses/toolchain-gcc-runtime/COPYING.RUNTIME'
+        for content in (None, ''):
+            with self.subTest(content=content):
+                if content is None:
+                    path.unlink()
+                else:
+                    path.write_text(content)
+                self.repack()
+                with self.assertRaises((ValueError, FileNotFoundError)):
+                    self.collect()
+                self.assertFalse(self.output.exists())
+
+    def test_cli_evidence_only_and_removed_review_arguments(self):
+        import contextlib
+        arguments = ['alpha.py', '--candidate', str(self.candidate), '--snapshot', str(self.snapshot),
+                     '--output', str(self.output), '--evidence', str(self.evidence)]
+        for obsolete in (['--review', 'review.json'], ['--review-only']):
+            with self.subTest(obsolete=obsolete), patch.object(sys, 'argv', arguments + obsolete), \
+                    contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as result:
+                alpha.main()
+            self.assertEqual(result.exception.code, 2)
+        environment = {'RELEASE_TAG': TAG, 'GITHUB_SHA': SHA, 'GITHUB_RUN_ID': '123'}
+        with patch.object(sys, 'argv', arguments + ['--evidence-only']), \
+                patch.dict('os.environ', environment), patch.object(alpha, 'checkout_identity'):
+            alpha.main()
+        self.assertTrue((self.evidence / 'license-evidence.json').is_file())
+        self.assertFalse(self.output.exists())
 
     def test_missing_notices_and_unexpected_archive_files_are_rejected(self):
         (self.firmware / 'licenses/meshbus/LICENSE').unlink()
@@ -457,6 +528,26 @@ class Collection(unittest.TestCase):
 
 
 class Workflow(unittest.TestCase):
+    def test_workflows_use_material_evidence_interfaces(self):
+        import shlex
+        import yaml
+        root = Path(__file__).resolve().parents[3]
+        environment = {'RELEASE_TAG': TAG, 'GITHUB_SHA': SHA, 'GITHUB_RUN_ID': '123'}
+        for filename, job, evidence_only in (('candidates.yml', 'assemble', True),
+                                            ('alpha-release.yml', 'stage', False)):
+            with self.subTest(workflow=filename):
+                workflow = yaml.safe_load((root / '.github/workflows' / filename).read_text())
+                steps = workflow['jobs'][job]['steps']
+                command = next(step['run'] for step in steps if 'scripts/ci/alpha.py' in step.get('run', ''))
+                with patch.object(sys, 'argv', shlex.split(command)[1:]), \
+                        patch.dict('os.environ', environment), patch.object(alpha, 'checkout_identity'), \
+                        patch.object(alpha, 'collect') as collect:
+                    alpha.main()
+                self.assertEqual(collect.call_args.args[-1], evidence_only)
+                if evidence_only:
+                    upload = next(step for step in steps if step.get('with', {}).get('name') == 'alpha-license-evidence')
+                    self.assertEqual(upload['with']['path'], str(collect.call_args.args[3]))
+
     def test_required_candidate_jobs_cannot_be_missing_failed_or_skipped(self):
         names = ['validation', 'products', 'assemble']
         needs = {n: {'result': 'success'} for n in names}

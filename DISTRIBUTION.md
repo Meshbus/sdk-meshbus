@@ -382,9 +382,10 @@ The archive's curated `SBOM.spdx` lists compiled components and available
 source revisions, license expressions and source references. Meshbus source
 identity is retained in the `meshbus-sdk` component; the firmware package records
 the product version. Source locations must be credential-free repository or
-download URLs, and the generator omits source-file inventories. Review source
-references and license information before publishing a release. Unresolved
-`NOASSERTION` fields are not a completed license review.
+download URLs, and the generator omits source-file inventories. Retain source
+references and license information with the release. Resolve permission gaps
+through contribution review; an SPDX `NOASSERTION` field alone does not establish
+that the actual permission is unknown.
 
 Firmware archives carry `licenses/` and `license-materials.json`. The collector
 uses the APP and bootloader's private SPDX source inventories and build module
@@ -407,10 +408,12 @@ Missing configured archives or installed notices fail collection. This binds
 review to the actual SDK inputs without inferring grants from a compiler name.
 
 Development builds without SPDX carry `partial-no-spdx` notice selection.
-Collected component materials do not resolve every toolchain runtime, generated
-input, license choice or source-delivery obligation. Review these and unresolved
-`NOASSERTION` fields before publication. For source distributions, retain all
-applicable declarations, including for unselected fonts and test libraries.
+Collected component materials do not determine every toolchain runtime, generated
+input, license choice or source-delivery obligation. Contributors and maintainers
+review these when the applicable inputs or usage change; reuse the recorded
+choices in [licensing](LICENSING.md#external-dependency-license-selections).
+For source distributions, retain all applicable declarations, including for
+unselected fonts and test libraries.
 
 Technical flash maps, release-part and EDK manifests retain exact source SHAs.
 Raw SPDX data can also include local source origins and generation times.
@@ -470,8 +473,9 @@ An Engineering Candidate remains unpublished and records `publishable: false`.
 An eligible public Alpha adds a separate publication manifest: full CI Twister
 evidence for the exact source/Builder and fresh strict candidate validation,
 production-profile packaging for the complete product matrix, license/SPDX
-collection, EDK compiler qualification, assembly and the selected distribution
-review must pass. Hardware validation stays `not-run`, production qualification
+collection, EDK compiler qualification, assembly and automatic distribution
+material checks must pass. Permission decisions belong to contribution review
+under the existing admission policy. Hardware validation stays `not-run`, production qualification
 stays false and R1 UF2 authentication stays `none`. CI cannot establish boot,
 RF, recovery, resource/soak or MBA runtime acceptance.
 
@@ -493,33 +497,36 @@ repacking. Private SPDX inventories, build logs and `release-source.json` remain
 outside the public download set. Relative private-evidence locators in an
 existing flash map are references, not bundled source-file inventories.
 
-### Selected distribution review
+### Distribution material evidence
 
-Alpha export produces `license-review-input.json` from the actual firmware/EDK
-archives. It contains the selected component license declarations, third-party
-versions, notice hashes, selected fonts, compiler identity and EDK notices.
-Manual Candidate preparation retains this input without approval or publication.
-Unknown selected grants, generated/runtime obligations and exported header
-terms require review; a source license-policy pass does not supply that review.
+Candidate and Alpha export automatically check the actual firmware/EDK archives
+and retain `license-evidence.json`. Its schema 1 `scope` and `scope_sha256`
+structure records selected declarations, dependency revisions, notice hashes,
+fonts, compiler/runtime inputs and EDK notices. The digest describes material
+inputs for provenance; it is not an approval and changes do not require a new
+release-specific approval record. No `approved` field is produced.
 
-Record the reviewed decisions in `scripts/ci/alpha-license-review.json` before
-tagging. The file has schema 1, `approved: true`, the exact `scope_sha256`, and a
-`components` object keyed by every SBOM component name. Each decision records
-`selected_license`, concrete `evidence` and `obligations`, resolving
-`NOASSERTION` permission fields and any dual-license choice. Nonempty
-`runtime_review`, `generated_inputs_review` and `edk_review` records identify
-the reviewed inputs and applicable source/notice conditions. In particular,
-inspect the linker/runtime inputs under the recorded compiler, the GCC Runtime
-Library Exception when applicable, schema/dictionary generation and exported
-third-party headers. Do not copy a placeholder approval into this file.
+Manual Candidate preparation uses `--evidence-only` and retains the
+`alpha-license-evidence` artifact without staging public assets. Alpha staging
+performs the same checks before generating its public set. Missing/empty
+required notices, invalid runtime inventory, corrupt checksums or font notices,
+restricted/unreviewed fonts and missing EDK material remain blocking. The
+existing source-policy and font checks remain required.
 
-The scope digest excludes the moving first-party SDK revision and aggregate
-firmware version while binding third-party versions, selected declarations and
-exact delivered notice texts. A reviewed approval can therefore be committed
-without a circular hash of its own source commit. Changed selected terms,
-notices, compiler or EDK policy invalidate it. Missing, stale or unresolved
-review blocks export; restricted/review-required font selections are rejected.
-The actual distribution review for the first hosted pilot is still pending.
+Contributors identify rights, license alternatives, exceptions and applicable
+source/notice obligations when introducing or updating external code, fonts,
+generated inputs, runtime inputs or exported headers. Maintainers review those
+changes before merging under [contribution review](CONTRIBUTING.md#maintainer-review-and-ci)
+and record selections in [licensing](LICENSING.md#external-dependency-license-selections).
+Reuse existing conclusions when applicable terms and usage are unchanged;
+resolve genuinely unknown grants and newly discovered gaps before publication.
+An SBOM `NOASSERTION` field alone does not determine whether the actual source
+permission is known. CI does not assert ownership or legal clearance.
+
+There is no per-Alpha approval file or approval digest in the public manifest.
+The release manifest remains schema 1 and retains source, dependency, builder,
+asset and qualification identities. Material evidence remains in Actions;
+licenses and notices remain in the public companion firmware/EDK archives.
 
 Only CI-owned drafts can be resumed from their original verified upload set.
 Uploaded bytes are downloaded and checked before public visibility. The final

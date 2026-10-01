@@ -1,5 +1,3 @@
-<!-- SPDX-FileCopyrightText: 2026 FoBE Studio -->
-<!-- SPDX-License-Identifier: Apache-2.0 -->
 # Design
 
 ## Context
@@ -90,20 +88,29 @@ metadata files, remains in Actions evidence for upload verification.
 Every public filename must be unique and path-safe. Archive/path and source
 checks reject symlinks, unexpected files, private source locations, credentials
 and missing components. SPDX/license collection and source/font policy results
-remain required. Unresolved selected-component license permission must be
-reconciled before public publication; an automated policy pass alone is not a
-completed distribution review. Release notes link the raw UF2 to its companion
-archive's applicable notices and programming prerequisites.
+remain required. Release notes link the raw UF2 to its companion archive's
+applicable notices and programming prerequisites.
 
-Manual Candidate preparation also retains an Alpha review-input record without
-approval or public staging. A separately reviewed, committed
-`alpha-license-review.json` binds component choices, source/notice obligations,
-runtime/generated inputs and EDK terms to the actual selected licensing scope.
-Moving first-party source identity and aggregate product version are omitted
-from that scope digest to avoid a circular approval commit hash; exact public
-bytes still bind to the tag in the publication inventory. Staging rejects a
-missing or stale review and preserves its review input. The first actual hosted
-distribution review remains acceptance work, not an inferred policy pass.
+Permission decisions move to contribution review under the existing admission
+policy. The contributor guide and PR template identify source/version, terms,
+selected alternatives/exceptions, output usage and required materials. Maintainers
+review changes before merging and retain selections in LICENSING.md. Existing
+conclusions are reused; migration fills known gaps without a full re-review or
+new approval registry. Genuinely unknown grants are resolved during that review.
+
+Candidate preparation checks actual materials with `--evidence-only` and retains
+`alpha-license-evidence` containing `license-evidence.json`. Alpha staging performs
+the same checks and exports public assets without a per-release approval file.
+The existing schema 1 scope/digest describe material inputs, not approval; source
+identity and public bytes remain bound in the publication inventory. Missing or
+corrupt notices, invalid runtime inventories, restricted/unreviewed fonts and
+missing EDK material remain blocking. NOASSERTION metadata alone is not a
+permission failure, and automation does not assert ownership or legal clearance.
+
+The removed `--review` and `--review-only` flags fail normal argument parsing;
+all repository callers migrate together. The public manifest remains schema 1
+and omits `license_review_scope_sha256` without adding another approval field.
+No public Alpha has been released, so no published asset needs migration.
 
 ### 4. Use a staged GitHub Release transition
 
@@ -154,10 +161,11 @@ qualification false. Existing candidate fields and truthful `not-run` gates
 are preserved; setting their `publishable` field to true would falsely remove
 unmet qualification and also conflict with current assembly validation.
 
-The public Alpha statement covers CI build/package/integrity evidence and actual
-license review. It explicitly reports missing physical-device evidence and the
-configured authentication mode. This adds a separate channel contract rather
-than claiming the existing GA publication requirements have passed.
+The public Alpha statement covers CI build/package/integrity evidence and
+automatically checked license materials. Permission review belongs to the
+contribution process. The statement explicitly reports missing physical-device
+evidence and the configured authentication mode. This adds a separate channel
+contract rather than claiming existing GA publication requirements have passed.
 
 ## Risks / Trade-offs
 
@@ -165,8 +173,9 @@ than claiming the existing GA publication requirements have passed.
   product -> reuse the existing validated contracts and record each failed stage.
 - GitHub upload/download interruption can leave a draft -> retain original
   artifacts and resume only a matching draft without overwriting bytes.
-- Candidate packaging or license review can expose unresolved issues -> fail
-  publication and fix the specific issue without weakening the required gate.
+- Candidate packaging can expose missing or corrupt license materials -> fail
+  publication and fix those inputs. Contribution review resolves permission
+  questions; material integrity does not prove legal clearance.
 - R1 currently links with LTO symbol warnings and has tight static memory use
   -> retain compiler/size evidence and the unverified runtime status in Alpha
   notes; a production-profile build is not physical runtime evidence.

@@ -70,7 +70,6 @@ jobs:
       - run: >-
           python meshbus/scripts/ci/alpha.py --candidate firmware-candidate
           --snapshot snapshot --output alpha-assets --evidence alpha-evidence
-          --review meshbus/scripts/ci/alpha-license-review.json
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
         with:

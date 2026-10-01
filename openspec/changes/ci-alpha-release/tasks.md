@@ -1,5 +1,3 @@
-<!-- SPDX-FileCopyrightText: 2026 FoBE Studio -->
-<!-- SPDX-License-Identifier: Apache-2.0 -->
 # Tasks
 
 ## 1. Alpha publication identity and policy
@@ -18,7 +16,7 @@
 
 - [x] 3.1 Collect the explicit R1 UF2, firmware archive, EDK and public SBOM from successful assembled candidates without rebuilding or repacking them; verify unit fixtures exercise missing products, UF2/archive disagreement, EDK/version mismatch and unexpected/unsafe assets.
 - [x] 3.2 Generate release-manifest.json, SHA256SUMS and the retained complete staging inventory with source/dependency/builder/run identities and truthful Alpha qualification; verify complete checksum coverage, source consistency and absence of private paths or recursive self-hashes.
-- [ ] 3.3 Verify selected notice/SBOM/font material against the delivered artifacts and admission policy, reconciling unresolved selected-component permissions before publication; record the actual review and test missing/corrupt required materials. Update DISTRIBUTION.md with asset contents and the raw UF2's companion notices.
+- [x] 3.3 Move permission decisions to contribution review under the existing admission policy; add contributor guidance and a PR template, remove per-Alpha approval files and retain automatic firmware/EDK/font/runtime material checks and evidence. Verify approval-free staging, NOASSERTION handling, evidence-only output, migrated interfaces and missing/corrupt material failures; update the publication documentation and preserve earlier review findings.
 
 ## 4. Draft upload, publication and recovery
 
@@ -35,6 +33,11 @@
 - [ ] 5.4 Verify the resulting GitHub Release is public, prerelease=true and latest=false, then independently download the exact R1 asset set and verify checksums, version and UF2/EDK identity; record the final Release URL and CI evidence here. Physical-device, production-signing and GA acceptance remain unperformed in this CI-only pilot.
 
 ## Validation
+
+The historical evidence below describes the earlier approval-file mechanism.
+The contribution-stage refinement at the end records the current contract and
+acceptance; it supersedes earlier statements that task 3.3 requires a committed
+per-Alpha approval without rewriting the observed runtime-material findings.
 
 Planning baseline: main `64b4739c8fe1c80f4ed465694424dd0596baac36` has a
 [successful full CI run](https://github.com/Meshbus/sdk-meshbus/actions/runs/36724697347)
@@ -162,3 +165,92 @@ the separately authorized publication tasks 5.3-5.4 remain pending. No tag,
 GitHub Release, device operation or production signing was performed. These
 post-run acceptance records are retained locally for the next review commit;
 the validated implementation remains at `94db2fa`.
+
+
+### Current contribution-stage refinement (2026-10-01)
+
+The user approved moving permission decisions to contribution review while
+retaining the existing admission scope and exceptions. Task 3.3 now covers
+that migration and automatic distribution-material checks, replacing the old
+per-Alpha approval acceptance. Earlier Picolibc findings and their correction
+above remain historical evidence; no approval or legal-clearance claim is added.
+
+- Added contributor guidance, a PR template and README/agent entry points.
+  Maintainers review applicable source/version, terms, choices/exceptions,
+  output usage and notice obligations before merging. Existing CI is reused;
+  there is no new approval registry or signing requirement.
+- LICENSING.md retains admission policy ownership and records known gaps from
+  existing Heatshrink, Nanopb, LoRa Basics Modem and Mbed TLS/TF-PSA-Crypto terms.
+  Actual source license texts were inspected in the existing workspace. This
+  is targeted documentation, not a blanket approval of every module file.
+- Removed Alpha approval-file reading and matching. Candidate uses
+  `--evidence-only`; both workflows retain automatically checked materials.
+  `license-evidence.json` keeps schema 1 scope/digest as provenance, and
+  `alpha-license-evidence` replaces the old Candidate artifact. Public manifest
+  schema 1 omits the approval digest. Removed arguments fail parsing.
+- Final CI boundary suite: 138 tests passed, including 37 Alpha tests. Coverage
+  includes approval-free staging, NOASSERTION preservation, material/digest
+  changes without reapproval, evidence-only output, actual workflow arguments,
+  missing/corrupt notices, runtime inventory, fonts and EDK license conflicts.
+  Version/source, complete-matrix, asset and visibility boundaries still pass.
+- Release regression suite: 101 tests passed. These are local fixture/tool
+  checks, not fresh hosted product packages or device acceptance.
+- Ruff and actionlint 1.7.12 passed. Local documentation links/includes,
+  explicit checks of both new Markdown files, and metadata checks passed
+  (132 tracked metadata documents, 105 unique scenarios). External URLs and
+  anchors were not crawled.
+- Strict OpenSpec validation passed all four items. Repository license policy
+  passed with zero remaining file findings and 29 existing exemptions;
+  raw REUSE compliance remains false. `git diff --check` passed.
+
+Task 3.3 is complete under the revised contract. The changes remain local on
+base `ac66d89`; no staging, commit, push, Actions dispatch, tag, public Release,
+production signing or device operation was performed. The shared west manifest
+remains Enterprise. Tasks 5.3-5.4 stay open: hosted acceptance for the final
+committed source and first public tag/download verification still require
+separately authorized execution. No new hardware or legal clearance is claimed.
+
+### Markdown metadata refinement (2026-10-01)
+
+The user exempted all repository Markdown from per-file SPDX declarations.
+Removed the two first-party declaration lines from 25 documents; the audit of
+45 tracked/nonignored Markdown files, including hidden paths and archives,
+found no remaining declaration headers. Third-party notices, central REUSE
+attribution and generated skills remain unchanged. AGENTS.md, OpenSpec context,
+contributor guidance and licensing/CI documentation now state the file scopes.
+
+- License policy exempts only missing Markdown copyright/license metadata,
+  including new or updated documents, without hash registration. Other scanner
+  failures, source metadata checks and path/symlink protections remain active.
+- CI boundary suite: 140 tests passed, including new Markdown scope and
+  retained-failure regression cases. Ruff, actionlint, documentation checks,
+  metadata checks (132 documents, 105 scenarios), strict OpenSpec validation
+  (four items) and `git diff --check` passed.
+- Development-environment license policy passed with zero remaining findings
+  and 54 exemptions, including 25 Markdown documents. Raw REUSE compliance
+  remains false. Earlier release regression results above remain the evidence
+  for unchanged release code; no new hosted or device validation was performed.
+
+Changes remain local and tasks 5.3-5.4 remain open.
+
+### First-publication readiness recheck (2026-10-01)
+
+Read-only GitHub checks found remote main at
+`ac66d89de66a0609f25372970742a64a17bf184c`, matching local HEAD. No
+`v1.0.0-alpha.1` tag or Release exists. The committed firmware VERSION already
+declares `1.0.0-alpha.1`. Contribution-stage and Markdown policy refinements
+above remain uncommitted; the index is empty.
+
+The latest successful [main CI run](https://github.com/Meshbus/sdk-meshbus/actions/runs/36773089302)
+ran Source checks, Plan validation and Required checks, skipping the eight
+workspace/build/test jobs. It retains only source-checks and ci-plan artifacts,
+so it is not a complete Twister baseline. The older complete CI and Candidate
+results cover earlier source revisions, not the pending refinements.
+
+After explicit authorization for the pending Git changes and hosted execution,
+commit/push the reviewed refinements, dispatch full CI for that final source,
+then run Candidate preparation with the same immutable Builder digest. Require
+both to pass for that exact source before creating/pushing the fixed Alpha tag
+under public-publication authorization. The tag-triggered pipeline performs its
+fresh candidate/staging/upload checks and reuses only matching full CI Twister
+evidence. Tasks 5.3-5.4 remain incomplete until their real hosted acceptance.

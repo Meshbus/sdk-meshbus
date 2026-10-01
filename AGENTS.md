@@ -13,11 +13,25 @@ Read only the sections needed for the task, alongside relevant source and tests:
 - Packaging, signing or release: [distribution](DISTRIBUTION.md).
 - MBA execution: [trust model](scripts/meshbus/APP_DEVELOPMENT.md#execution-and-trust-model).
 - Dependency admission or attribution: [licensing](LICENSING.md).
+- Contributions or upstream material: [contributing](CONTRIBUTING.md).
 
 Use [OpenSpec](openspec/README.md) for shared requirements and planned changes;
 small corrections need no new change. Read the relevant active change, not all
 changes. Run `npm run openspec -- <arguments>` from the Git root. Keep generated
 skills unchanged; project customization belongs in `openspec/config.yaml`.
+
+SPDX metadata follows [licensing](LICENSING.md#per-file-metadata):
+
+- Do not add per-file SPDX declarations to Markdown (`.md`), including READMEs,
+  agent instructions, PR templates and active or archived OpenSpec documents.
+- Source, scripts, build files, device/configuration data, test metadata and CI
+  workflows remain in scope. Use native-syntax SPDX headers when supported;
+  otherwise use provenance-backed `REUSE.toml` metadata, never invalid comments.
+- Board documentation raster images and plain version values need no headers.
+  Other configuration exemptions follow the exact reviewed license policy;
+  a filename alone does not make a new configuration exempt.
+- Preserve third-party copyright/permission notices and generated skill files.
+  Do not infer ownership or remove license texts to satisfy a metadata check.
 
 For design reasons, regressions or earlier work, use
 [targeted history retrieval](DEVELOPMENT.md#history-retrieval). Ordinary searches

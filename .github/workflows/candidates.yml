@@ -116,15 +116,15 @@ jobs:
           path: product-parts
       - working-directory: meshbus
         run: west release assemble --input ../product-parts --output ../firmware-candidate
-      - name: Retain Alpha license review inputs without publication
+      - name: Check and retain Alpha license materials without publication
         run: >-
           python meshbus/scripts/ci/alpha.py --candidate firmware-candidate
-          --snapshot snapshot --output alpha-assets --evidence alpha-review
-          --review meshbus/scripts/ci/alpha-license-review.json --review-only
+          --snapshot snapshot --output alpha-assets --evidence alpha-evidence
+          --evidence-only
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: alpha-license-review-input
-          path: alpha-review
+          name: alpha-license-evidence
+          path: alpha-evidence
           retention-days: 90
           if-no-files-found: warn
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6

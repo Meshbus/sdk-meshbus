@@ -1,5 +1,3 @@
-<!-- SPDX-FileCopyrightText: 2026 FoBE Studio -->
-<!-- SPDX-License-Identifier: Apache-2.0 -->
 # GitHub Actions
 
 Validation CI checks this SDK, product firmware and host CLI without flashing
@@ -13,7 +11,7 @@ The separate Alpha workflow publishes only the reviewed allowlisted downloads.
 | Daily CI | Pull request or main push | The checks selected for this change passed. |
 | Full validation | Weekly Monday 06:00 Asia/Shanghai or manual CI | The complete device-free matrix passed for this source and resolved environment. |
 | Candidate preparation | Manual or reusable Alpha call | Matching successful full CI Twister evidence, fresh strict validation, production-profile firmware packaging, EDK qualification and assembly. |
-| Alpha release | Push of `v*-alpha.*` tag | The complete candidate pipeline and distribution review passed; uploaded assets and anonymous public downloads match the retained checksums. |
+| Alpha release | Push of `v*-alpha.*` tag | The complete candidate pipeline and automatic material checks passed; uploaded assets and anonymous public downloads match the retained checksums. |
 | Builder image | Weekly Monday 04:00, manual, or image/consumer-check PR | The proposed builder and its shallow dependency clones passed consumer smoke checks. Only successful default-branch scheduled/manual runs activate it. |
 
 `ci.yml` calls `validation.yml` for daily and full validation. The candidate
@@ -271,6 +269,14 @@ existing notices. All other REUSE findings, including missing standard license
 texts, invalid licenses and read errors, continue to fail the job. Font inventory
 checks run for product changes and full validation.
 
+All Markdown (`.md`, case-insensitive) documents are exempt from missing per-file
+copyright/license metadata, including hidden directories and OpenSpec archives.
+Do not add SPDX declaration headers to them. New documents and content changes
+need no hash entry or approval; the report records `markdown-documentation`
+exemptions. Existing central REUSE metadata and third-party notices are retained.
+Invalid/missing license texts, read errors and all other failure classes still
+block, including for Markdown. See [per-file rules](../LICENSING.md#per-file-metadata).
+
 Following Zephyr's separation of text metadata checks from binary documentation,
 missing per-file metadata does not block board documentation raster images:
 PNG, JPEG, WebP, GIF, BMP and ICO files under `boards/<vendor>/<board>/doc/`,
@@ -325,15 +331,15 @@ tag, so `GITHUB_TOKEN` publication does not require additional workflow rights.
 Git operations and public publication require the repository's explicit
 authorization; the examples here do not grant it.
 
-Complete full **CI** on the reviewed Alpha source before running manual
-**Candidate preparation**, using the same Builder digest. Before the first
-publication, download its `alpha-license-review-input` and corresponding
-`verified-firmware-candidate`, snapshot, maps and qualification evidence. Review
-the selected distribution inputs and commit the approval described in
-[distribution](../DISTRIBUTION.md#selected-distribution-review). The approval is
-bound to selected licensing inputs, not timestamped archive bytes. A subsequent
-tag builds its own clean committed candidate and checks the scope again.
-No approval file has been fabricated for the first pilot.
+Complete full **CI** on the committed Alpha source before running manual
+**Candidate preparation**, using the same Builder digest. Candidate preparation
+checks firmware/EDK license materials with `--evidence-only`, retaining
+`alpha-license-evidence` and its `license-evidence.json` alongside the verified
+candidate and qualification evidence. It does not generate public Alpha assets.
+Permission decisions and any new or changed alternatives/exceptions are reviewed
+before merging under [contribution review](../CONTRIBUTING.md#maintainer-review-and-ci).
+There is no per-Alpha approval file or release-time approval digest check.
+See [distribution evidence](../DISTRIBUTION.md#distribution-material-evidence).
 
 The job order is preflight -> complete reusable Candidate preparation -> public
 staging -> draft upload/verification -> publication -> anonymous verification.
@@ -350,10 +356,11 @@ for 90 days. Only the publication job has `contents: write`; all validation,
 build and export jobs have read access. Same-tag runs are serialized without
 cancelling an active upload. No personal token or signing key is required.
 
-If license review is missing or stale, staging fails and retains
-`license-review-input.json`. Complete the review on a branch before creating the
-publication tag; do not move an existing tag to inject an approval. Failed or
-incomplete uploads retain an owned draft. **Rerun only the failed publication
+Missing or corrupt required license materials still fail staging. Successful
+material checks retain `license-evidence.json`; its input digest is provenance,
+not legal approval. Correct missing materials through a contribution before
+creating the publication tag; preserve existing tags. Failed or incomplete
+uploads retain an owned draft. **Rerun only the failed publication
 job in its original Actions run**, using its original retained artifacts.
 Matching uploaded assets remain untouched; missing assets are uploaded. A full
 rerun detects the draft before rebuilding and fails with recovery instructions.

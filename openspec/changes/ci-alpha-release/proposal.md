@@ -1,5 +1,3 @@
-<!-- SPDX-FileCopyrightText: 2026 FoBE Studio -->
-<!-- SPDX-License-Identifier: Apache-2.0 -->
 # Proposal
 
 ## Why
@@ -25,6 +23,11 @@ public download verification before establishing an ongoing release practice.
   matching EDK, public SBOM, license-bearing companion package, checksums and
   a portable release manifest. The user accepted this scope by instructing
   implementation after the R1 plan review.
+- Review rights, license choices and exceptions during contribution and dependency
+  changes under the existing admission policy. Add contributor guidance and a PR
+  template; reuse existing CI and maintainer review without a new approval registry.
+  Alpha staging checks delivered license materials and retains evidence without
+  requiring a per-release approval file or asserting legal clearance.
 - Create a draft, upload the selected assets, verify their downloaded bytes,
   then expose the release as a Pre-release with `latest=false`. Verify public
   downloads after publication and retain the exact Actions evidence.

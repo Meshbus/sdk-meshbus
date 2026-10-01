@@ -1,5 +1,3 @@
-<!-- SPDX-FileCopyrightText: 2026 FoBE Studio -->
-<!-- SPDX-License-Identifier: Apache-2.0 -->
 # Alpha release publication
 
 ## Purpose
@@ -54,6 +52,45 @@ preparation. Other strict validation and packaging checks SHALL run afresh.
 - **WHEN** a required job, product, EDK, notice material or checksum is missing,
   failed or unexpectedly skipped
 - **THEN** the workflow fails before public publication
+
+### Requirement: Review permissions during contribution
+
+Contributors SHALL identify applicable provenance, terms, selected alternatives
+and exceptions when introducing or updating external code, dependencies, fonts,
+generated inputs, runtime inputs or exported headers. Maintainers SHALL review
+these changes before merging under the existing admission policy. Existing
+decisions SHALL be reused; known gaps SHALL be reconciled in the licensing
+records without a new approval registry or an exhaustive release-time re-review.
+
+#### Scenario: External contribution
+- **WHEN** a contribution introduces or changes external material
+- **THEN** its PR describes the source/version, terms, choice or exception and
+  required notices for maintainer review
+- **AND** existing source license and font checks remain required
+
+### Requirement: Check distribution materials automatically
+
+Candidate preparation and Alpha staging SHALL check actual firmware, EDK, font
+and runtime license materials and retain `license-evidence.json`. Its existing
+schema 1 scope and digest SHALL describe inputs, not approval. Staging SHALL NOT
+require a per-Alpha approval file or treat an SPDX NOASSERTION field alone as a
+permission failure. Contribution review SHALL resolve genuinely unknown grants;
+successful automation SHALL NOT claim legal clearance.
+
+#### Scenario: Complete materials without an approval file
+- **WHEN** a candidate has complete verified materials and no approval file,
+  including an SBOM with NOASSERTION fields
+- **THEN** Alpha staging succeeds without adding an approval field to the manifest
+
+#### Scenario: Missing or corrupt distribution material
+- **WHEN** required notices, runtime inventory or EDK material are missing or
+  corrupt, or selected fonts are restricted or unreviewed
+- **THEN** staging fails before generating public assets
+
+#### Scenario: Evidence-only candidate
+- **WHEN** Candidate invokes `--evidence-only`
+- **THEN** it retains material evidence without generating public assets
+- **AND** the removed `--review` and `--review-only` arguments are rejected
 
 ### Requirement: Publish an explicit pilot asset set
 

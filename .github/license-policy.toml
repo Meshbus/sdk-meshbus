@@ -3,7 +3,7 @@
 
 # Repository CI exceptions to file metadata and named distribution-only texts.
 # This policy does not declare full REUSE compliance or grant/relicense rights.
-# Board documentation raster images and plain VERSION/scalar version data are
+# Markdown documents, board documentation raster images and plain version data are
 # scoped out by scripts/ci/license_policy.py without content hashes.
 # Other metadata exemptions below use exact paths and SHA256.
 # Review content before adding an entry or refreshing a digest; do not bulk
