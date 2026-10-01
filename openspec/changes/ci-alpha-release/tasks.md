@@ -375,8 +375,8 @@ update does not require a new firmware build or move the public tag.
 
 - [x] 6.1 Extend verified staging and provenance to all registered products, applicable EDKs and six native-validated CLI archives; test mixed UF2/MCUboot, independent CLI version, complete notice/runtime inventories, missing/conflicting targets and legacy schema 1 verification.
 - [x] 6.2 Pass CLI parts and native artifacts to Candidate evidence and Alpha staging; update specs, publication guides and firmware VERSION to alpha.2; verify workflow interfaces, complete CI/release suites, actionlint, documentation, strict OpenSpec, license policy and whitespace.
-- [ ] 6.3 Commit/push the authorized change and complete full CI and manual Candidate for the final source before pushing a new alpha.2 tag; retain exact source, Builder, dependency graph and reused Twister evidence.
-- [ ] 6.4 Follow tag CI through public Pre-release publication, independently download and verify the complete board/CLI inventory, and record the release and evidence without claiming hardware or host signing qualification.
+- [x] 6.3 Commit/push the authorized change and complete full CI and manual Candidate for the final source before pushing a new alpha.2 tag; retain exact source, Builder, dependency graph and reused Twister evidence.
+- [x] 6.4 Follow tag CI through public Pre-release publication, independently download and verify the complete board/CLI inventory, and record the release and evidence without claiming hardware or host signing qualification.
 
 Full-matrix local validation (2026-10-01):
 
@@ -400,4 +400,101 @@ Full-matrix local validation (2026-10-01):
   domains and merged firmware contents passed checks. No EDK is claimed for
   tracker_t1000_e, whose actual product capability disables LLEXT.
 
-Tasks 6.3-6.4 remain pending exact-source hosted and public download acceptance.
+The local checks above preceded the hosted and public acceptance recorded below.
+
+Full-matrix hosted and public acceptance (2026-10-01):
+
+- Source commit `76357c25abba938fdbda8911aa4488afdba83855` was committed and
+  pushed before hosted validation. The published alpha.1 tag
+  (`39bdd7c66ddcdd497da254d32f22fd6a289b6998`) and its public assets were
+  preserved. Firmware advances to alpha.2; companion CLI stays at 1.0.0.
+- [Full CI](https://github.com/Meshbus/sdk-meshbus/actions/runs/36870353925)
+  passed all 30 jobs for this exact source, including all eight Twister
+  runtime/compile shards. The duplicate narrowed push run `36870306329`
+  was cancelled while the full baseline completed.
+- [Manual Candidate](https://github.com/Meshbus/sdk-meshbus/actions/runs/36871975127)
+  passed 28 jobs with the expected single Twister skip. Actual material
+  evidence covers four products and six native-validated CLI targets; its
+  canonical scope SHA-256 is
+  `ccbe8625deb6aadbc81d44c5dd73a974c3d821c20000fc4dd0f4e357d29bf6ea`.
+- A new annotated `v1.0.0-alpha.2` tag was pushed after both runs passed. Its
+  tag object `7aa1b97d7c2ba774b90ba5530783159f2e98b47c` resolves to the validated
+  source. [Tag CI](https://github.com/Meshbus/sdk-meshbus/actions/runs/36875689074)
+  completed with 31 successful jobs and one expected Twister skip.
+- Candidate and tag preparation reused full CI `36870353925`, attempt 1,
+  with identical source, frozen dependency graph and immutable Builder:
+  `ghcr.io/meshbus/sdk-meshbus-builder@sha256:edeed0755c6379c5553696f9456c3ea1ca0c8c6df9836effba4ba9df2e537300`.
+  Frozen-manifest SHA-256 is
+  `296b63ac56c1b0e71b8f26523f2269e434068afd89fd6c00ee566f0c27ef64dc`;
+  input west-manifest SHA-256 is
+  `7aed573187d52799c03180ad5b5c891a443f9d765dfe241fc6103f832993f41f`.
+- Tag Candidate and staging material evidence passed with canonical scope
+  SHA-256 `82ecb11fa3aa9fa5ba954fa7ff8cb0b652f8ae874ac6ca20e0af0556bdbbfb5e`.
+  Retained staging inventory SHA-256 is
+  `1a4388a3617a578cc5c4116925ce60ee5d9fea86a7a05bdc089d1fc6cad7b2cc`.
+  These hashes identify actual materials; they are not manual approval.
+- The first publish attempt received GitHub HTTP 500 after uploading all
+  23 assets. The retained CI-owned draft, source, run, sizes and GitHub
+  digests matched the original inventory. Only the failed publish job was
+  rerun as attempt 2; it resumed the original draft without deleting or
+  replacing assets, rebuilding firmware, moving the tag or rerunning Twister.
+- [Public Release](https://github.com/Meshbus/sdk-meshbus/releases/tag/v1.0.0-alpha.2)
+  was published by CI at `2026-10-01T14:51:41Z` with `draft=false`,
+  `prerelease=true` and `latest=false`. Schema 2 names the four registered
+  products and all six CLI platforms, with no approval-summary field.
+- Independent downloads used all 23 public browser URLs without an
+  Authorization header or cookies. Inventory equals the retained
+  `alpha-evidence/inventory.json`; sizes, GitHub digests and SHA256SUMS match.
+  Internal archive checksums, all product/EDK version and source identities,
+  public/archive SBOM equality, UF2/BIN/HEX payload checks, MCUboot header,
+  hash, partition bounds and merged images, runtime/font/EDK materials,
+  CLI architecture/source/version and dependency/generated notices passed.
+  Six CLI execution checks ran on their native CI hosts; anonymous local
+  verification checked archive content rather than executing every platform.
+- The verified products are `mesh_probe_r1/nrf52840`,
+  `mesh_probe_r2/nrf54l15/cpuapp`, `tracker_t1000_e/nrf52840` and
+  `wio_tracker_l1/nrf52840`. Three UF2 products and one MCUboot APP BIN are
+  published; R2 merged firmware and bootloader remain inside its archive.
+  Three LLEXT products include EDKs; tracker_t1000_e has no EDK capability.
+- Companion CLI 1.0.0 covers arm64 and x86-64 macOS, Windows and Linux.
+  Product hardware qualification, private-key image authentication, host
+  code signing, notarization and GA acceptance remain unperformed.
+
+The verified complete public assets and SHA-256 digests are:
+
+| Asset | SHA-256 |
+| --- | --- |
+| `SHA256SUMS` | `46eec5831a85104ac96c9b3d9fa5f121c67090155837ec678493755925dd5d21` |
+| `app-1.0.0-alpha.2-mesh_probe_r1-nrf52840-edk.tar.xz` | `47608db9f7e55ceeb2a27cfbc46b51d296e386bb12c3f864e777948f030a028e` |
+| `app-1.0.0-alpha.2-mesh_probe_r2-nrf54l15-cpuapp-edk.tar.xz` | `e1926d72a1592a2c9ca717def49241c988df10c25919f276d63893b648ba72b3` |
+| `app-1.0.0-alpha.2-wio_tracker_l1-nrf52840-edk.tar.xz` | `304ef1b1c7d590f427aaf6710427c4760cec9c77e538f3f76b59517afe222e8b` |
+| `meshbus-1.0.0-aarch64-apple-darwin.tar.gz` | `499f7a14669b470de0e76c07a977a1eafe818370dab7a5bdb2cf75b77587869d` |
+| `meshbus-1.0.0-aarch64-pc-windows-msvc.zip` | `b86e3646923983630add591f5a288bd4336ceffd469bc916f6dbededb7cfed8f` |
+| `meshbus-1.0.0-aarch64-unknown-linux-gnu.tar.gz` | `546cb25eecf7d0b25a8d34bfa9b33b6fb88d72ad1c0ed436e04885f0d873ca41` |
+| `meshbus-1.0.0-alpha.2-mesh_probe_r1_nrf52840-SBOM.spdx` | `c864e6c0fbb2862e8b23e875a19ed078c86aba3298ca8bf556e3a7b122025c65` |
+| `meshbus-1.0.0-alpha.2-mesh_probe_r1_nrf52840-firmware.tar.gz` | `8cb7362dbf4bc6ea362e0b9aefa2bbb09a6be7e7acf89e10a5d1608cbd15cf2a` |
+| `meshbus-1.0.0-alpha.2-mesh_probe_r1_nrf52840.uf2` | `ec54e966fdbb3d54a078e07d33e4f72185824f93f96e45ad88f45ccbf40bc25b` |
+| `meshbus-1.0.0-alpha.2-mesh_probe_r2_nrf54l15_cpuapp-SBOM.spdx` | `91877a180d4f57b0a7d430f4e0a043a3852917407ad61dc2c63858e4a32f3038` |
+| `meshbus-1.0.0-alpha.2-mesh_probe_r2_nrf54l15_cpuapp-firmware.tar.gz` | `95cef090e18a0fac19163e985cc79bf205818875eb94d4ee379b6622467293f2` |
+| `meshbus-1.0.0-alpha.2-mesh_probe_r2_nrf54l15_cpuapp.bin` | `466d00ca1e85cabc9a4ce7b97d040d4dc42d0b8457c4b44a9b030699bc4e2026` |
+| `meshbus-1.0.0-alpha.2-tracker_t1000_e_nrf52840-SBOM.spdx` | `790cc2aeb32a3276a663d19bcf9aacb37215afa9dfa8aad1f4d24ee9656030bc` |
+| `meshbus-1.0.0-alpha.2-tracker_t1000_e_nrf52840-firmware.tar.gz` | `7340a4b563c8bc1ce5b55900cc19a5c87fd75751827d8eb37399f27c013f5231` |
+| `meshbus-1.0.0-alpha.2-tracker_t1000_e_nrf52840.uf2` | `f85f0e54af8db1cd7d60270be96ab895bb0c87361ad1c2bc887d76405df92ed9` |
+| `meshbus-1.0.0-alpha.2-wio_tracker_l1_nrf52840-SBOM.spdx` | `1fd5b507ee514786ab869e72f6f8ab6b3e63f94d63166f7334658c4230bdf434` |
+| `meshbus-1.0.0-alpha.2-wio_tracker_l1_nrf52840-firmware.tar.gz` | `1712de798b4864456ade64c6e3db77de41b59415901233c822576c16c5dad9b5` |
+| `meshbus-1.0.0-alpha.2-wio_tracker_l1_nrf52840.uf2` | `c1f89a0d14db78cfef843d1335ff40db896e87923e652cfb4a7b504d51478d7e` |
+| `meshbus-1.0.0-x86_64-apple-darwin.tar.gz` | `766bdeeba490d8dc3e6399536afcbee41bf48612a13ffe3fa3f73b57d397e011` |
+| `meshbus-1.0.0-x86_64-pc-windows-msvc.zip` | `994405ac71f56b93c2aedd67f92e6b6bfef745a4c6898b6260ea74f57b8f8d1e` |
+| `meshbus-1.0.0-x86_64-unknown-linux-gnu.tar.gz` | `abeeccbd8f3b83b04e9fcc83d23d65da0642e17883c6e22220727bec4572d233` |
+| `release-manifest.json` | `f64399d54e15e59559043a019d93134798abe73293ea275e22e91b69b3e4fa67` |
+
+Tasks 6.3 and 6.4 are complete. This record establishes complete-matrix
+CI-only Alpha publication and independent anonymous download acceptance.
+The public tag remains on its validated source; the acceptance-record update
+does not change published bytes or claim hardware qualification.
+
+Acceptance-record checks: local documentation references/includes, metadata
+(132 documents, 105 scenarios), strict OpenSpec validation (four items) and
+`git diff --check` passed. The development-environment license policy passed
+with zero remaining findings and 54 metadata exemptions. This record update
+requires no new firmware build and leaves both published Alpha tags fixed.
