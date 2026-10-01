@@ -29,8 +29,8 @@
 
 - [x] 5.1 Run affected CI/release boundary suites, source documentation/metadata checks, actionlint, OpenSpec strict validation, git diff --check and the repository license policy; record actual outcomes here without equating structural checks with hosted acceptance.
 - [x] 5.2 After separate explicit Git authorization, commit/push the reviewed implementation and firmware VERSION edit; verify the committed diff/source identity and successful hosted CI, preserving unrelated work.
-- [ ] 5.3 After separate explicit public-publication authorization, create/push the fixed `v1.0.0-alpha.1` tag and follow its verified full CI Twister reuse, fresh strict validation, production packaging, EDK qualification, complete assembly and draft verification; retain source SHA, resolved graph, builder digest, job results and artifact references here.
-- [ ] 5.4 Verify the resulting GitHub Release is public, prerelease=true and latest=false, then independently download the exact R1 asset set and verify checksums, version and UF2/EDK identity; record the final Release URL and CI evidence here. Physical-device, production-signing and GA acceptance remain unperformed in this CI-only pilot.
+- [x] 5.3 After separate explicit public-publication authorization, create/push the fixed `v1.0.0-alpha.1` tag and follow its verified full CI Twister reuse, fresh strict validation, production packaging, EDK qualification, complete assembly and draft verification; retain source SHA, resolved graph, builder digest, job results and artifact references here.
+- [x] 5.4 Verify the resulting GitHub Release is public, prerelease=true and latest=false, then independently download the exact R1 asset set and verify checksums, version and UF2/EDK identity; record the final Release URL and CI evidence here. Physical-device, production-signing and GA acceptance remain unperformed in this CI-only pilot.
 
 ## Validation
 
@@ -297,3 +297,76 @@ missing-old-ref, new-branch and root-commit regression cases. Ruff, actionlint,
 local documentation, strict OpenSpec and repository license policy passed;
 the policy retains zero findings and 54 exemptions. Release code is unchanged;
 the preceding 101-test release regression remains its local evidence.
+
+### Completed first public Alpha acceptance (2026-10-01)
+
+The corrected publication source is
+`6286ba050e7325120707a3fce65851bf4bce4f61`. After the user's explicit
+unpublished-tag correction authorization, this exact source passed a new full
+CI baseline and manual Candidate before the tag was changed.
+
+- [Full CI](https://github.com/Meshbus/sdk-meshbus/actions/runs/36856504155)
+  passed all 30 jobs, including all eight Twister shards. The duplicate narrowed
+  push run was cancelled. No failed gate was bypassed.
+- [Manual Candidate](https://github.com/Meshbus/sdk-meshbus/actions/runs/36857808653)
+  passed 28 jobs with one expected Twister-reuse skip. Fresh strict validation,
+  all four production packages, EDK qualification, assembly and actual
+  distribution-material checks passed without an approval file.
+- Before correction, GitHub had no Release for the tag. The original annotated
+  tag and complete history were backed up and verified. The authorized push
+  used an exact lease on old tag object
+  `0f4af3c7edcfcbdc9eda7c515607a147f8e0e8b5`; the new annotated tag object is
+  `39bdd7c66ddcdd497da254d32f22fd6a289b6998`, resolving to the corrected source.
+- [Tag-triggered Alpha](https://github.com/Meshbus/sdk-meshbus/actions/runs/36860528713)
+  passed 31 jobs with one expected Twister-reuse skip. C/C++ patch style passed
+  on the real tag event. Fresh strict checks, production packages, EDK,
+  assembly, staging, verified draft upload and anonymous publication checks
+  all passed. These results supersede the earlier failed tag attempt.
+- Downloaded plans and snapshots for both Candidate and Alpha reused baseline
+  `36856504155`, attempt 1, with all eight successful Twister shards. Exact
+  source, frozen dependency graph and immutable Builder were independently
+  checked against the full CI snapshot. Frozen-manifest SHA-256:
+  `296b63ac56c1b0e71b8f26523f2269e434068afd89fd6c00ee566f0c27ef64dc`.
+  Input manifest SHA-256:
+  `7aed573187d52799c03180ad5b5c891a443f9d765dfe241fc6103f832993f41f`.
+  Builder remains
+  `ghcr.io/meshbus/sdk-meshbus-builder@sha256:edeed0755c6379c5553696f9456c3ea1ca0c8c6df9836effba4ba9df2e537300`.
+- Actual `alpha-license-evidence` artifacts for the manual and tag Candidates
+  agree. Each contains only `license-evidence.json`, schema 1, scope and a
+  verified provenance digest:
+  `80006ac6bb103ea15077fbbb0769766f0c1421b1e2b70182353afbbfb7235baa`.
+  No approval field is present. Public manifest schema 1 also contains no
+  `license_review_scope_sha256` or replacement approval field.
+- [Public Release](https://github.com/Meshbus/sdk-meshbus/releases/tag/v1.0.0-alpha.1)
+  was published by CI at 2026-10-01 12:43:29 UTC with `draft=false`,
+  `prerelease=true` and `latest=false`. Its source is the corrected commit,
+  and its ownership marker and manifest identify Alpha run `36860528713`.
+- Independent downloads used all six public browser download URLs without an
+  Authorization header or cookies. The complete inventory matches the retained
+  `alpha-evidence/inventory.json`, GitHub asset sizes and all SHA-256 checks.
+  Internal firmware checksums, public/archive UF2 equality and BIN/HEX payload,
+  EDK host version/source identity, public/archive SBOM equality,
+  dependency provenance, runtime notices, fonts and EDK material checks passed.
+
+The verified public assets and SHA-256 digests are:
+
+| Asset | SHA-256 |
+| --- | --- |
+| `SHA256SUMS` | `eaa90b04561a36396ac9570b9d6fa731bbc1cf1920da61fca0a080a0023f5680` |
+| `app-1.0.0-alpha.1-mesh_probe_r1-nrf52840-edk.tar.xz` | `b6efad3bb2a3192f0e2b683f3dc4abcaaeaf0dc42b2b7450bb245aab733e3f91` |
+| `meshbus-1.0.0-alpha.1-mesh_probe_r1_nrf52840-SBOM.spdx` | `1a4ff03a3f01639dd4c061193177833e02f5ba33f18e7f0fa587e396d79d8c50` |
+| `meshbus-1.0.0-alpha.1-mesh_probe_r1_nrf52840-firmware.tar.gz` | `29b07dd30693faa5ad49aa88f3faec7275eefbc44f91f3e1db035a40e3632f3b` |
+| `meshbus-1.0.0-alpha.1-mesh_probe_r1_nrf52840.uf2` | `7485161f269487f95c62d5b2b15b3baffd4f19cb30233f1f8dba550c7875e7d1` |
+| `release-manifest.json` | `4b58c6aa2dc8fed07c43c50874ba8e4b1e6d70eddeb4326379a273213a981be3` |
+
+Tasks 5.3 and 5.4 are complete. This establishes the CI-only Alpha pilot for
+`mesh_probe_r1/nrf52840`; physical-device qualification, production signing and
+GA acceptance remain unperformed. The published tag and assets stay fixed;
+this acceptance-record update does not change their validated source.
+
+Acceptance-record checks: local documentation references/includes, metadata
+(132 documents, 105 scenarios), OpenSpec strict validation (four items) and
+`git diff --check` passed. The development-environment license policy passed
+with zero remaining findings and 54 exemptions; raw REUSE compliance remains
+false under the documented repository metadata scope. This documentation-only
+update does not require a new firmware build or move the public tag.
