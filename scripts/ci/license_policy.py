@@ -215,8 +215,45 @@ def licensing_context(name):
             or path.name.startswith(('LICENSE', 'COPYING')))
 
 
+def without_website_annotations(metadata):
+    """Compare effective root attribution without provably web-only tables."""
+    annotations = metadata.get('annotations', [])
+    if not isinstance(annotations, list) or not all(isinstance(a, dict) for a in annotations):
+        raise ValueError('invalid REUSE annotations')
+    retained = []
+    for annotation in annotations:
+        paths = annotation.get('path')
+        if isinstance(paths, str):
+            paths = [paths]
+        website_only = (isinstance(paths, list) and bool(paths) and all(
+            isinstance(name, str) and name.startswith('web/') and '\\' not in name
+            and PurePosixPath(name).as_posix() == name and '..' not in PurePosixPath(name).parts
+            for name in paths))
+        if not website_only:
+            retained.append(annotation)
+    return {**metadata, 'annotations': retained}
+
+
+def root_attribution_unchanged(root, base):
+    """Only unchanged effective TOML may avoid a complete root-context audit."""
+    source = root / 'REUSE.toml'
+    if not source.is_file() or source.is_symlink():
+        return False
+    previous = subprocess.run(['git', 'show', f'{base}:REUSE.toml'], cwd=root,
+                              capture_output=True)
+    if previous.returncode:
+        return False
+    try:
+        old = tomllib.loads(previous.stdout.decode('utf-8'))
+        current = tomllib.loads(source.read_text(encoding='utf-8'))
+        return without_website_annotations(old) == without_website_annotations(current)
+    except (OSError, UnicodeError, ValueError):
+        return False
+
+
 def select_files(root, *, base=None, full=False):
     """Git enumerates files without the directory optimization used by REUSE."""
+    root = root.resolve()
     available = git_paths(root, 'ls-files', '--cached', '--others', '--exclude-standard', '-z')
     available = {name for name in available if not name.startswith('web/')
                  and (root / name).is_file() and (root / name).resolve() == root / name}
@@ -228,16 +265,37 @@ def select_files(root, *, base=None, full=False):
         if resolved.returncode:
             full, reason = True, f'comparison base unavailable: {reference}'
         else:
+            revision = resolved.stdout.decode().strip()
             changed = git_paths(root, 'diff', '--name-only', '--no-renames', '-z',
-                                resolved.stdout.decode().strip(), '--')
+                                revision, '--')
             changed |= git_paths(root, 'ls-files', '--others', '--exclude-standard', '-z')
-            shared = sorted(name for name in changed if not name.startswith('web/') and (
-                licensing_context(name) or PurePosixPath(name).name == '.gitignore'
-                or name in {'.github/license-policy.toml', 'LICENSING.md',
-                            'scripts/ci/license_policy.py'}))
+            expanded = set(changed)
+            shared, local_context = [], []
+            for name in sorted(changed):
+                if name.startswith('web/'):
+                    continue
+                path = PurePosixPath(name)
+                if name == 'REUSE.toml':
+                    if not root_attribution_unchanged(root, revision):
+                        shared.append(name)
+                elif 'LICENSES' in path.parts or path.name.startswith(('LICENSE', 'COPYING')):
+                    shared.append(name)
+                elif path.name == 'REUSE.toml':
+                    prefix = path.parent.as_posix() + '/'
+                    expanded.update(p for p in available if p.startswith(prefix))
+                    local_context.append(f'{name} -> {prefix}')
+                elif path.suffix == '.license':
+                    counterpart = name.removesuffix('.license')
+                    expanded.add(counterpart)
+                    local_context.append(f'{name} -> {counterpart}')
+                elif (licensing_context(name) or name in {
+                        '.github/license-policy.toml', 'scripts/ci/license_policy.py'}):
+                    shared.append(name)
             if shared:
                 full, reason = True, 'shared licensing inputs changed: ' + ', '.join(shared)
-    selected = available if full else available & changed
+            elif local_context:
+                reason += '; attribution scope expanded: ' + ', '.join(local_context)
+    selected = available if full else available & expanded
     context = {name for name in available if licensing_context(name)}
     return {
         'mode': 'full' if full else 'incremental', 'base': reference if not full else None,

@@ -28,8 +28,11 @@ applicable; this policy neither changes those grants nor claims full REUSE
 compliance. Generated skills retain their upstream content and notices.
 
 Daily checks inspect changed files, including local untracked inputs. Complete
-audits run explicitly, during scheduled/manual complete CI, and when shared
-licensing inputs change. Ignored untracked dependencies and generated output
+audits run explicitly, during scheduled/manual complete CI, and when global
+effective attribution, license texts or checker policy changes. Sidecars select
+their source counterpart; nested attribution selects its affected subtree.
+Ignore rules, explanatory prose and provably website-only root annotations
+remain incremental. Ignored untracked dependencies and generated output
 are excluded before scanning. An incremental pass covers the reported selection;
 release checks continue to verify the materials actually distributed.
 

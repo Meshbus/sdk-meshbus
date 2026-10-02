@@ -321,4 +321,6 @@ the shared developer workspace.
 License metadata blockers in the selected scope remain strict failures,
 independent of build and runtime results. Use the default incremental
 [license check](.github/CI.md#license-check-scope) during development; complete
-audits are explicit or selected automatically for shared licensing changes.
+audits are explicit or selected automatically for global attribution and policy
+changes. Local attribution changes expand to their affected source or subtree;
+ignore rules and explanatory prose stay incremental.

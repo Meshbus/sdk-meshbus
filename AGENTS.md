@@ -53,5 +53,6 @@ when files are needed. Report actual checks and unmet acceptance without weakeni
 the agreed criteria. For repository changes, run the default incremental license
 policy in the development Python environment; include untracked inputs and fix
 selected findings. Use `--base <commit>` for a commit range and `--full` for an
-explicit audit. Shared licensing changes automatically expand the scan. See the
+explicit audit. Attribution changes expand to their affected files; global
+licensing and policy changes select a complete audit. See the
 [license check scope](.github/CI.md#license-check-scope) for commands and evidence.

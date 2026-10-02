@@ -350,18 +350,174 @@ class GitLicenseScan(unittest.TestCase):
         self.assertEqual(report['scan']['mode'], 'full')
         self.assertIn('unavailable', report['scan']['reason'])
 
-    def test_license_removal_and_sidecar_change_expand_to_full(self):
+    def test_license_removal_expands_to_full(self):
         self.git('rm', 'LICENSES/Apache-2.0.txt')
         passed, report = self.scan()
         self.assertFalse(passed)
         self.assertEqual(report['scan']['mode'], 'full')
         self.assertIn('Apache-2.0', report['non_compliant']['missing_licenses'])
-        self.write('LICENSES/Apache-2.0.txt',
-                   (license_policy.ROOT / 'LICENSES/Apache-2.0.txt').read_text())
+
+    def test_ignore_rules_and_licensing_prose_stay_incremental(self):
+        self.write('generated/new.py', 'new = True\n')
+        self.write('.gitignore', self.HEADER + 'node_modules/\ngenerated/*\n!generated/new.py\n')
+        self.write('LICENSING.md', '# Website dependency notes\n')
+        passed, report = self.scan()
+        self.assertFalse(passed)
+        self.assertEqual(report['scan']['mode'], 'incremental')
+        self.assertEqual(report['scan']['files'],
+                         ['.gitignore', 'LICENSING.md', 'generated/new.py'])
+        self.assertEqual(report['remaining_files'], ['generated/new.py'])
+
+    def test_sidecar_addition_and_removal_select_unchanged_counterpart(self):
         self.write('old.py.license', self.HEADER)
         passed, report = self.scan()
         self.assertTrue(passed)
-        self.assertEqual(report['scan']['mode'], 'full')
+        self.assertEqual(report['scan']['mode'], 'incremental')
+        self.assertEqual(report['scan']['files'], ['old.py', 'old.py.license'])
+        self.commit()
+        (self.root / 'old.py.license').unlink()
+        passed, report = self.scan()
+        self.assertFalse(passed)
+        self.assertEqual(report['scan']['mode'], 'incremental')
+        self.assertEqual(report['scan']['files'], ['old.py'])
+        self.assertEqual(report['remaining_files'], ['old.py'])
+
+    def test_sidecar_rename_selects_old_and_new_counterparts(self):
+        self.write('other.py', 'other = True\n')
+        self.write('old.py.license', self.HEADER)
+        self.commit()
+        self.git('mv', 'old.py.license', 'other.py.license')
+        passed, report = self.scan()
+        self.assertFalse(passed)
+        self.assertEqual(report['scan']['mode'], 'incremental')
+        self.assertEqual(report['scan']['files'], ['old.py', 'other.py', 'other.py.license'])
+        self.assertEqual(report['remaining_files'], ['old.py'])
+
+    def test_nested_reuse_addition_change_and_removal_only_select_subtree(self):
+        self.write('component/source.py', 'source = True\n')
+        self.commit()
+        metadata = ('version = 1\n[[annotations]]\npath = ["*.py"]\n'
+                    'SPDX-FileCopyrightText = "FoBE Studio"\n'
+                    'SPDX-License-Identifier = "Apache-2.0"\n')
+        self.write('component/REUSE.toml', metadata)
+        passed, report = self.scan()
+        self.assertTrue(passed)
+        self.assertEqual(report['scan']['mode'], 'incremental')
+        self.assertEqual(report['scan']['files'],
+                         ['component/REUSE.toml', 'component/source.py'])
+        self.commit()
+        self.write('component/REUSE.toml', metadata.replace('Apache-2.0', 'MIT'))
+        passed, report = self.scan()
+        self.assertFalse(passed)
+        self.assertEqual(report['scan']['mode'], 'incremental')
+        self.assertEqual(report['non_compliant']['missing_licenses'], ['MIT'])
+        (self.root / 'component/REUSE.toml').unlink()
+        passed, report = self.scan()
+        self.assertFalse(passed)
+        self.assertEqual(report['scan']['mode'], 'incremental')
+        self.assertEqual(report['remaining_files'], ['component/source.py'])
+
+    def test_nested_reuse_move_selects_both_subtrees(self):
+        for directory in ('old', 'new'):
+            self.write(f'{directory}/source.py', 'source = True\n')
+        self.write('old/REUSE.toml', 'version = 1\n[[annotations]]\npath = ["*.py"]\n'
+                   'SPDX-FileCopyrightText = "FoBE Studio"\n'
+                   'SPDX-License-Identifier = "Apache-2.0"\n')
+        self.commit()
+        self.git('mv', 'old/REUSE.toml', 'new/REUSE.toml')
+        passed, report = self.scan()
+        self.assertFalse(passed)
+        self.assertEqual(report['scan']['mode'], 'incremental')
+        self.assertEqual(report['scan']['files'],
+                         ['new/REUSE.toml', 'new/source.py', 'old/source.py'])
+        self.assertEqual(report['remaining_files'], ['old/source.py'])
+
+    def test_root_reuse_website_only_additions_edits_and_removal_stay_incremental(self):
+        baseline = ('version = 1\n[[annotations]]\npath = ["good.py"]\n'
+                    'SPDX-FileCopyrightText = "FoBE Studio"\n'
+                    'SPDX-License-Identifier = "Apache-2.0"\n')
+        self.write('REUSE.toml', baseline)
+        self.commit()
+        website = ('\n[[annotations]]\npath = ["web/package.json", "web/assets/**"]\n'
+                   'precedence = "closest"\nSPDX-FileCopyrightText = "FoBE Studio"\n'
+                   'SPDX-License-Identifier = "MIT"\n')
+        for content in (baseline + website, baseline + website.replace('FoBE Studio', '2026 FoBE Studio'),
+                        baseline, baseline + '# Attribution comment\n'):
+            with self.subTest(content=content):
+                self.write('REUSE.toml', content)
+                passed, report = self.scan()
+                self.assertTrue(passed)
+                self.assertEqual(report['scan']['mode'], 'incremental')
+                self.assertEqual(report['scan']['files'], ['REUSE.toml'])
+                self.commit()
+
+    def test_root_reuse_website_only_first_annotation_stays_incremental(self):
+        self.write('REUSE.toml', 'version = 1\n')
+        self.commit()
+        self.write('REUSE.toml', 'version = 1\n[[annotations]]\npath = "web/**"\n'
+                   'SPDX-FileCopyrightText = "FoBE Studio"\n'
+                   'SPDX-License-Identifier = "MIT"\n')
+        passed, report = self.scan()
+        self.assertTrue(passed)
+        self.assertEqual(report['scan']['mode'], 'incremental')
+
+    def test_root_reuse_ambiguous_or_global_changes_keep_full_audit(self):
+        self.write('REUSE.toml', 'version = 1\n')
+        self.commit()
+        metadata = ('version = 1\n[[annotations]]\npath = %s\n'
+                    'SPDX-FileCopyrightText = "FoBE Studio"\n'
+                    'SPDX-License-Identifier = "Apache-2.0"\n')
+        contents = [metadata % paths for paths in (
+            '["web/**", "good.py"]', '"web/../good.py"', '"web/./source.py"',
+            '"/web/**"', '"web*/*"', '"web"', '[]', '42', '"web\\\\**"')]
+        contents += ['version = 2\n', 'version = 1\nnew = true\n', 'invalid {{{',
+                     'version = 1\nannotations = 1\n']
+        for content in contents:
+            with self.subTest(content=content):
+                self.write('REUSE.toml', content)
+                scope = license_policy.select_files(self.root)
+                self.assertEqual(scope['mode'], 'full')
+                self.assertIn('old.py', scope['files'])
+        (self.root / 'REUSE.toml').unlink()
+        self.assertEqual(license_policy.select_files(self.root)['mode'], 'full')
+
+    def test_shared_policy_and_license_context_remain_global(self):
+        for name in ('.reuse/dep5', '.github/license-policy.toml', 'scripts/ci/license_policy.py',
+                     'LICENSE', 'COPYING', 'LICENSES/Apache-2.0.txt.license'):
+            with self.subTest(name=name):
+                source = self.root / name
+                previous = source.read_bytes() if source.exists() else None
+                self.write(name, '# Changed shared licensing input\n')
+                scope = license_policy.select_files(self.root)
+                self.assertEqual(scope['mode'], 'full')
+                self.assertIn('old.py', scope['files'])
+                if previous is None:
+                    source.unlink()
+                else:
+                    source.write_bytes(previous)
+
+    def test_root_reuse_annotation_order_changes_remain_global(self):
+        first = ('\n[[annotations]]\npath = "good.py"\n'
+                 'SPDX-FileCopyrightText = "FoBE Studio"\n'
+                 'SPDX-License-Identifier = "Apache-2.0"\n')
+        second = first.replace('good.py', '*.py').replace('Apache-2.0', 'MIT')
+        self.write('REUSE.toml', 'version = 1\n' + first + second)
+        self.commit()
+        self.write('REUSE.toml', 'version = 1\n' + second + first)
+        self.assertEqual(license_policy.select_files(self.root)['mode'], 'full')
+
+    def test_web_only_root_changes_respect_explicit_base(self):
+        self.write('REUSE.toml', 'version = 1\n')
+        self.commit()
+        base = self.git('rev-parse', 'HEAD').decode().strip()
+        self.write('REUSE.toml', 'version = 1\n[[annotations]]\npath = "web/**"\n'
+                   'SPDX-FileCopyrightText = "FoBE Studio"\n'
+                   'SPDX-License-Identifier = "MIT"\n')
+        self.commit()
+        passed, report = self.scan(base=base)
+        self.assertTrue(passed)
+        self.assertEqual(report['scan']['mode'], 'incremental')
+        self.assertEqual(report['scan']['files'], ['REUSE.toml'])
 
     def test_incremental_unused_text_is_advisory_and_empty_change_passes(self):
         self.write('LICENSES/MIT.txt', (license_policy.ROOT / 'LICENSES/MIT.txt').read_text())
