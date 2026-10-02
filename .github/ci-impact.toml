@@ -5,10 +5,19 @@
 # Include known consumers as well as the component's own contract tests. Review
 # these relationships when adding a consumer, public API, or integration fixture.
 # Selecting a consumer's tests does not expand its component mapping.
-# Unmapped paths and source Kconfig/CMake changes select the entire SDK.
-shared = ["subsys/settings/*", "subsys/mgmt/*", "subsys/shell/*", "subsys/clock/time.c"]
+# Unmapped paths and unreviewed source Kconfig/CMake select the entire SDK.
+shared = ["subsys/settings/*", "subsys/clock/time.c"]
+
+[components.mgmt]
+paths = ["subsys/mgmt/*.c", "subsys/mgmt/*.h"]
+roots = ["tests/subsys", "samples/subsys"]
+
+[components.shell]
+paths = ["subsys/shell/*.c", "subsys/shell/*.h"]
+roots = ["tests/subsys", "samples/subsys"]
 
 [components.clock]
+build_paths = ["subsys/clock/Kconfig"]
 paths = ["include/clock/*", "subsys/clock/*"]
 roots = [
     "tests/subsys/clock",
@@ -26,6 +35,7 @@ paths = ["include/gnss/*", "subsys/gnss/*"]
 roots = ["tests/subsys/gnss", "tests/subsys/desktop", "tests/subsys/llext", "samples/subsys/gnss"]
 
 [components.telemetry]
+build_paths = ["subsys/telemetry/Kconfig", "subsys/telemetry/CMakeLists.txt"]
 paths = ["include/telemetry/*", "subsys/telemetry/*", "dts/bindings/meshbus/fobe,meshbus-telemetry.yaml"]
 roots = [
     "tests/subsys/telemetry",
@@ -35,6 +45,7 @@ roots = [
 ]
 
 [components.display]
+build_paths = ["subsys/display/Kconfig", "subsys/display/CMakeLists.txt"]
 paths = ["include/display/*", "subsys/display/*"]
 roots = [
     "tests/subsys/display",
@@ -45,6 +56,7 @@ roots = [
 ]
 
 [components.input]
+build_paths = ["subsys/input/Kconfig", "subsys/input/CMakeLists.txt"]
 paths = ["include/input/*", "subsys/input/*"]
 roots = [
     "tests/subsys/input",

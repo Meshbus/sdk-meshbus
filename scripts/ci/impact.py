@@ -31,6 +31,10 @@ def load_policy(root):
     for name, component in policy['components'].items():
         if not component['paths'] or not component['roots']:
             raise ValueError(f'empty impact rule: {name}')
+        for source in component.get('build_paths', []):
+            path = Path(source)
+            if path.is_absolute() or '..' in path.parts or any(c in source for c in '*?['):
+                raise ValueError(f'build impact paths must be exact: {source}')
         for target in component['roots']:
             path = Path(target)
             if path.is_absolute() or '..' in path.parts or path.parts[0] not in ('tests', 'samples'):
@@ -55,6 +59,10 @@ def select(paths, root=ROOT):
                     roots.add('tests')
             continue
         # Build/configuration edits can change dependencies and enabled tests.
+        owners = [key for key, rule in policy['components'].items() if name in rule.get('build_paths', [])]
+        if owners:
+            components.update(owners)
+            continue
         if (Path(name).name.startswith('Kconfig') or Path(name).suffix == '.cmake'
                 or Path(name).name == 'CMakeLists.txt'
                 or any(fnmatchcase(name, pattern) for pattern in policy['shared'])):

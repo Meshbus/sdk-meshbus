@@ -28,8 +28,9 @@ def aggregate(needs, expected):
 def expected_jobs(plan):
     expected = ['plan', 'lightweight']
     for flag, jobs in {'workspace': ['prepare'], 'host': ['host'], 'sdk': ['zephyr'],
-                       'products': ['products'], 'cli': ['cli-linux', 'cli-mac', 'native']}.items():
-        if plan[flag]:
+                       'product_builds': ['products'], 'cli': ['cli-linux', 'cli-mac', 'native']}.items():
+        enabled = plan.get('product_builds', plan['products']) if flag == 'product_builds' else plan[flag]
+        if enabled:
             expected += jobs
     if any(plan[flag] for flag in ('fonts', 'checkpatch', 'audit')):
         expected += ['quality']

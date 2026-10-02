@@ -162,9 +162,9 @@ class Planning(unittest.TestCase):
 
     def test_shared_and_unmapped_firmware_expand_sdk_not_cli(self):
         for name in ('include/unknown/header.h', 'subsys/clock/time.c', 'subsys/settings/settings.c',
-                     'subsys/new_service/service.c', 'subsys/clock/Kconfig',
+                     'subsys/new_service/service.c', 'subsys/clock/CMakeLists.txt',
                      'drivers/CMakeLists.txt', 'boards/fobe/new_board/board.yml',
-                     'apps/meshbus/prj.conf'):
+                     'apps/meshbus/unknown.conf'):
             selected = plan.select([name])
             self.assertEqual(selected['test_roots'], ['tests'], name)
             self.assertEqual(selected['compile_roots'], ['samples', 'tests'], name)

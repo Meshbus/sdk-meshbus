@@ -98,7 +98,9 @@ def cli(target, candidate, profile='release'):
 
 
 
-def product(board, candidate):
+def product(board, candidate, profile='default'):
+    if profile not in ('default', 'dev', 'prod') or (candidate and profile != 'default'):
+        raise ValueError('invalid product profile or Candidate profile override')
     if candidate:
         run('west', 'release', 'build', '--workspace', WORKSPACE, '--target', board,
             '--build-root', WORKSPACE / 'product-build', '--output', OUT / 'firmware-parts', cwd=WORKSPACE)
@@ -126,8 +128,10 @@ def product(board, candidate):
             artifacts.write_json(record_path.parent / 'candidate-validation.json', evidence)
             artifacts.checksums(record_path.parent)
     else:
+        definitions = [] if profile == 'default' else [
+            '--', f'-Dmeshbus_EXTRA_CONF_FILE={ROOT / "apps/meshbus" / f"prj.{profile}.conf"}']
         run('west', 'build', '--sysbuild', '-b', board, ROOT / 'apps/meshbus',
-            '-d', WORKSPACE / 'product-build', cwd=WORKSPACE)
+            '-d', WORKSPACE / 'product-build' / profile, *definitions, cwd=WORKSPACE)
 
 
 def main():
@@ -137,6 +141,7 @@ def main():
     parser.add_argument('--shard', type=int, default=0)
     parser.add_argument('--candidate', action='store_true')
     parser.add_argument('--profile', choices=('ci', 'release'), default='release')
+    parser.add_argument('--product-profile', choices=('default', 'dev', 'prod'), default='default')
     parser.add_argument('--python-only', action='store_true')
     args = parser.parse_args()
     OUT.mkdir(exist_ok=True)
@@ -147,7 +152,7 @@ def main():
     elif args.layer == 'cli':
         cli(args.target, args.candidate, args.profile)
     else:
-        product(args.target, args.candidate)
+        product(args.target, args.candidate, args.product_profile)
 
 
 if __name__ == '__main__':

@@ -13,12 +13,19 @@ import product_impact
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def openspec_input(path):
+    return path in ('package.json', 'package-lock.json', '.agents/skills/.openspec-target',
+                    '.agents/skills/OPENSPEC-LICENSE') or path.startswith(
+                        ('openspec/', '.agents/skills/openspec-'))
+
+
 def category(path):
     # OpenSpec and the root npm package are development workflow inputs only.
     # Source checks validate them without restoring a firmware workspace.
-    if path in ('package.json', 'package-lock.json', '.agents/skills/.openspec-target',
-                '.agents/skills/OPENSPEC-LICENSE') or path.startswith(
-            ('openspec/', '.agents/skills/openspec-')):
+    if openspec_input(path):
+        return 'docs'
+    if Path(path).name == '.gitignore' or path in (
+            '.editorconfig', '.clang-format', '.gitlint', '.checkpatch.conf'):
         return 'docs'
     if path.endswith(('.md', '.rst')):
         return 'docs'
@@ -32,12 +39,13 @@ def category(path):
                 'scripts/ci/cli_workspace.py', 'scripts/ci/artifact.py'):
         return 'cli'
     if path in ('.github/workflows/alpha-release.yml', '.github/workflows/candidates.yml',
-                'scripts/ci/alpha.py', 'scripts/ci/publish.py', 'scripts/ci/baseline.py'):
+                'scripts/ci/alpha.py', 'scripts/ci/publish.py', 'scripts/ci/baseline.py',
+                'scripts/ci/promotion.py'):
         return 'release'
     # Unit tests alone cannot qualify changes to the real execution/selection path.
     if path in ('scripts/ci/plan.py', 'scripts/ci/impact.py', 'scripts/ci/test_plan.py',
                 'scripts/ci/workspace.py', 'scripts/ci/run.py', 'scripts/ci/checks.py',
-                'scripts/ci/product_impact.py'):
+                'scripts/ci/product_impact.py', 'scripts/ci/timings.py', 'scripts/ci/benchmark.py'):
         return 'shared'
     if path.startswith('scripts/ci/') and path.endswith('.py'):
         return 'tools'
@@ -64,16 +72,23 @@ def select(paths, full=False):
     full = full or bool(categories & {'shared', 'unknown'}) or not paths
     scoped, board_names, product_names, consumer_roots = set(), set(), set(), set()
     all_products = full or bool(categories & {'release'})
+    requests = [dict(products=None, profiles=['default'])] if all_products else []
     for path in paths:
         if category(path) != 'firmware':
             continue
-        scope = None if full else product_impact.resolve(path, ROOT)
+        scope = product_impact.resolve(path, ROOT)
+        if full:
+            if scope and scope.get('profiles') in (['dev'], ['prod']):
+                requests.append(dict(products=scope['products'], profiles=scope['profiles']))
+            continue
         if scope is None:
             all_products = True
+            requests.append(dict(products=None, profiles=['default']))
             continue
         board_roots, _ = product_impact.board_tests(scope['boards'], ROOT) if scope['boards'] else ([], [])
         if not board_roots and scope['products'] == [] and not scope['roots']:
             all_products = True
+            requests.append(dict(products=None, profiles=['default']))
             continue
         scoped.add(path)
         board_names.update(scope['boards'])
@@ -82,12 +97,16 @@ def select(paths, full=False):
             all_products = True
         else:
             product_names.update(scope['products'])
+        if scope['products'] is None or scope['products']:
+            requests.append(dict(products=scope['products'], profiles=scope.get('profiles', ['default'])))
     board_roots, platforms = product_impact.board_tests(board_names, ROOT) if board_names else ([], [])
     # Samples without Twister metadata (including MBA apps) may be product
     # fixtures; retain product validation when their owner cannot be resolved.
     unowned_sample = any(category(p) == 'samples' and impact.direct_root(p, ROOT) == 'samples'
                         for p in paths)
     all_products = all_products or unowned_sample
+    if unowned_sample:
+        requests.append(dict(products=None, profiles=['default']))
     products = all_products or bool(product_names)
     cli = full or bool(categories & {'cli', 'release'})
     host = full or bool(categories & {'cli', 'release', 'tools'})
@@ -118,7 +137,9 @@ def select(paths, full=False):
                'x86_64-pc-windows-msvc': 'windows-2025',
                'aarch64-pc-windows-msvc': 'windows-11-arm'}
     return dict(full=full, categories=sorted(categories), host=host, rust=cli,
-                sdk=sdk, products=products, cli=cli, audit=audit, west_audit=full,
+                sdk=sdk, products=products, product_builds=products, product_requests=requests,
+                openspec=full or any(openspec_input(p) for p in paths),
+                cli=cli, audit=audit, west_audit=full,
                 fonts=full or products, checkpatch=checkpatch, cli_profile='release' if full else 'ci',
                 workspace=sdk or products or cli or audit or checkpatch,
                 heavy=host or sdk or products or cli or audit or checkpatch,

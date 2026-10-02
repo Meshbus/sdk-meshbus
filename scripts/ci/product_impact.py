@@ -25,8 +25,15 @@ def owner(path, root):
 
 
 def resolve(path, root):
-    if path == 'apps/meshbus/VERSION':
-        return dict(products=None, boards=[], roots=[])
+    application_files = {
+        'VERSION', 'prj.conf', 'prj.dev.conf', 'prj.prod.conf', 'CMakeLists.txt',
+        'Kconfig', 'Kconfig.sysbuild', 'ZephyrAppConfig.cmake', 'sysbuild.cmake',
+    }
+    prefix = 'apps/meshbus/'
+    if path.startswith(prefix) and (path[len(prefix):] in application_files or
+                                   path.startswith(tuple(prefix + p for p in ('src/', 'cmake/', 'sysbuild/')))):
+        profile = {'prj.dev.conf': 'dev', 'prj.prod.conf': 'prod'}.get(Path(path).name, 'default')
+        return dict(products=None, boards=[], roots=[], profiles=[profile])
     if not path.startswith(('boards/', 'apps/meshbus/boards/')):
         return None
     changed = Path(path)
@@ -101,11 +108,28 @@ def filter_products(matrix, names):
     return {'include': [p for p in matrix['include'] if p['id'] in names]}
 
 
+def build_matrix(matrix, requests):
+    """Expand product/profile pairs without cross-multiplying unrelated requests."""
+    rows = {}
+    for request in requests:
+        selected = filter_products(matrix, request['products'])
+        for profile in request['profiles']:
+            if profile not in ('default', 'dev', 'prod'):
+                raise ValueError(f'unknown product profile: {profile}')
+            for product in selected['include']:
+                rows[(product['id'], profile)] = dict(product, profile=profile)
+    return {'include': [rows[key] for key in sorted(rows)]}
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--plan', type=Path, required=True)
     parser.add_argument('--matrix', type=Path, required=True)
+    parser.add_argument('--builds', type=Path)
     args = parser.parse_args()
-    matrix = filter_products(json.loads(args.matrix.read_text()),
-                             json.loads(args.plan.read_text()).get('product_names'))
+    selection = json.loads(args.plan.read_text())
+    matrix = filter_products(json.loads(args.matrix.read_text()), selection.get('product_names'))
     args.matrix.write_text(json.dumps(matrix) + '\n')
+    if args.builds:
+        requests = selection.get('product_requests', [dict(products=None, profiles=['default'])])
+        args.builds.write_text(json.dumps(build_matrix(matrix, requests)) + '\n')
