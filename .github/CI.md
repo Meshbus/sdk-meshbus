@@ -10,14 +10,16 @@ The separate Alpha workflow publishes only the reviewed allowlisted downloads.
 | --- | --- | --- |
 | Daily CI | Pull request or main push | The checks selected for this change passed. |
 | Full validation | Weekly Monday 06:00 Asia/Shanghai or manual CI | The complete device-free matrix passed for this source and resolved environment. |
-| Candidate preparation | Manual or reusable Alpha call | Matching successful full CI Twister evidence, fresh strict validation, production-profile firmware packaging, EDK qualification and assembly. |
-| Alpha release | Push of `v*-alpha.*` tag | The complete candidate pipeline and automatic material checks passed; uploaded assets and anonymous public downloads match the retained checksums. |
+| Candidate preparation | Manual or reusable Alpha call | Matching full CI Twister/default-product evidence, fresh strict CLI/host checks, production packaging, EDK qualification and assembly. |
+| Alpha release | Push of `v*-alpha.*` tag | A qualified Candidate and current staging checks passed; uploaded assets and anonymous public downloads match retained checksums. |
+| Alpha staging | Manual Alpha dispatch | The same asset and material checks passed without creating a tag or Release. |
+| CI benchmark | Manual fixed case/scheduler | Scheduling measurements for a frozen inventory; never a Candidate qualification baseline. |
 | Builder image | Weekly Monday 04:00, manual, or image/consumer-check PR | The proposed builder and its shallow dependency clones passed consumer smoke checks. Only successful default-branch scheduled/manual runs activate it. |
 
 `ci.yml` calls `validation.yml` for daily and full validation. The candidate
 workflow calls the same validation with fresh CLI requirements,
-then owns the firmware packaging/assembly jobs. Its normal sysbuild checks and
-production-profile package builds verify different configurations.
+then owns the firmware packaging/assembly jobs. Default sysbuild coverage comes
+from its exact full CI baseline; production-profile package builds remain fresh.
 
 Configure **Required checks** as the required status after confirming its exact
 hosted check name. It always runs and rejects failed/cancelled jobs, a failed
@@ -25,17 +27,24 @@ planner, unexpectedly skipped selected jobs and missing Twister instances.
 Candidate success additionally requires packaging and assembly; a successful
 validation gate alone does not qualify the candidate.
 
-Candidate preparation reuses Twister from a successful full `ci.yml` run on main
+Candidate preparation reuses Twister and default products from successful full `ci.yml` on main
 for the exact source SHA and immutable Builder digest. The gate checks the root
-manifest, both Twister layers, every planned shard and `Required checks`; the
+manifest, both Twister layers, every planned job/task, all default products and
+selected product profiles, and `Required checks`; the
 new resolved dependency graph must also match. It retains `twister-baseline.json`
 in the plan/source artifacts and includes the baseline in the public release
 manifest. It grants no reuse to narrowed, failed, expired or conflicting runs.
 If the gate fails, complete main CI first; use manual **CI** to obtain a full run
 on the desired commit/image when ordinary impact selection was narrower.
-Candidate and tag runs execute no duplicate Twister jobs. Their other strict
-checks, six CLI targets, product builds, packaging and EDK qualification remain
-fresh. Normal PR/main planning does not query past runs.
+New Candidates retain fresh host checks, six strict CLI targets, production
+packaging and EDK qualification. Successful Candidates retain an attempt-specific
+qualification record with artifact IDs and digests. Alpha automatically selects
+a matching trusted Candidate and its recorded Builder; missing/expired evidence
+falls back to new preparation. Explicit Candidate conflicts, corrupt artifacts
+and API failures fail. Staging rechecks materials and bytes and refreshes current
+vulnerability checks for reused Candidates. Manual Alpha dispatch only stages.
+Normal path selection does not inherit coverage from past runs; timing hints
+only change how the current selected inventory is grouped.
 
 ## Stateless selection
 
@@ -53,6 +62,9 @@ matched components and paths that required broader SDK coverage.
 | Mapped service implementation/header or driver implementation/binding | Declared Twister roots and integration consumers, plus product sysbuilds; no unrelated CLI packages. |
 | Board DTS/defconfig and product profiles | Known board integration builds and affected product sysbuilds, including local include consumers. Unresolved ownership expands coverage. |
 | Product VERSION | Product sysbuilds; no unrelated SDK or CLI builds. |
+| Known product application source/build files and common configuration | All default products without unrelated SDK tests. |
+| Product development/production fragment | All products with the changed profile; mixed requests union exact product/profile pairs. |
+| Ignore/editor/formatter/commit-style settings | Source checks; no firmware or CLI matrix. |
 | Common firmware helpers or unmapped firmware paths | All SDK runtime/build checks and all product sysbuilds. |
 | Direct test changes | Both Twister layers use the nearest test metadata directory; no products or CLI. Deleted suites and shared fixtures without a local metadata owner fall back to the tests root. |
 | Direct sample changes | Compile the nearest sample metadata directory; no runtime layer, products or CLI. Unresolved/deleted sample roots and samples without Twister metadata expand to all SDK and product checks. |
@@ -78,14 +90,16 @@ Scenarios and platforms remain owned by `testcase.yaml` and `sample.yaml`.
 
 The mapping is reviewed ownership data, not a complete compiler dependency graph.
 Update it when adding consumers or integration fixtures. Invalid or empty mapped
-test roots fail planning. Common settings/management/shell helpers and
-`subsys/clock/time.c` expand to all SDK tests and samples. Source Kconfig/CMake
-changes also expand because they can alter dependencies; build files inside a
+test roots fail planning. Common settings helpers and `subsys/clock/time.c`
+expand to all SDK tests and samples. Management/shell implementations retain all
+subsystem tests/samples and all products. Exact reviewed `build_paths` narrow
+clock Kconfig and display/input/telemetry Kconfig/CMake to their component
+consumers. Other source Kconfig/CMake changes expand; build files inside a
 directly changed test/sample stay within that metadata root. Unmapped firmware
 paths actually select all SDK roots, rather than merely setting an advisory flag.
 Renames include both the old and new paths. Mapped public headers share their
 component scope; unmapped headers expand SDK/product checks. Scheduled/manual
-runs bypass narrowing and include every supported configuration.
+runs bypass component narrowing and include the full declared test inventory.
 
 Board DTS, overlays and defconfig inputs use existing board/profile directories
 as owners. Local preprocessor includes extend selection to their consumers,
@@ -93,6 +107,10 @@ including deleted includes still referenced by retained sources. Board coverage
 uses the affected boards' declared integration platforms. Product profile changes
 select their product; `VERSION` selects all products. The final product list is
 filtered from `west release matrix`, and an unknown requested owner fails.
+`products.json` is the unique packaging inventory; `product-builds.json` contains
+the actual default/dev/prod jobs. Full CI always includes each default product
+and unions directly changed dev/prod fragments. The product runner's
+`--product-profile` selects the real sysbuild fragment and separate build output.
 Mixed component changes retain their unrestricted platforms alongside board builds.
 Arbitrary Kconfig/CMake changes, unknown owners and shared implementation still
 expand conservatively. This does not infer disabled services from handwritten
@@ -108,11 +126,15 @@ pipeline; these references describe selection mechanisms, not identical gates.
 
 All runs perform source metadata, local documentation references, secret scanning,
 repository license policy, workflow syntax, changed Python style and PR commit
-style in one job with separate steps. OpenSpec checks validate specs/changes and
+style in one job with separate steps. Relevant OpenSpec/tooling changes and full
+runs additionally install Node/npm and validate specs/changes and
 unfinished tasks in archives. These are structural checks, not proof of runtime
 behavior, TDD execution or review approval. The job uses Node.js 24 with
 `npm ci --ignore-scripts`, pinned Python tools and byte-verified actionlint/gitleaks,
 without the Zephyr image.
+Python downloads and tool archives are cached; restored tool archive bytes are
+checked against the pinned digest before extraction. Ordinary firmware changes
+do not prepare Node/npm or revalidate unchanged OpenSpec archives.
 C/C++ patch checks use the pinned Zephyr checkout. Font checks use pinned U8g2.
 Workspace checks use the same direct dependency setup as build jobs.
 
@@ -209,10 +231,28 @@ compilation inventories; the raw discovery reports remain in its task output.
 Runtime builds
 are removed from the compilation inventory only for the same scenario, platform
 and toolchain. Each nonempty layer uses one deterministic shard per 12 instances, capped at
-four. This reduces setup for small selections while preserving full-run parallelism. A focused
+four. When both layers have one shard and together at most twelve instances,
+one job prepares a shared workspace and runs both tasks with separate reports.
+One task's failure does not suppress the other task's diagnostics, and the job
+still fails. A focused
 selection may need only one layer; a completely empty selection fails. Per-shard
 and aggregate checks reject omissions, duplicates and unexpected skips. Runtime
 requires execution evidence; build-only success is never runtime success.
+
+`ci-timings` records verified instance build/execution time and job/step metrics.
+Prepare considers at most ten recent successful main CI runs and uses at most
+three matching Builder records. Median costs balance shard load without changing
+the inventory or shard count. Missing/invalid history falls back to deterministic
+round-robin; hints never establish successful validation.
+
+The manual benchmark supports `full` and `clock-small`, with `legacy` or
+`balanced` scheduling. Pin the source SHA, Builder digest, history artifact and
+inventory digest; dispatch one combination per run. Clock-small contains clock
+tests and the clock sample and must have both layers and at most twelve instances.
+Use one cold preparation and two warm samples per combination, alternating
+schedulers. Compare runner minutes and Twister wall time separately: the small
+case must reduce runner minutes, and neither case may regress wall time by more
+than max(60 seconds, 10%). Benchmark outputs cannot qualify a Candidate.
 
 Linux uses metadata-selected native/QEMU integration platforms. macOS developers
 can explicitly use QEMU, without `--integration` for clock:
@@ -259,7 +299,7 @@ Source checks and Twister diagnostics use 14-day retention even on candidate run
 
 Daily checks scan changed files against the supplied PR/push base. Local checks
 default to `HEAD` and include staged, unstaged and non-ignored untracked files.
-Deleted files are omitted; renames check the destination. Git enumerates the
+Deleted source files are omitted; moved metadata checks its old and new consumers. Git enumerates the
 inputs before REUSE runs in a temporary export, so ignored untracked dependency
 and output directories cannot enter through REUSE's directory traversal.
 
@@ -270,10 +310,14 @@ contribution review or actual firmware/CLI release-material checks.
 
 Scheduled/manual complete CI and `--full` audit all eligible repository files
 outside `web/`. An unavailable comparison base also selects a complete audit.
-Changes to `REUSE.toml`, `.reuse/dep5`, license texts or sidecars, `.gitignore`,
-`LICENSING.md`, `.github/license-policy.toml` or the license checker automatically
-expand the scan. Shared metadata therefore cannot silently change the licensing
-of unchanged files without checking them.
+Global license texts, root attribution affecting non-website files,
+`.reuse/dep5`, `.github/license-policy.toml` and the checker select a full audit.
+Sidecars add their surviving source counterpart; nested REUSE changes add their
+subtree, including both sides of a move. Ignore rules and licensing prose remain
+incremental. Root REUSE changes stay incremental only when parsed configuration
+is identical after removing complete annotations provably confined to `web/`.
+Mixed or ambiguous paths and invalid/new/deleted root configuration retain the
+full audit. All reports identify the selected files and expansion reason.
 
 The source-check job retains the unmodified `reuse.json` report for selected
 inputs and applies

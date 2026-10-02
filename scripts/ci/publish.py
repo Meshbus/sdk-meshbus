@@ -193,6 +193,19 @@ def validate_manifest(manifest, tag, sha):
                       manifest['repository'] == alpha.REPOSITORY and
                       manifest['qualification']['alpha_eligible'] is True and
                       manifest['qualification']['production_qualified'] is False, 'public release manifest conflict')
+    if 'candidate_validation' in manifest:
+        candidate = manifest['candidate_validation']
+        alpha.art.require(candidate['mode'] in ('fresh', 'reused') and
+                          candidate['repository'] == alpha.REPOSITORY and
+                          candidate['source_revision'] == sha and
+                          candidate['manifest_sha256'] == manifest['manifest_sha256'] and
+                          candidate['builder_image'] == manifest['builder_image'] and
+                          re.fullmatch(r'[0-9a-f]{64}', candidate['frozen_manifest_sha256']) and
+                          re.fullmatch(r'[1-9][0-9]*', candidate['run_id']) and
+                          re.fullmatch(r'[1-9][0-9]*', candidate['receipt_id']) and
+                          type(candidate['run_attempt']) is int and candidate['run_attempt'] > 0 and
+                          candidate['run_url'] == f'https://github.com/{alpha.REPOSITORY}/actions/runs/{candidate["run_id"]}',
+                          'public Candidate identity conflict')
     if manifest['schema'] == 1:
         alpha.art.require(manifest['target'] == alpha.TARGET, 'public firmware version/target conflict')
         names = alpha.payload_names(tag)

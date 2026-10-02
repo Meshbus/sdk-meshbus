@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 FoBE Studio
 # SPDX-License-Identifier: Apache-2.0
 """Release identity and draft visibility boundaries, without remote writes."""
+import copy
 import json
 import io
 from pathlib import Path
@@ -442,6 +443,24 @@ class Collection(unittest.TestCase):
             self.collect()
         self.assertFalse(self.output.exists())
 
+    def test_public_manifest_distinguishes_candidate_and_publication_runs(self):
+        source = json.loads((self.snapshot / 'source.json').read_text())
+        evidence = {'mode': 'reused', 'repository': alpha.REPOSITORY, 'run_id': '789', 'run_attempt': 2,
+                    'receipt_id': '456', 'source_revision': SHA, 'manifest_sha256': source['manifest_sha256'],
+                    'builder_image': (self.snapshot / 'image.txt').read_text().strip(),
+                    'frozen_manifest_sha256': alpha.art.digest((self.snapshot / 'west-frozen.yml').read_bytes()),
+                    'run_url': f'https://github.com/{alpha.REPOSITORY}/actions/runs/789'}
+        alpha.art.write_json(self.snapshot / 'candidate-reuse.json', evidence)
+        self.collect()
+        manifest = json.loads((self.output / 'release-manifest.json').read_text())
+        self.assertEqual(manifest['run_id'], '123')
+        self.assertEqual(manifest['candidate_validation'], evidence)
+        for key, value in (('source_revision', 'f' * 40), ('builder_image', 'stable'), ('run_attempt', 0)):
+            changed = copy.deepcopy(manifest)
+            changed['candidate_validation'][key] = value
+            with self.subTest(key=key), self.assertRaisesRegex(ValueError, 'Candidate identity'):
+                publish.validate_manifest(changed, TAG, SHA)
+
     def test_conflicting_edk_license_text_blocks_staging(self):
         edk = self.root / 'edk'
         (edk / 'LICENSE.txt').write_text('conflicting license fixture')
@@ -861,7 +880,10 @@ class Workflow(unittest.TestCase):
         self.assertFalse(workflow['concurrency']['cancel-in-progress'])
         jobs = workflow['jobs']
         self.assertEqual([name for name, job in jobs.items() if job.get('permissions') == {'contents': 'write'}], ['publish'])
-        self.assertEqual(set(jobs['publish']['needs']), {'preflight', 'candidate', 'stage'})
+        self.assertEqual(set(jobs['publish']['needs']), {'preflight', 'select', 'candidate', 'stage'})
+        for name in ('stage', 'publish'):
+            self.assertIn('!cancelled()', jobs[name]['if'])
+            self.assertNotIn('always()', jobs[name]['if'])
         candidate = yaml.safe_load((root / '.github/workflows/candidates.yml').read_text())
         self.assertIn('workflow_call', candidate[True])
         self.assertIn('workflow_dispatch', candidate[True])

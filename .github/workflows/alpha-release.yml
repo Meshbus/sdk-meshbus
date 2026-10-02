@@ -4,6 +4,12 @@ name: Alpha release
 on:
   push:
     tags: ['v*-alpha.*']
+  workflow_dispatch:
+    inputs:
+      candidate-run-id:
+        description: Successful Candidate run to stage; empty selects automatically
+        type: string
+        default: ''
 permissions:
   contents: read
   actions: read
@@ -14,7 +20,7 @@ defaults:
   run:
     shell: bash
 env:
-  RELEASE_TAG: ${{ github.ref_name }}
+  RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || '' }}
 jobs:
   preflight:
     if: github.repository == 'Meshbus/sdk-meshbus'
@@ -27,54 +33,90 @@ jobs:
         with:
           persist-credentials: false
       - id: check
+        if: github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: python scripts/ci/publish.py preflight
 
-  candidate:
+  select:
     needs: preflight
-    if: needs.preflight.outputs.published == 'false'
+    if: needs.preflight.outputs.published != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      mode: ${{ steps.select.outputs.mode }}
+      run-id: ${{ steps.select.outputs.run_id }}
+      receipt-id: ${{ steps.select.outputs.receipt_id }}
+      image: ${{ steps.select.outputs.image }}
+      tag: ${{ steps.select.outputs.tag }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - id: select
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CANDIDATE_RUN_ID: ${{ inputs.candidate-run-id }}
+        run: |
+          args=()
+          if [[ -n "$CANDIDATE_RUN_ID" ]]; then args+=(--run-id "$CANDIDATE_RUN_ID"); fi
+          python scripts/ci/promotion.py select "${args[@]}"
+
+  candidate:
+    needs: [preflight, select]
+    if: needs.select.outputs.mode == 'fresh'
     uses: ./.github/workflows/candidates.yml
     with:
       image: stable
 
   stage:
-    needs: [preflight, candidate]
+    needs: [preflight, select, candidate]
+    if: >-
+      !cancelled() && needs.preflight.result == 'success' && needs.select.result == 'success' &&
+      ((needs.select.outputs.mode == 'reused' && needs.candidate.result == 'skipped') ||
+       (needs.select.outputs.mode == 'fresh' && needs.candidate.result == 'success'))
     runs-on: ubuntu-24.04
     container:
-      image: ${{ needs.candidate.outputs.image }}
+      image: ${{ needs.select.outputs.image || needs.candidate.outputs.image }}
       volumes:
         - /usr/local/lib/android:/__host_sdks/android
         - /usr/share/dotnet:/__host_sdks/dotnet
         - /opt/ghc:/__host_sdks/ghc
         - /usr/local/.ghcup:/__host_sdks/ghcup
         - /opt/hostedtoolcache/CodeQL:/__host_sdks/codeql
-    timeout-minutes: 45
+    timeout-minutes: 90
     env:
       MESHBUS_CLI: ${{ github.workspace }}/internal-cli/meshbus/meshbus
+      RELEASE_TAG: ${{ needs.select.outputs.tag }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           path: meshbus
           persist-credentials: false
-      - uses: ./meshbus/.github/actions/workspace
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+      - env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CANDIDATE_MODE: ${{ needs.select.outputs.mode }}
+          CANDIDATE_RUN_ID: ${{ needs.select.outputs.run-id || github.run_id }}
+          RECEIPT_ID: ${{ needs.select.outputs.receipt-id || needs.candidate.outputs.qualification-artifact-id }}
+        run: >-
+          python meshbus/scripts/ci/promotion.py fetch --run-id "$CANDIDATE_RUN_ID"
+          --receipt-id "$RECEIPT_ID" --mode "$CANDIDATE_MODE" --output .
+      - run: |
+          bash meshbus/scripts/ci/prepare-disk.sh container
+          python meshbus/scripts/ci/workspace.py --workspace "$GITHUB_WORKSPACE" --verify snapshot
+          python meshbus/scripts/ci/artifact.py cli-parts/cli-x86_64-unknown-linux-gnu internal-cli
+      - name: Refresh current vulnerability checks for reused Candidate
+        if: needs.select.outputs.mode == 'reused'
+        run: |
+          python meshbus/scripts/ci/quality.py vulnerabilities --current
+          python meshbus/scripts/ci/quality.py west-vulnerabilities --current
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always() && needs.select.outputs.mode == 'reused'
         with:
-          name: verified-firmware-candidate
-          path: firmware-candidate
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-        with:
-          name: cli-x86_64-unknown-linux-gnu
-          path: internal-part
-      - run: python meshbus/scripts/ci/artifact.py internal-part internal-cli
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-        with:
-          pattern: cli-*
-          path: cli-parts
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-        with:
-          pattern: native-validation-*
-          path: cli-native
+          name: promotion-audits
+          path: ci-output
+          retention-days: 90
+          if-no-files-found: warn
       - run: >-
           python meshbus/scripts/ci/alpha.py --candidate firmware-candidate
           --snapshot snapshot --cli cli-parts --native cli-native
@@ -94,7 +136,10 @@ jobs:
           if-no-files-found: error
 
   publish:
-    needs: [preflight, candidate, stage]
+    needs: [preflight, select, candidate, stage]
+    if: >-
+      !cancelled() && github.event_name == 'push' && needs.preflight.result == 'success' &&
+      needs.select.result == 'success' && needs.stage.result == 'success'
     permissions:
       contents: write
     runs-on: ubuntu-24.04

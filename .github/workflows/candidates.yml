@@ -18,6 +18,8 @@ on:
     outputs:
       image:
         value: ${{ jobs.validation.outputs.image }}
+      qualification-artifact-id:
+        value: ${{ jobs.complete.outputs.qualification-artifact-id }}
 permissions:
   contents: read
   actions: read
@@ -149,16 +151,27 @@ jobs:
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    outputs:
+      qualification-artifact-id: ${{ steps.qualification.outputs.artifact-id }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          path: meshbus
           persist-credentials: false
-      - env:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: source-snapshot
+          path: snapshot
+      - id: record
+        env:
           NEEDS_JSON: ${{ toJSON(needs) }}
-        run: |
-          python - <<'PY'
-          import json, os, sys
-          sys.path.insert(0, 'scripts/ci')
-          import alpha
-          alpha.require_jobs(json.loads(os.environ['NEEDS_JSON']), ['validation', 'products', 'assemble'])
-          PY
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python meshbus/scripts/ci/promotion.py qualify --snapshot snapshot --output qualification
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        id: qualification
+        if: steps.record.outputs.eligible == 'true'
+        with:
+          name: candidate-provenance-${{ github.run_attempt }}
+          path: qualification
+          retention-days: 90
+          if-no-files-found: error

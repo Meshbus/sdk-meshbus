@@ -528,13 +528,16 @@ physical recovery, production signing or public-release qualification.
 
 The manual [Candidate preparation workflow](.github/CI.md) requires full
 commit SHAs throughout the manifest graph and successful strict validation.
-It reuses successful full main CI Twister evidence only for the same source,
+It reuses successful full main CI Twister and default-product evidence only for the same source,
 resolved manifest graph and immutable Builder digest. Missing or conflicting
 evidence blocks preparation; run full **CI** first with that commit and image.
 The snapshot and public manifest retain the reused baseline run identity.
 It builds six CLI targets, checks the produced bytes on native hosts, assembles
 all discovered firmware products and compiles C/C++ samples against every
 exported LLEXT EDK.
+The default product matrix is verified from that baseline; each Candidate builds
+production configuration and packaging metadata once. Completion records exact
+artifact IDs, digests and the qualifying run attempt.
 Linux/Windows cross builds record both build host and output target; macOS uses
 Apple-hosted tooling. `west release cli --target <triple>` supports configured
 cross toolchains. `--development` explicitly permits dirty/off-manifest local
@@ -545,3 +548,16 @@ requires successful strict checks, including the license policy and font invento
 Neither artifact upload nor successful assembly authorizes production signing
 or publication. See the workflow guide for bootstrap, environment identity and
 remaining qualification boundaries.
+
+Alpha tag runs first select a retained successful main Candidate for the exact
+source and version. Staging uses its recorded immutable Builder and rechecks the
+complete artifact matrix, bytes, native/EDK qualification and license materials.
+Reused Candidates receive current vulnerability checks under the same policy.
+Missing or expired automatic selections fall back to fresh preparation; explicit
+Candidate conflicts, corrupt inputs and API failures fail staging. The release
+manifest distinguishes the Candidate run from the publishing run. Existing
+published assets are never rewritten by this reuse mechanism.
+
+Manual Alpha dispatch exercises staging without a remote tag or Release write.
+An optional Candidate run ID forces that exact source of evidence. Successful
+dry-runs retain the verified asset inventory; only a tag-push run can publish.

@@ -502,6 +502,8 @@ def collect(candidate, snapshot, output, evidence, tag, sha, run_id, evidence_on
         import baseline
         sdk_validation = baseline.verify(snapshot)
         art.require(plan.get('twister_baseline') == sdk_validation, 'Twister reuse plan/provenance conflict')
+        if plan.get('product_builds') is False:
+            art.require(sdk_validation['schema'] == 2, 'product reuse requires complete schema 2 evidence')
     revisions = {p['name']: p['revision'] for p in yaml.safe_load((snapshot / 'west-frozen.yml').read_text())['manifest']['projects']}
     revisions.pop('meshbus', None)
     products = assembled['products']
@@ -542,6 +544,11 @@ def collect(candidate, snapshot, output, evidence, tag, sha, run_id, evidence_on
         'assets': [entry(name, data) for name, data in sorted(payload.items())],
         'qualification': {'alpha_eligible': True, 'production_qualified': False, 'hardware': 'not-run',
                           'candidate_unverified_gates': assembled['unverified_gates']}}
+    if (snapshot / 'candidate-reuse.json').exists():
+        candidate_validation = json.loads(art.read(snapshot / 'candidate-reuse.json'))
+        art.require(candidate_validation['frozen_manifest_sha256'] == art.digest(art.read(snapshot / 'west-frozen.yml')),
+                    'Candidate dependency qualification conflict')
+        manifest['candidate_validation'] = candidate_validation
     portable(manifest)
     import publish
     publish.validate_manifest(manifest, tag, sha)

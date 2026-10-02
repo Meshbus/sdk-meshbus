@@ -125,5 +125,70 @@ class Reuse(unittest.TestCase):
             baseline.select(Empty(), SHA, MANIFEST, IMAGE)
 
 
+class ProductReuse(Reuse):
+    def setUp(self):
+        super().setUp()
+        self.files['shards.json'] = json.dumps({'schema': 2, 'include': [
+            {'id': 'mixed-0', 'name': 'Twister Run + Build (1)', 'tasks': [
+                {'layer': 'runtime', 'shard': 0}, {'layer': 'compile', 'shard': 0}]}]}).encode()
+        self.files['products.json'] = json.dumps({'include': [dict(id='r1', board='r1/soc')]}).encode()
+        self.files['product-builds.json'] = json.dumps({'include': [
+            dict(id='r1', board='r1/soc', profile='default'), dict(id='r1', board='r1/soc', profile='prod')]}).encode()
+        selected = json.loads(self.files['plan.json'])
+        selected['product_builds'] = True
+        self.files['plan.json'] = json.dumps(selected).encode()
+        self.jobs = [{'name': 'validation / ' + name, 'status': 'completed', 'conclusion': 'success'}
+                     for name in ('Twister Run + Build (1)', 'Firmware / r1 (default)',
+                                  'Firmware / r1 (prod)', 'Required checks')]
+
+    def test_complete_products_and_actual_tasks_are_recorded(self):
+        result = self.record()
+        self.assertEqual(result['schema'], 2)
+        self.assertEqual(len(result['product_builds']), 2)
+        self.assertEqual(len(result['twister_jobs'][0]['tasks']), 2)
+
+    def test_missing_default_extra_profile_failure_and_duplicates_fail(self):
+        original = copy.deepcopy(self.jobs)
+        for index in (1, 2):
+            for state in ('skipped', 'failure', 'cancelled'):
+                self.jobs = copy.deepcopy(original)
+                self.jobs[index]['conclusion'] = state
+                with self.subTest(index=index, state=state), self.assertRaises(ValueError):
+                    self.record()
+        self.jobs = original
+        self.files['product-builds.json'] = json.dumps({'include': [
+            dict(id='r1', board='r1/soc', profile='prod')]}).encode()
+        with self.assertRaisesRegex(ValueError, 'default-product'):
+            self.record()
+
+    def test_duplicate_or_missing_twister_task_and_benchmark_fail(self):
+        original = self.files['shards.json']
+        for tasks in ([{'layer': 'runtime', 'shard': 0}],
+                      [{'layer': 'runtime', 'shard': 0}, {'layer': 'runtime', 'shard': 0},
+                       {'layer': 'compile', 'shard': 0}]):
+            matrix = json.loads(original)
+            matrix['include'][0]['tasks'] = tasks
+            self.files['shards.json'] = json.dumps(matrix).encode()
+            with self.assertRaises(ValueError):
+                self.record()
+        self.files['shards.json'] = original
+        self.files['plan.json'] = json.dumps(json.loads(self.files['plan.json']) | {'benchmark': {'case': 'full'}}).encode()
+        with self.assertRaises(ValueError):
+            self.record()
+
+    def test_current_default_subset_is_covered_but_changed_inventory_is_not(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            snapshot = Path(temporary)
+            for name, content in self.files.items():
+                (snapshot / name).write_bytes(content)
+            baseline.art.write_json(snapshot / 'twister-baseline.json', self.record())
+            baseline.art.write_json(snapshot / 'product-builds.json', {'include': [
+                dict(id='r1', board='r1/soc', profile='default')]})
+            self.assertEqual(baseline.verify(snapshot)['schema'], 2)
+            baseline.art.write_json(snapshot / 'products.json', {'include': [dict(id='r2', board='r2/soc')]})
+            with self.assertRaises(ValueError):
+                baseline.verify(snapshot)
+
+
 if __name__ == '__main__':
     unittest.main()
