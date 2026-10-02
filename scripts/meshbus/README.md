@@ -10,7 +10,7 @@ directory is `<west-workspace>/build-meshbus-cli`, overridden by
 uses that executable and skips the local build. Build failures stop execution.
 
 CLI and bundled implementation notices are maintained in the root
-[third-party notices](../../LICENSING.md#cli-distributions).
+[third-party notices](../../LICENSING.md#distribution-notices-and-evidence).
 The release tool includes the applicable texts in each CLI archive.
 
 ## Commands

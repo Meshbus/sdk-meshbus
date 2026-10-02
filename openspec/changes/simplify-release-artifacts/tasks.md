@@ -24,7 +24,8 @@
 Any newly authorized publication still requires the final commit's complete CI
 baseline, Candidate success, new tag build, upload and anonymous download
 verification. Published alpha.1/2 stay unchanged. These checks are not satisfied
-by local tests or retained artifacts.
+by local tests or retained artifacts. Alpha.3 completed the later authorized
+hosted acceptance recorded below.
 
 ## Local acceptance — 2026-10-02
 
@@ -54,3 +55,60 @@ by local tests or retained artifacts.
 - Verified retained published alpha.1 schema 1 and alpha.2 schema 2 inventories
   and manifests. No tags, published assets, remote Actions, Git index or commits
   were changed. No hardware or new hosted CI/publication acceptance was performed.
+
+## Hosted Candidate acceptance — 2026-10-02
+
+- Exact source `74e45aa218ae3dfc1841e23ae4c93f9c88ab3fd4` passed full
+  [CI 36910211301](https://github.com/Meshbus/sdk-meshbus/actions/runs/36910211301)
+  with all 30 jobs successful. Retained plan/source/job records confirm complete
+  runtime and compile roots, eight Twister shards and Required checks.
+- [Candidate 36920305748](https://github.com/Meshbus/sdk-meshbus/actions/runs/36920305748)
+  completed with 28 successful jobs and one intentionally skipped Twister
+  placeholder: fresh strict validation, six native-checked CLI targets,
+  four production-profile firmware packages, three EDK qualifications, assembly
+  and evidence-only material checks. It reused the exact-source full baseline
+  with Builder `sha256:edeed0755c6379c5553696f9456c3ea1ca0c8c6df9836effba4ba9df2e537300`;
+  the frozen west graph matched and no duplicate Twister jobs ran. The workflow
+  retained verified-firmware-candidate and alpha-license-evidence, without
+  verified-alpha-assets or public publication.
+- Downloaded the current Candidate and replayed staging in a clean local
+  checkout, preserving another session's untracked website planning files.
+  Schema 3 staging passed publication inventory validation for 14 files:
+  four firmware archives, three EDKs, six CLIs and release-manifest.json.
+  Firmware file counts are 7/10/7/7; CLI archives contain four files each.
+  Tracker T1000-E does not enable LLEXT; R1, R2 and Wio Tracker L1 supply EDKs.
+  Each EDK has one 26,046-byte NOTICE and passed the current Candidate CLI's
+  adjacent-manifest verification without sidecars. Material scopes agree with
+  CI by target; CLI scope list enumeration order differs between hosts.
+- At this Candidate checkpoint, the local replay did not establish hosted Alpha
+  staging, upload or anonymous download acceptance. No alpha.3 tag or Release
+  had been created; publication required separate authorization. The later
+  authorized public acceptance is recorded below. Hardware and signing
+  qualification remain unperformed.
+
+## Public Alpha.3 acceptance — 2026-10-02
+
+- The user explicitly authorized creating and pushing `v1.0.0-alpha.3` on
+  `74e45aa218ae3dfc1841e23ae4c93f9c88ab3fd4`. The annotated tag object is
+  `e7c8850d4128c0041cb189ca33ef8e56a5410eb9`, and the remote tag peels to that
+  exact source. Existing published tags and assets were preserved.
+- [Alpha release 36924758374](https://github.com/Meshbus/sdk-meshbus/actions/runs/36924758374)
+  completed successfully: 31 jobs succeeded and one Twister placeholder was
+  intentionally skipped. Preflight, fresh strict validation, six native CLI
+  checks, four production-profile packages, three EDK qualifications, assembly,
+  material checks, public staging and publication passed. It reused the same
+  exact-source full CI baseline and immutable Builder as the manual Candidate.
+- CI created and verified its own draft, checked uploaded bytes, then exposed
+  [v1.0.0-alpha.3](https://github.com/Meshbus/sdk-meshbus/releases/tag/v1.0.0-alpha.3)
+  as a public Prerelease without making it latest. CI anonymous verification
+  passed. Release metadata confirms source `74e45aa`, draft=false,
+  prerelease=true and 14 uploaded assets: four firmware archives, three EDKs,
+  six CLI archives and release-manifest.json (schema 3).
+- Independently downloaded every public asset without authentication. All 14
+  sizes and SHA256 values matched the tag run's retained upload inventory,
+  including the public manifest. Actual firmware/CLI layouts passed; all three
+  public EDKs passed adjacent-manifest verification using the public arm64 macOS
+  CLI, without sidecars. No standalone APP/SBOM or outer SHA256SUMS was published.
+- No hardware, image authentication, host signing/notarization or production
+  qualification was added. This acceptance record remains local and uncommitted;
+  unrelated website planning files and the existing Git index were preserved.
