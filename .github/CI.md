@@ -257,17 +257,38 @@ Source checks and Twister diagnostics use 14-day retention even on candidate run
 
 ## License check scope
 
-The source-check job retains the unmodified `reuse.json` report and applies
+Daily checks scan changed files against the supplied PR/push base. Local checks
+default to `HEAD` and include staged, unstaged and non-ignored untracked files.
+Deleted files are omitted; renames check the destination. Git enumerates the
+inputs before REUSE runs in a temporary export, so ignored untracked dependency
+and output directories cannot enter through REUSE's directory traversal.
+
+The entire root `web/` tree is temporarily excluded from repository SPDX scans
+in every mode: source, configuration, artwork, dependencies and generated files.
+Existing notices and attribution remain in place. This exclusion does not alter
+contribution review or actual firmware/CLI release-material checks.
+
+Scheduled/manual complete CI and `--full` audit all eligible repository files
+outside `web/`. An unavailable comparison base also selects a complete audit.
+Changes to `REUSE.toml`, `.reuse/dep5`, license texts or sidecars, `.gitignore`,
+`LICENSING.md`, `.github/license-policy.toml` or the license checker automatically
+expand the scan. Shared metadata therefore cannot silently change the licensing
+of unchanged files without checking them.
+
+The source-check job retains the unmodified `reuse.json` report for selected
+inputs and applies
 [license-policy.toml](license-policy.toml) to reviewed file-level copyright
 and licensing metadata gaps, plus explicitly named distribution-only license
 texts. BSL-1.0 is retained for the external clipboard-win packaging fallback;
 REUSE reports it unused because that Cargo source is outside this repository.
-Only that unused-text finding is filtered, without assigning BSL to local code.
+In complete audits, only that named unused-text finding is filtered. Incremental
+scans retain all unused-text findings as advisory because a subset cannot prove
+repository-wide non-use. Neither treatment assigns a license to local code.
 This is a repository policy check, not a claim of full
 REUSE compliance. It does not add copyright claims, relicense files, or remove
-existing notices. All other REUSE findings, including missing standard license
-texts, invalid licenses and read errors, continue to fail the job. Font inventory
-checks run for product changes and full validation.
+existing notices. All other REUSE findings on selected inputs, including missing
+standard license texts, invalid licenses and read errors, continue to fail the
+job. Font inventory checks run for product changes and full validation.
 
 All Markdown (`.md`, case-insensitive) documents are exempt from missing per-file
 copyright/license metadata, including hidden directories and OpenSpec archives.
@@ -295,8 +316,10 @@ The remaining reviewed tool/workspace configuration exemptions record exact path
 reasons and SHA256 values in `license-policy.toml`. Changed content needs another
 review before updating those entries. Do not regenerate them from scanner failures.
 
-`license-policy.json` records applied and inactive exemptions, every remaining
-finding, and the separate raw/policy results. `license-remaining-files.md` and
+`license-scan.json` records the selection mode, reason, paths, licensing context
+and excluded tree. `license-policy.json` includes that scope alongside applied
+and inactive exemptions, remaining/advisory findings and raw/policy results.
+`license-remaining-files.md` and
 the three `license-*.txt` path lists make the remaining and exempted files easy to
 inspect in the uploaded source-check artifact. Run the same policy locally with:
 
@@ -304,6 +327,11 @@ inspect in the uploaded source-check artifact. Run the same policy locally with:
 license_tmp="$(mktemp -d "${TMPDIR:-/tmp}/meshbus-license.XXXXXX")"
 python scripts/ci/license_policy.py --output "$license_tmp"
 ```
+
+Use `--base <commit>` to include committed changes relative to a specific base,
+or `--full` for a complete audit. These options are mutually exclusive. Run in
+the development Python environment. The default local command checks current
+uncommitted changes; a clean checkout needs `--base` to assess earlier commits.
 
 ## Interpreting validation results
 

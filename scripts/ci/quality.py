@@ -37,10 +37,13 @@ def comparison_base(base):
 
 def quality(kind, base, current=False):
     OUT.mkdir(exist_ok=True)
-    diff_base = None if current else comparison_base(base)
     if kind == 'licenses':
-        run(sys.executable, 'scripts/ci/license_policy.py', '--output', OUT)
-    elif kind == 'fonts':
+        reference = base or os.environ.get('DIFF_BASE')
+        selection = ['--full'] if current else ['--base', reference] if reference else []
+        run(sys.executable, 'scripts/ci/license_policy.py', '--output', OUT, *selection)
+        return
+    diff_base = None if current else comparison_base(base)
+    if kind == 'fonts':
         run(sys.executable, ROOT.parent / 'modules/lib/u8g2/scripts/font_inventory.py', '--check')
     elif kind == 'secrets':
         run('gitleaks', 'dir', '.', '--redact', '--report-format', 'json',

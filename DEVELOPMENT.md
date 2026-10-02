@@ -318,5 +318,7 @@ Docker tool image, native CLI exceptions, exact manifest snapshots and report
 retention. Use a fresh isolated west workspace to reproduce CI; each dependency setup
 runs `west update` from the SHA-pinned source manifest and must not be used on
 the shared developer workspace.
-Existing license metadata blockers remain strict failures, independent of build
-and runtime results.
+License metadata blockers in the selected scope remain strict failures,
+independent of build and runtime results. Use the default incremental
+[license check](.github/CI.md#license-check-scope) during development; complete
+audits are explicit or selected automatically for shared licensing changes.

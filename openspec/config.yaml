@@ -9,6 +9,7 @@ context: |
   Specs describe agreed behavior; use current source and tests to establish implementation.
   Shared artifacts use English; discuss work in the user's language.
   Markdown artifacts need no per-file SPDX declarations; do not add them.
+  Repository SPDX checks are incremental by default; web/ is temporarily excluded in every mode.
   AGENTS.md defines SPDX scope; retrieve LICENSING.md for external inputs or distribution changes.
   Use npm run openspec -- <arguments> from the Git root.
 

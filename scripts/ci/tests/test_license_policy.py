@@ -4,6 +4,7 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -237,7 +238,170 @@ class LicensePolicy(unittest.TestCase):
                     return subprocess.CompletedProcess(args, status)
                 with patch.object(license_policy.subprocess, 'run', side_effect=scanner):
                     with self.assertRaises(error):
-                        license_policy.scan(self.root, self.root / 'reports')
+                        output = self.root / 'reports'
+                        output.mkdir(exist_ok=True)
+                        license_policy.reuse_report(self.root, output)
+
+
+class GitLicenseScan(unittest.TestCase):
+    HEADER = '# SPDX-FileCopyrightText: 2026 FoBE Studio\n# SPDX-License-Identifier: Apache-2.0\n'
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name) / 'repo'
+        self.root.mkdir()
+        self.output = Path(temporary.name) / 'reports'
+        self.git('init', '-q')
+        self.write('.github/license-policy.toml', self.HEADER + 'version = 1\nexemptions = []\n')
+        self.write('.gitignore', self.HEADER + 'node_modules/\ngenerated/\n')
+        self.write('good.py', self.HEADER + 'value = 1\n')
+        self.write('old.py', 'old = True\n')
+        self.write('LICENSES/Apache-2.0.txt',
+                   (license_policy.ROOT / 'LICENSES/Apache-2.0.txt').read_text())
+        self.commit()
+
+    def git(self, *args):
+        return subprocess.check_output(['git', '-c', 'user.name=License Test',
+                                        '-c', 'user.email=license@example.invalid',
+                                        '-c', 'commit.gpgsign=false', *args], cwd=self.root)
+
+    def write(self, name, content):
+        path = self.root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content)
+
+    def commit(self):
+        self.git('add', '.')
+        self.git('commit', '-qm', 'fixture')
+
+    def scan(self, **kwargs):
+        passed = license_policy.scan(self.root, self.output, **kwargs)
+        report = json.loads((self.output / 'license-policy.json').read_text())
+        return passed, report
+
+    def test_default_checks_changes_without_unrelated_debt_or_ignored_output(self):
+        self.write('good.py', self.HEADER + 'value = 2\n')
+        self.write('new folder/with spaces.py', self.HEADER + 'value = 3\n')
+        self.git('add', 'good.py')
+        self.write('unstaged.py', self.HEADER)
+        self.write('new folder/node_modules/bad.py', 'bad = True\n')
+        self.write('web/source.py', '# SPDX-License-Identifier: Invalid-License\n')
+        index = self.git('diff', '--cached', '--binary')
+        passed, report = self.scan()
+        self.assertTrue(passed)
+        self.assertEqual(report['scan']['mode'], 'incremental')
+        self.assertEqual(report['scan']['files'],
+                         ['good.py', 'new folder/with spaces.py', 'unstaged.py'])
+        self.assertEqual(self.git('diff', '--cached', '--binary'), index)
+
+    def test_new_source_metadata_and_invalid_licenses_still_fail(self):
+        self.write('new.py', 'value = 1\n')
+        passed, report = self.scan()
+        self.assertFalse(passed)
+        self.assertEqual(report['remaining_files'], ['new.py'])
+        self.write('new.py', self.HEADER.replace('Apache-2.0', 'Invalid-License'))
+        passed, report = self.scan()
+        self.assertFalse(passed)
+        self.assertIn('Invalid-License', report['non_compliant']['missing_licenses'])
+
+    def test_full_audit_includes_unchanged_debt_but_never_web(self):
+        self.write('web/new.py', 'value = 1\n')
+        self.write('web/REUSE.toml', 'invalid toml {{{')
+        passed, report = self.scan(full=True)
+        self.assertFalse(passed)
+        self.assertEqual(report['remaining_files'], ['old.py'])
+        self.assertEqual(report['scan']['mode'], 'full')
+        self.assertFalse(any(p.startswith('web/') for p in report['scan']['files']))
+
+    def test_commit_base_rename_and_deletion(self):
+        base = self.git('rev-parse', 'HEAD').decode().strip()
+        self.git('mv', 'old.py', 'renamed.py')
+        self.git('rm', 'good.py')
+        self.commit()
+        passed, report = self.scan(base=base)
+        self.assertFalse(passed)
+        self.assertEqual(report['scan']['files'], ['renamed.py'])
+        self.assertEqual(report['remaining_files'], ['renamed.py'])
+
+    def test_tracked_website_metadata_never_selects_or_expands_a_scan(self):
+        self.write('web/REUSE.toml', 'invalid toml {{{')
+        self.write('web/LICENSES/Invalid-License.txt', 'unrecognized license\n')
+        self.commit()
+        self.write('web/REUSE.toml', 'still invalid {{{')
+        passed, report = self.scan()
+        self.assertTrue(passed)
+        self.assertEqual(report['scan']['mode'], 'incremental')
+        self.assertEqual(report['scan']['files'], [])
+        (self.root / 'old.py').unlink()
+        passed, report = self.scan(full=True)
+        self.assertTrue(passed)
+        self.assertFalse(any(p.startswith('web/') for p in report['scan']['context_files']))
+
+    def test_shared_metadata_and_missing_base_expand_to_full(self):
+        self.write('REUSE.toml', 'version = 1\n')
+        passed, report = self.scan()
+        self.assertFalse(passed)
+        self.assertEqual(report['scan']['mode'], 'full')
+        self.assertIn('REUSE.toml', report['scan']['reason'])
+        (self.root / 'REUSE.toml').unlink()
+        passed, report = self.scan(base='0' * 40)
+        self.assertFalse(passed)
+        self.assertEqual(report['scan']['mode'], 'full')
+        self.assertIn('unavailable', report['scan']['reason'])
+
+    def test_license_removal_and_sidecar_change_expand_to_full(self):
+        self.git('rm', 'LICENSES/Apache-2.0.txt')
+        passed, report = self.scan()
+        self.assertFalse(passed)
+        self.assertEqual(report['scan']['mode'], 'full')
+        self.assertIn('Apache-2.0', report['non_compliant']['missing_licenses'])
+        self.write('LICENSES/Apache-2.0.txt',
+                   (license_policy.ROOT / 'LICENSES/Apache-2.0.txt').read_text())
+        self.write('old.py.license', self.HEADER)
+        passed, report = self.scan()
+        self.assertTrue(passed)
+        self.assertEqual(report['scan']['mode'], 'full')
+
+    def test_incremental_unused_text_is_advisory_and_empty_change_passes(self):
+        self.write('LICENSES/MIT.txt', (license_policy.ROOT / 'LICENSES/MIT.txt').read_text())
+        self.commit()
+        passed, report = self.scan()
+        self.assertTrue(passed)
+        self.assertEqual(report['scan']['files'], [])
+        self.assertIn('MIT', report['advisory_findings']['unused_licenses'])
+        passed, report = self.scan(full=True)
+        self.assertFalse(passed)
+        self.assertIn('MIT', report['non_compliant']['unused_licenses'])
+
+    def test_global_attribution_and_sidecars_are_available_to_subset(self):
+        self.write('REUSE.toml', 'version = 1\n[[annotations]]\npath = ["data.json"]\n'
+                   'SPDX-FileCopyrightText = "FoBE Studio"\n'
+                   'SPDX-License-Identifier = "Apache-2.0"\n')
+        self.write('asset.bin', 'binary fixture\n')
+        self.write('asset.bin.license', self.HEADER)
+        self.write('data.json', '{}\n')
+        self.commit()
+        self.write('data.json', '{"new": true}\n')
+        self.write('asset.bin', 'updated binary fixture\n')
+        passed, report = self.scan()
+        self.assertTrue(passed)
+        self.assertEqual(report['scan']['mode'], 'incremental')
+
+    def test_symlinks_and_submodule_directories_are_not_exported(self):
+        (self.root / 'linked.py').symlink_to(self.root / 'old.py')
+        self.write('nested/repo.py', 'value = 1\n')
+        subprocess.run(['git', 'init', '-q', self.root / 'nested'], check=True)
+        passed, report = self.scan()
+        self.assertTrue(passed)
+        self.assertEqual(report['scan']['files'], [])
+
+    def test_new_repository_falls_back_to_full(self):
+        shutil.rmtree(self.root / '.git')
+        self.git('init', '-q')
+        passed, report = self.scan()
+        self.assertFalse(passed)
+        self.assertEqual(report['scan']['mode'], 'full')
 
 
 if __name__ == '__main__':

@@ -1,14 +1,17 @@
 # SPDX-FileCopyrightText: 2026 FoBE Studio
 # SPDX-License-Identifier: Apache-2.0
-"""Apply repository metadata scope and distribution exceptions to a REUSE report."""
+"""Check changed Git files by default, or audit all eligible files with --full."""
 
 import argparse
 from collections import Counter
 import hashlib
 import json
+import os
 from pathlib import Path, PurePosixPath
 import re
+import shutil
 import subprocess
+import tempfile
 import tomllib
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -94,7 +97,7 @@ def exemptions(root, policy):
     return active, inactive
 
 
-def evaluate(report, root, policy):
+def evaluate(report, root, policy, *, incremental=False):
     """Filter missing metadata only, retaining all other REUSE failure classes."""
     issues = report['non_compliant']
     if (report['lint_version'] != '1.0' or not isinstance(issues, dict)
@@ -123,6 +126,11 @@ def evaluate(report, root, policy):
     # Only the unused-text finding is filtered. Missing/bad licenses and the
     # scanner's original report remain untouched; source files get no new grant.
     effective['unused_licenses'] = sorted(set(issues['unused_licenses']) - distribution.keys())
+    advisory = {}
+    if incremental:
+        # A subset cannot establish that a text is unused throughout the repository.
+        advisory['unused_licenses'] = effective['unused_licenses']
+        effective['unused_licenses'] = []
     excluded = {}
     for field in METADATA:
         effective[field] = sorted(set(issues[field]) - active.keys())
@@ -135,6 +143,7 @@ def evaluate(report, root, policy):
         'raw_summary': report['summary'],
         'policy_compliant': not any(effective.values()),
         'non_compliant': effective,
+        'advisory_findings': advisory,
         'exempted_files': excluded,
         'distribution_license_texts': {key: distribution[key] for key in issues['unused_licenses'] if key in distribution},
         'inactive_exemptions': inactive,
@@ -161,12 +170,21 @@ def write_reports(result, output):
         f'- Remaining unique files: {len(result["remaining_files"])}', '',
         '## Other REUSE findings (not exempted)', '',
     ]
+    if 'scan' in result:
+        scope = result['scan']
+        lines[6:6] = [f'- Scan mode: {scope["mode"]}',
+                      f'- Selection reason: {scope["reason"]}',
+                      '- Temporarily excluded tree: `web/`', '']
     for field, value in missing.items():
         if field not in METADATA and value:
             lines.append(f'- `{field}`: `{json.dumps(value)}`')
     if result['distribution_license_texts']:
         lines += ['', '## Distribution-only standard texts', '']
         lines += [f'- `{key}`: {reason}' for key, reason in result['distribution_license_texts'].items()]
+    if result['advisory_findings']:
+        lines += ['', '## Advisory findings for the selected subset', '']
+        lines += [f'- `{key}`: `{json.dumps(value)}`'
+                  for key, value in result['advisory_findings'].items() if value]
     lines += ['', '## Remaining files', '',
               '| Repository path | Missing copyright | Missing license |',
               '| --- | --- | --- |']
@@ -185,20 +203,83 @@ def write_reports(result, output):
     (output / 'license-remaining-files.md').write_text('\n'.join(lines) + '\n')
 
 
-def scan(root, output):
-    output.mkdir(parents=True, exist_ok=True)
+def git_paths(root, *args):
+    output = subprocess.check_output(['git', *args], cwd=root)
+    return {os.fsdecode(path) for path in output.split(b'\0') if path}
+
+
+def licensing_context(name):
+    path = PurePosixPath(name)
+    return (path.name == 'REUSE.toml' or name == '.reuse/dep5'
+            or path.suffix == '.license' or 'LICENSES' in path.parts
+            or path.name.startswith(('LICENSE', 'COPYING')))
+
+
+def select_files(root, *, base=None, full=False):
+    """Git enumerates files without the directory optimization used by REUSE."""
+    available = git_paths(root, 'ls-files', '--cached', '--others', '--exclude-standard', '-z')
+    available = {name for name in available if not name.startswith('web/')
+                 and (root / name).is_file() and (root / name).resolve() == root / name}
+    reference = base or 'HEAD'
+    reason = 'explicit complete audit' if full else f'changes against {reference}'
+    if not full:
+        resolved = subprocess.run(['git', 'rev-parse', '--verify', '--quiet', '--end-of-options',
+                                   f'{reference}^{{commit}}'], cwd=root, capture_output=True)
+        if resolved.returncode:
+            full, reason = True, f'comparison base unavailable: {reference}'
+        else:
+            changed = git_paths(root, 'diff', '--name-only', '--no-renames', '-z',
+                                resolved.stdout.decode().strip(), '--')
+            changed |= git_paths(root, 'ls-files', '--others', '--exclude-standard', '-z')
+            shared = sorted(name for name in changed if not name.startswith('web/') and (
+                licensing_context(name) or PurePosixPath(name).name == '.gitignore'
+                or name in {'.github/license-policy.toml', 'LICENSING.md',
+                            'scripts/ci/license_policy.py'}))
+            if shared:
+                full, reason = True, 'shared licensing inputs changed: ' + ', '.join(shared)
+    selected = available if full else available & changed
+    context = {name for name in available if licensing_context(name)}
+    return {
+        'mode': 'full' if full else 'incremental', 'base': reference if not full else None,
+        'reason': reason, 'files': sorted(selected),
+        'context_files': sorted(context - selected), 'excluded_trees': ['web/'],
+    }
+
+
+def reuse_report(root, output):
+    """Retain the unmodified scanner report and fail on invalid scanner output."""
     with (output / 'reuse.json').open('w') as stdout, (output / 'reuse.stderr').open('w') as stderr:
-        process = subprocess.run(['reuse', 'lint', '--json'], cwd=root, stdout=stdout, stderr=stderr)
+        process = subprocess.run(['reuse', '--root', '.', 'lint', '--json'],
+                                 cwd=root, stdout=stdout, stderr=stderr)
     if process.returncode not in (0, 1):
         raise subprocess.CalledProcessError(process.returncode, process.args)
     report = json.loads((output / 'reuse.json').read_text())
     if (process.returncode == 0) != report['summary']['compliant']:
         raise ValueError('REUSE exit status disagrees with its report')
+    return report
+
+
+def scan(root, output, *, base=None, full=False):
+    root, output = root.resolve(), output.resolve()
+    scope = select_files(root, base=base, full=full)
+    output.mkdir(parents=True, exist_ok=True)
+    (output / 'license-policy.json').unlink(missing_ok=True)
+    (output / 'license-scan.json').write_text(json.dumps(scope, indent=2) + '\n')
+    with tempfile.TemporaryDirectory(prefix='meshbus-license-') as temporary:
+        snapshot = Path(temporary)
+        for name in scope['files'] + scope['context_files']:
+            target = snapshot / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(root / name, target)
+        report = reuse_report(snapshot, output)
     with (root / '.github/license-policy.toml').open('rb') as stream:
         policy = tomllib.load(stream)
-    result = evaluate(report, root, policy)
+    result = evaluate(report, root, policy, incremental=scope['mode'] == 'incremental')
+    result['scan'] = scope
     write_reports(result, output)
     counts = Counter(item['category'] for item in result['exempted_files'].values())
+    print(f'License scan: {scope["mode"]}; {len(scope["files"])} selected files; '
+          f'web/ excluded; {scope["reason"]}')
     print(f'Metadata exemptions: {len(result["exempted_files"])} ({dict(counts)})')
     print(f'Remaining metadata findings: {len(result["remaining_files"])} files; '
           f'repository license policy passed: {result["policy_compliant"]}')
@@ -208,5 +289,8 @@ def scan(root, output):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument('--base', help='Compare current files with this commit (default: HEAD)')
+    selection.add_argument('--full', action='store_true', help='Audit all eligible Git files except web/')
     args = parser.parse_args()
-    raise SystemExit(0 if scan(ROOT, args.output) else 1)
+    raise SystemExit(0 if scan(ROOT, args.output, base=args.base, full=args.full) else 1)

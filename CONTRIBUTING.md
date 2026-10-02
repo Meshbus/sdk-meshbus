@@ -39,8 +39,11 @@ no approval registry or new signing or certification requirement.
 
 Existing SPDX/REUSE metadata, repository license-policy and font checks remain
 required within the [per-file scope](LICENSING.md#per-file-metadata). Markdown
-documents need no SPDX declaration headers; source/scripts/configuration remain
-in scope. Preserve original upstream notices. CI checks declared metadata and
+documents need no SPDX declaration headers; source/scripts/configuration outside
+the temporarily excluded `web/` tree remain in scope. Daily checks cover changed
+files; shared licensing changes and explicit audits select complete coverage
+outside `web/`. Follow the [check commands](.github/CI.md#license-check-scope).
+Preserve original upstream notices. CI checks declared metadata and
 material integrity; it does not
 prove ownership, legal clearance or completion of maintainer review.
 

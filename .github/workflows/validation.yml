@@ -209,7 +209,12 @@ jobs:
         run: python meshbus/scripts/ci/quality.py secrets
       - name: Repository license policy
         if: ${{ !cancelled() }}
-        run: python meshbus/scripts/ci/quality.py licenses
+        env:
+          FULL: ${{ inputs.full || inputs.strict || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+        run: |
+          args=()
+          if [[ "$FULL" == true ]]; then args+=(--current); fi
+          python meshbus/scripts/ci/quality.py licenses "${args[@]}"
       - name: Workflow, Python and commit style
         if: ${{ !cancelled() }}
         run: python meshbus/scripts/ci/quality.py style

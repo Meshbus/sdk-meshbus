@@ -22,6 +22,8 @@ skills unchanged; project customization belongs in `openspec/config.yaml`.
 
 SPDX scope:
 
+- Temporarily skip the entire `web/` tree in repository SPDX checks, including
+  complete audits. Preserve existing notices and attribution.
 - Markdown needs no per-file SPDX declarations, including guidance and OpenSpec.
 - Source, scripts, build/device/configuration files, test metadata and CI remain
   in scope: use native comments or provenance-backed REUSE metadata. Board
@@ -48,5 +50,8 @@ Review-only requests remain read-only. Keep secrets out of tracked artifacts.
 Report routine findings in conversation. Keep formal acceptance in the change's
 existing task record; follow [output handling](DEVELOPMENT.md#outputs-and-records)
 when files are needed. Report actual checks and unmet acceptance without weakening
-the agreed criteria. For repository changes, run the license policy in the
-development Python environment; fix in-scope findings and report unrelated blockers.
+the agreed criteria. For repository changes, run the default incremental license
+policy in the development Python environment; include untracked inputs and fix
+selected findings. Use `--base <commit>` for a commit range and `--full` for an
+explicit audit. Shared licensing changes automatically expand the scan. See the
+[license check scope](.github/CI.md#license-check-scope) for commands and evidence.

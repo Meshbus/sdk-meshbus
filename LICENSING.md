@@ -13,18 +13,25 @@ contribution review; release CI checks the materials actually distributed.
 
 | Files | Repository metadata rule |
 | --- | --- |
+| Entire root `web/` tree | Temporarily excluded from repository SPDX scans, including complete audits. Retain existing attribution and third-party notices. |
 | Markdown (`.md`, case-insensitive), including README, agent guidance, PR templates and OpenSpec artifacts/archives | No per-file SPDX declarations. Project-authored documentation uses the repository license; preserve original third-party notices. |
 | Source and headers, scripts, build files, device/configuration files, test/sample metadata and CI workflows | Keep SPDX copyright and license metadata using native comments where supported, or provenance-backed `REUSE.toml` annotations. |
 | Files whose format cannot carry comments | Use suitable existing `REUSE.toml` metadata; do not insert comments that break the format. |
 | Board documentation raster images and plain version values | No per-file metadata required within the existing scoped policy. |
 | Reviewed tool/workspace configuration exceptions | Apply only the exact paths and content hashes in the existing license policy; new or changed files do not automatically qualify. |
 
-The [license-check scope](.github/CI.md#license-check-scope) waives only missing
-Markdown copyright/license metadata, without a content hash or approval entry.
+Outside `web/`, the [license-check scope](.github/CI.md#license-check-scope) waives
+only missing Markdown copyright/license metadata, without a content hash or approval entry.
 It preserves other scanner failures and checks on non-Markdown files. Existing
 central REUSE attribution and third-party license/permission texts remain
 applicable; this policy neither changes those grants nor claims full REUSE
 compliance. Generated skills retain their upstream content and notices.
+
+Daily checks inspect changed files, including local untracked inputs. Complete
+audits run explicitly, during scheduled/manual complete CI, and when shared
+licensing inputs change. Ignored untracked dependencies and generated output
+are excluded before scanning. An incremental pass covers the reported selection;
+release checks continue to verify the materials actually distributed.
 
 ## Compiled dependency admission
 

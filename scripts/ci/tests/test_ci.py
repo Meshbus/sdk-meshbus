@@ -140,6 +140,17 @@ class Gates(unittest.TestCase):
                 self.assertEqual(invoked.call_count, 1)
                 self.assertEqual(invoked.call_args.args[1], 'scripts/ci/license_policy.py')
 
+    def test_license_check_passes_exact_base_or_requests_complete_audit(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with patch.object(quality, 'OUT', Path(temporary)), patch.object(quality, 'run') as invoked, \
+                    patch.dict(os.environ, {'DIFF_BASE': '0' * 40}):
+                quality.quality('licenses', None)
+                self.assertEqual(invoked.call_args.args[-2:], ('--base', '0' * 40))
+                quality.quality('licenses', 'a' * 40)
+                self.assertEqual(invoked.call_args.args[-2:], ('--base', 'a' * 40))
+                quality.quality('licenses', None, current=True)
+                self.assertEqual(invoked.call_args.args[-1], '--full')
+
     def test_emulation_cannot_qualify_wrong_binary_architecture(self):
         elf = bytearray(20)
         elf[:6] = b'\x7fELF\x02\x01'
