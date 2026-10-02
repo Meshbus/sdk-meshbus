@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: 2026 FoBE Studio
+# SPDX-License-Identifier: Apache-2.0
+name: CI scheduling benchmark
+on:
+  workflow_dispatch:
+    inputs:
+      case:
+        description: Fixed Twister inventory; never release qualification
+        type: choice
+        options: [full, clock-small]
+        required: true
+      scheduler:
+        description: Scheduler to measure
+        type: choice
+        options: [legacy, balanced]
+        required: true
+      source:
+        description: Exact main commit SHA, shared by comparison runs
+        type: string
+        required: true
+      image:
+        description: Immutable Builder image including sha256 digest
+        type: string
+        required: true
+      history-artifact:
+        description: Trusted main CI ci-timings artifact ID; empty for initial discovery
+        type: string
+        default: ''
+      history-sha256:
+        description: SHA256 of timings.json in the pinned history artifact
+        type: string
+        default: ''
+      inventory-sha256:
+        description: Expected Twister inventory hash; empty for initial discovery
+        type: string
+        default: ''
+permissions:
+  contents: read
+  actions: read
+jobs:
+  validation:
+    uses: ./.github/workflows/validation.yml
+    with:
+      image: ${{ inputs.image }}
+      benchmark-case: ${{ inputs.case }}
+      scheduler: ${{ inputs.scheduler }}
+      benchmark-sha: ${{ inputs.source }}
+      history-artifact: ${{ inputs.history-artifact }}
+      history-sha256: ${{ inputs.history-sha256 }}
+      inventory-sha256: ${{ inputs.inventory-sha256 }}

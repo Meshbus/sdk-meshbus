@@ -367,7 +367,7 @@ class Planning(unittest.TestCase):
                     else:
                         test_plan.generate(root, snapshot)
                         matrix = json.loads((snapshot / 'shards.json').read_text())['include']
-                        self.assertEqual([part['layer'] for part in matrix], expected_layers)
+                        self.assertEqual([task['layer'] for part in matrix for task in part['tasks']], expected_layers)
         test_plan.verify({'testsuites': []}, [], False)
 
     def test_board_compile_scope_does_not_filter_component_platforms(self):
@@ -445,7 +445,8 @@ class Planning(unittest.TestCase):
                 self.assertEqual(execute.call_count, 1)
             self.assertEqual(json.loads((snapshot / 'runtime.json').read_text()), {'testsuites': []})
             matrix = json.loads((snapshot / 'shards.json').read_text())['include']
-            self.assertEqual(matrix, [{'layer': 'compile', 'shard': 0, 'name': 'Twister Build (1)'}])
+            self.assertEqual(matrix, [{'id': 'compile-0', 'name': 'Twister Build (1)',
+                                       'tasks': [{'layer': 'compile', 'shard': 0}]}])
 
     def test_light_installer_only_downloads_existing_source_tools(self):
         import importlib.util

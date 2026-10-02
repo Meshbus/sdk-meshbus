@@ -21,6 +21,24 @@ on:
       image:
         type: string
         default: stable
+      benchmark-case:
+        type: string
+        default: ''
+      scheduler:
+        type: string
+        default: balanced
+      benchmark-sha:
+        type: string
+        default: ''
+      history-artifact:
+        type: string
+        default: ''
+      history-sha256:
+        type: string
+        default: ''
+      inventory-sha256:
+        type: string
+        default: ''
     outputs:
       image:
         value: ${{ jobs.plan.outputs.image }}
@@ -44,6 +62,8 @@ jobs:
       image: ${{ steps.image.outputs.image }}
       sdk: ${{ steps.reuse.outputs.sdk || steps.plan.outputs.sdk }}
       products: ${{ steps.plan.outputs.products }}
+      product-builds: ${{ steps.reuse.outputs.product_builds || steps.plan.outputs.product_builds }}
+      openspec: ${{ steps.plan.outputs.openspec }}
       workspace: ${{ steps.plan.outputs.workspace }}
       heavy: ${{ steps.plan.outputs.heavy }}
       audit: ${{ steps.plan.outputs.audit }}
@@ -73,17 +93,28 @@ jobs:
           FULL: ${{ inputs.full || inputs.strict }}
           EVENT: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
+          BENCHMARK_CASE: ${{ inputs.benchmark-case }}
+          SCHEDULER: ${{ inputs.scheduler }}
+          BENCHMARK_SHA: ${{ inputs.benchmark-sha }}
+          IMAGE_INPUT: ${{ inputs.image }}
+          HISTORY_ARTIFACT: ${{ inputs.history-artifact }}
+          HISTORY_SHA256: ${{ inputs.history-sha256 }}
+          INVENTORY_SHA256: ${{ inputs.inventory-sha256 }}
         run: |
           args=()
           if [[ -n "$PR_BASE" ]]; then args+=(--base "$PR_BASE"); fi
           if [[ "$EVENT" == push ]]; then args+=(--before "$BEFORE"); fi
           if [[ "$FULL" == true || "$EVENT" == schedule || "$EVENT" == workflow_dispatch ]]; then args+=(--full --audit-current); fi
           python scripts/ci/plan.py "${args[@]}" --output ../snapshot/plan.json
+          python scripts/ci/benchmark.py configure --snapshot ../snapshot \
+            --case "$BENCHMARK_CASE" --scheduler "$SCHEDULER" --source "$BENCHMARK_SHA" \
+            --image "$IMAGE_INPUT" --history-artifact "$HISTORY_ARTIFACT" \
+            --history-sha256 "$HISTORY_SHA256" --inventory-sha256 "$INVENTORY_SHA256"
       - id: image
         if: steps.plan.outputs.heavy == 'true'
         env:
           IMAGE_REF: ${{ inputs.image }}
-        run: python meshbus/scripts/ci/image.py --repository Meshbus/sdk-meshbus --reference "$IMAGE_REF"
+        run: python meshbus/scripts/ci/image.py --repository Meshbus/sdk-meshbus --reference "${IMAGE_REF#ghcr.io/meshbus/sdk-meshbus-builder@}"
       - name: Reuse successful full CI Twister validation
         id: reuse
         if: inputs.reuse-twister
@@ -108,6 +139,7 @@ jobs:
       image: ${{ needs.plan.outputs.image }}
       shards: ${{ steps.shards.outputs.matrix }}
       products: ${{ steps.products.outputs.matrix }}
+      product-builds: ${{ steps.products.outputs.builds }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -135,9 +167,6 @@ jobs:
               chmod -R a+rX /work/snapshot/tools
             '
           printf '%s\n' "$IMAGE" > snapshot/image.txt
-      - name: Verify reused Twister dependency graph
-        if: inputs.reuse-twister
-        run: python meshbus/scripts/ci/baseline.py verify --snapshot snapshot
       - id: products
         if: needs.plan.outputs.products == 'true'
         env:
@@ -145,8 +174,19 @@ jobs:
         run: |
           docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work "$IMAGE" \
             python meshbus/scripts/release/release.py matrix > snapshot/products.json
-          python meshbus/scripts/ci/product_impact.py --plan snapshot/plan.json --matrix snapshot/products.json
+          python meshbus/scripts/ci/product_impact.py --plan snapshot/plan.json \
+            --matrix snapshot/products.json --builds snapshot/product-builds.json
           echo "matrix=$(jq -c . snapshot/products.json)" >> "$GITHUB_OUTPUT"
+          echo "builds=$(jq -c . snapshot/product-builds.json)" >> "$GITHUB_OUTPUT"
+      - name: Verify reused test and product evidence
+        if: inputs.reuse-twister
+        run: python meshbus/scripts/ci/baseline.py verify --snapshot snapshot
+      - name: Load compatible scheduling measurements
+        if: needs.plan.outputs.sdk == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          IMAGE: ${{ needs.plan.outputs.image }}
+        run: python meshbus/scripts/ci/timings.py history --snapshot snapshot --image "$IMAGE"
       - id: shards
         if: needs.plan.outputs.sdk == 'true'
         env:
@@ -156,7 +196,7 @@ jobs:
             git config --global --add safe.directory /work/meshbus
             python meshbus/scripts/ci/test_plan.py generate --workspace /work --snapshot /work/snapshot
           '
-          echo "matrix=$(jq -c . snapshot/shards.json)" >> "$GITHUB_OUTPUT"
+          echo "matrix=$(jq -c '{include: .include}' snapshot/shards.json)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: source-snapshot
@@ -166,6 +206,7 @@ jobs:
 
   lightweight:
     name: Source checks
+    needs: plan
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
@@ -180,23 +221,38 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.12'
+          cache: pip
+          cache-dependency-path: meshbus/.github/docker/requirements.lock
+      - id: tools
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/source-tool-archives
+          key: source-tools-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('meshbus/.github/docker/install-tools.py') }}
       - name: Install existing pinned source-check tools
         run: |
           python -m pip install -c meshbus/.github/docker/requirements.lock PyYAML reuse ruff
-          python meshbus/.github/docker/install-tools.py --light --prefix "$RUNNER_TEMP/source-tools"
+          python meshbus/.github/docker/install-tools.py --light --prefix "$RUNNER_TEMP/source-tools" \
+            --cache-dir "$RUNNER_TEMP/source-tool-archives"
           echo "$RUNNER_TEMP/source-tools/actionlint" >> "$GITHUB_PATH"
           echo "$RUNNER_TEMP/source-tools/gitleaks" >> "$GITHUB_PATH"
+      - uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        if: steps.tools.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          path: ${{ runner.temp }}/source-tool-archives
+          key: ${{ steps.tools.outputs.cache-primary-key }}
       - name: Metadata
         run: python meshbus/scripts/ci/metadata.py
       - name: Documentation
         if: ${{ !cancelled() }}
         run: python meshbus/scripts/ci/docs.py
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        if: needs.plan.outputs.openspec == 'true'
         with:
           node-version: '24'
           cache: npm
           cache-dependency-path: meshbus/package-lock.json
       - name: OpenSpec requirements
+        if: needs.plan.outputs.openspec == 'true'
         working-directory: meshbus
         env:
           OPENSPEC_TELEMETRY: '0'
@@ -341,16 +397,15 @@ jobs:
         uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: .ccache
-          key: ccache-v2-${{ needs.prepare.outputs.image }}-${{ matrix.layer }}-${{ matrix.shard }}-${{ github.sha }}
+          key: ccache-v4-${{ needs.prepare.outputs.image }}-${{ inputs.benchmark-case || 'ci' }}-${{ inputs.scheduler }}-${{ matrix.id }}-${{ github.sha }}
           restore-keys: |
-            ccache-v2-${{ needs.prepare.outputs.image }}-${{ matrix.layer }}-${{ matrix.shard }}-
+            ccache-v4-${{ needs.prepare.outputs.image }}-${{ inputs.benchmark-case || 'ci' }}-${{ inputs.scheduler }}-${{ matrix.id }}-
       - env:
-          SHARD: ${{ matrix.shard }}
-          LAYER: ${{ matrix.layer }}
+          JOB: ${{ matrix.id }}
           CCACHE_DIR: ${{ github.workspace }}/.ccache
           CCACHE_BASEDIR: ${{ github.workspace }}
           CCACHE_MAXSIZE: 2G
-        run: python meshbus/scripts/ci/run.py "$LAYER" --shard "$SHARD"
+        run: python meshbus/scripts/ci/run.py twister --job "$JOB"
       - uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
         if: ${{ !cancelled() && steps.ccache.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
         with:
@@ -359,9 +414,10 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
         with:
-          name: zephyr-${{ matrix.layer }}-${{ matrix.shard }}
+          name: zephyr-${{ matrix.id }}
           path: |
             ci-output/**/twister.json
+            ci-output/**/task-timing.json
             ci-output/**/*.xml
             ci-output/**/*.log
           retention-days: 14
@@ -508,9 +564,9 @@ jobs:
           if-no-files-found: error
 
   products:
-    name: Firmware / ${{ matrix.id }}
+    name: Firmware / ${{ matrix.id }} (${{ matrix.profile }})
     needs: [plan, prepare]
-    if: needs.plan.outputs.products == 'true'
+    if: needs.plan.outputs.product-builds == 'true'
     runs-on: ubuntu-24.04
     container:
       image: ${{ needs.prepare.outputs.image }}
@@ -523,7 +579,7 @@ jobs:
     timeout-minutes: 120
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.prepare.outputs.products) }}
+      matrix: ${{ fromJSON(needs.prepare.outputs.product-builds) }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -532,11 +588,12 @@ jobs:
       - uses: ./meshbus/.github/actions/workspace
       - env:
           BOARD: ${{ matrix.board }}
-        run: python meshbus/scripts/ci/run.py product --target "$BOARD"
+          PROFILE: ${{ matrix.profile }}
+        run: python meshbus/scripts/ci/run.py product --target "$BOARD" --product-profile "$PROFILE"
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
         with:
-          name: product-evidence-${{ matrix.id }}
+          name: product-evidence-${{ matrix.id }}-${{ matrix.profile }}
           include-hidden-files: true
           path: |
             product-build/**/build.log
@@ -576,3 +633,15 @@ jobs:
           path: test-reports
       - if: needs.plan.outputs.sdk == 'true'
         run: python meshbus/scripts/ci/test_plan.py verify --snapshot snapshot --reports test-reports
+      - name: Record verified scheduling measurements
+        if: needs.plan.outputs.sdk == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python meshbus/scripts/ci/timings.py collect --snapshot snapshot --reports test-reports --output ci-timings/timings.json
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: needs.plan.outputs.sdk == 'true'
+        with:
+          name: ci-timings
+          path: ci-timings
+          retention-days: 90
+          if-no-files-found: error

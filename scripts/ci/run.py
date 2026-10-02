@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import time
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKSPACE = ROOT.parent
@@ -45,13 +46,37 @@ def twister(mode, shard):
         command += ['-T', ROOT / root]
     if mode == 'compile':
         command += ['--build-only']
+    started = time.monotonic()
+    passed = False
     run('ccache', '--zero-stats')
     try:
         run(*command, cwd=WORKSPACE)
         from test_plan import verify
         verify(json.loads(selected.read_text()), [output / 'twister.json'], mode == 'runtime')
+        passed = True
     finally:
+        output.mkdir(parents=True, exist_ok=True)
+        (output / 'task-timing.json').write_text(json.dumps({
+            'layer': mode, 'shard': shard, 'seconds': time.monotonic() - started,
+            'passed': passed}) + '\n')
         run('ccache', '--show-stats')
+
+
+def twister_job(job_id):
+    from test_plan import job_tasks
+    jobs = job_tasks(json.loads((WORKSPACE / 'snapshot/shards.json').read_text()))
+    matches = [job for job in jobs if job['id'] == job_id]
+    if len(matches) != 1:
+        raise ValueError('unknown Twister execution job')
+    failures = []
+    for task in matches[0]['tasks']:
+        try:
+            twister(task['layer'], task['shard'])
+        except (subprocess.CalledProcessError, OSError, ValueError, KeyError) as error:
+            failures.append(f"{task['layer']}-{task['shard']}: {error}")
+            print(failures[-1], file=sys.stderr)
+    if failures:
+        raise ValueError('Twister execution tasks failed: ' + '; '.join(failures))
 
 
 def cli(target, candidate, profile='release'):
@@ -136,9 +161,10 @@ def product(board, candidate, profile='default'):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('layer', choices=('host', 'runtime', 'compile', 'cli', 'product'))
+    parser.add_argument('layer', choices=('host', 'runtime', 'compile', 'twister', 'cli', 'product'))
     parser.add_argument('--target')
     parser.add_argument('--shard', type=int, default=0)
+    parser.add_argument('--job')
     parser.add_argument('--candidate', action='store_true')
     parser.add_argument('--profile', choices=('ci', 'release'), default='release')
     parser.add_argument('--product-profile', choices=('default', 'dev', 'prod'), default='default')
@@ -149,6 +175,8 @@ def main():
         host(args.python_only)
     elif args.layer in ('runtime', 'compile'):
         twister(args.layer, args.shard)
+    elif args.layer == 'twister':
+        twister_job(args.job)
     elif args.layer == 'cli':
         cli(args.target, args.candidate, args.profile)
     else:
