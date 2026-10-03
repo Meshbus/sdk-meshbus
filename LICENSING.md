@@ -216,3 +216,11 @@ Source distributions retain their existing declarations, REUSE metadata and
 component-local texts, including unselected source and fonts. External projects
 keep their own notices at the resolved revision. Do not delete original source
 notices to simplify binary downloads.
+
+## Website dependencies and artwork
+
+The independent website dependency graph, runtime/build distinction, artwork
+provenance and retained font notices are documented in
+[web/README.md](web/README.md#dependency-notices). Every static build publishes
+collected third-party license texts. These web dependencies are not firmware
+or CLI inputs.

@@ -117,3 +117,10 @@ For storage tests, use a reviewed test-owned partition and bounded writes/erases
 do not reuse product settings. Physical OLED acceptance needs observation beyond
 the exported frame. Store sensitive mappings and raw transcripts only in ignored
 task storage; shared validation records contain non-sensitive summaries.
+
+## Website checks
+
+Follow [website checks](../web/README.md#checks) for content preparation, rendered
+links/anchors/assets, Pagefind and browser acceptance. Website-only edits use the
+dedicated Node workflow and do not select firmware or CLI builds. Imported guide
+edits trigger the website build; mixed firmware changes retain normal coverage.

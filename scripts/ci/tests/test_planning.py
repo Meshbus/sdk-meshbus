@@ -27,6 +27,22 @@ def suite(name, platform='native_sim/native', status='None'):
 
 
 class Planning(unittest.TestCase):
+    def test_website_inputs_do_not_select_firmware_or_cli(self):
+        for path in ('web/src/pages/index.astro', 'web/package-lock.json',
+                     'web/public/art/network.png', '.github/workflows/web.yml'):
+            with self.subTest(path=path):
+                selected = plan.select([path])
+                for flag in ('full', 'sdk', 'products', 'cli', 'workspace', 'host'):
+                    self.assertFalse(selected[flag], flag)
+
+    def test_website_mixed_changes_preserve_firmware_and_fallback(self):
+        firmware = plan.select(['subsys/clock/clock.c'])
+        mixed = plan.select(['web/src/pages/index.astro', 'subsys/clock/clock.c'])
+        for key in ('sdk', 'products', 'test_roots', 'compile_roots', 'cli'):
+            self.assertEqual(mixed[key], firmware[key], key)
+        for path in ('unknown.file', 'scripts/ci/plan.py', '.github/workflows/other.yml'):
+            self.assertTrue(plan.select(['web/package.json', path])['full'])
+
     def test_component_selection_does_not_expand_test_consumers_recursively(self):
         selected = plan.select(['subsys/clock/clock.c'])
         self.assertIn('tests/subsys/clock', selected['test_roots'])
@@ -467,6 +483,16 @@ class Planning(unittest.TestCase):
     def test_yaml_duplicate_scenario_is_rejected(self):
         with self.assertRaises(ValueError):
             yaml.load('tests:\n  same: {}\n  same: {}\n', Loader=metadata.UniqueLoader)
+
+    def test_only_website_authored_routes_are_delegated(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for name in ['web/content/index.md', 'web/content/guide.rst', 'web/README.md', 'docs/guide.md', 'samples/guide.rst']:
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('[route](/docs/missing/)')
+                expected = [] if name == 'web/content/index.md' else [f'{name}: /docs/missing/']
+                self.assertEqual(docs.broken_links(path, root), expected)
 
     def test_docs_resolve_encoded_paths_and_ignore_urls_and_code(self):
         with tempfile.TemporaryDirectory() as temporary:

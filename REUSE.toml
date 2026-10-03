@@ -2,6 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 version = 1
 
+[[annotations]]
+path = ["web/package.json", "web/package-lock.json", "web/tsconfig.json", "web/src/content/i18n/en.json"]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 FoBE Studio"
+SPDX-License-Identifier = "Apache-2.0"
+
 # Maintainer-confirmed board-file copyright (2026-09-23). Preserve the
 # existing Apache-2.0 headers and Zephyr provenance recorded in LICENSING.md;
 # this attribution does not replace ownership of inherited upstream portions.
@@ -221,3 +227,10 @@ path = [".agents/skills/openspec-*/SKILL.md", ".agents/skills/OPENSPEC-LICENSE"]
 precedence = "closest"
 SPDX-FileCopyrightText = "2024 OpenSpec Contributors"
 SPDX-License-Identifier = "MIT"
+
+# Website artwork: supplied Meshbus project logo and commissioned AI illustrations.
+[[annotations]]
+path = ["web/src/assets/logo.svg", "web/public/favicon.svg", "web/src/assets/mesh-network.png", "web/src/assets/application-loading.png"]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 FoBE Studio"
+SPDX-License-Identifier = "Apache-2.0"

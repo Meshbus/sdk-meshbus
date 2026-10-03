@@ -51,3 +51,10 @@ requiring further review. Their presence does not make them approved Meshbus
 product dependencies; consult the module's
 [restrictions and unresolved items](https://github.com/Meshbus/sdk-u8g2/blob/main/fonts/README.md#restrictions-and-unresolved-items)
 when selecting additional fonts.
+
+## Website display font
+
+The website self-hosts Silkscreen regular Latin from `@fontsource/silkscreen`
+5.3.0 under OFL-1.1. The complete upstream copyright/license is retained in the
+website build notices. See [website provenance](../../web/README.md#artwork-and-font-provenance).
+This display font is separate from firmware font selections.

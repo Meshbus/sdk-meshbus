@@ -324,3 +324,13 @@ independent of build and runtime results. Use the default incremental
 audits are explicit or selected automatically for global attribution and policy
 changes. Local attribution changes expand to their affected source or subtree;
 ignore rules and explanatory prose stay incremental.
+
+## Website development
+
+The standalone [website guide](web/README.md) owns Node 24 installation, Astro
+preview and static output checks. Run `npm --prefix web test`,
+`npm --prefix web run check` and `npm --prefix web run build` for website changes.
+No west environment is required for these commands. The entire `web/` tree is
+temporarily excluded from repository SPDX checks. Mixed changes still require
+the default incremental license policy in the development Python environment
+for files outside `web/`.

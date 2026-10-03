@@ -177,3 +177,9 @@ Dependency changes and newly enabled features require review of the actual
 license path, including embedded fonts and generated material. This policy
 does not replace the Apache-2.0 license of Meshbus-owned code or the individual
 terms of third-party components.
+
+## Project website
+
+The customer site and documentation target https://meshbus.org/. Website source,
+local preview and contribution instructions live in [web/README.md](web/README.md).
+The site imports the owning guides; edit those guides to update technical content.

@@ -109,3 +109,9 @@ scripts/__pycache__/
 
 # Reproducible standalone host CLI dependencies
 !/scripts/meshbus/Cargo.lock
+
+# Website outputs; owner-maintained content stays outside the generated tree.
+/web/.astro/
+/web/dist/
+/web/src/content/docs/
+/web/public/generated/

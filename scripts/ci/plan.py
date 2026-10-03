@@ -20,6 +20,9 @@ def openspec_input(path):
 
 
 def category(path):
+    # The dedicated web workflow builds the static site and its content inputs.
+    if path.startswith('web/') or path == '.github/workflows/web.yml':
+        return 'docs'
     # OpenSpec and the root npm package are development workflow inputs only.
     # Source checks validate them without restoring a firmware workspace.
     if openspec_input(path):

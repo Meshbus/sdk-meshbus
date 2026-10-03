@@ -14,6 +14,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def broken_links(path, root):
+    # Authored website Markdown uses public routes, validated in web/dist.
+    if path.suffix == '.md' and path.relative_to(root).as_posix().startswith('web/content/'):
+        return []
     text = re.sub(r'^\s*(`{3,}|~{3,}).*?^\s*\1\s*$', '', path.read_text(), flags=re.M | re.S)
     links = re.findall(r'\]\(([^\s)]+)(?:\s+"[^"]*")?\)', text)
     links += re.findall(r'^\s*\.\. (?:include|literalinclude|image|figure)::\s+(\S+)', text, flags=re.M)

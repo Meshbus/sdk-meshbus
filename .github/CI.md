@@ -499,3 +499,17 @@ Missing or conflicting product, native or material evidence fails the release.
 Manifest schema 3 covers the new layout; schemas 1/2 preserve original public
 alpha.1/2 verification. Advance firmware VERSION and the tag together; never add
 or replace assets in an existing public version.
+
+## Website workflow
+
+[web.yml](workflows/web.yml) validates the standalone Astro/Starlight site with
+Node 24, locked installation, tests, type/input checks and rendered production
+checks. Its paths include the ten imported guides and website-owned inputs.
+`web/scripts/check-inputs.mjs` rejects missing trigger coverage for copied assets.
+Only `web/**` and this dedicated workflow are newly source-only in the firmware
+planner; shared CI changes and mixed firmware edits retain conservative coverage.
+
+PRs validate without Pages write permissions. A successful main build can publish
+its checked artifact through the github-pages environment. See
+[publication and rollback](../web/README.md#github-pages-publication); hosted runs
+and live HTTPS checks remain separate from local acceptance.
