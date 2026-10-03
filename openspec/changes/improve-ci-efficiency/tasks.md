@@ -30,7 +30,7 @@
 - [x] 5.1 Validate the exact staged tree, commit functional batches excluding website work, push and confirm full CI success.
 - [x] 5.2 Complete exact-source Candidate and explicit/automatic staging runs; verify reused builds and no publication.
 - [x] 5.3 Compare fixed full/small inventories with cold preparation and two warm samples per scheduler; meet the documented runner/wall-time criteria.
-- [ ] 5.4 Record actual evidence, preserve website changes, push acceptance record and verify remote equality.
+- [x] 5.4 Record actual evidence, preserve website changes, push acceptance record and verify remote equality.
 
 ## Validation
 
@@ -137,5 +137,9 @@ Acceptance record validation:
   incrementally, excluded the entire web tree and reported no remaining findings.
 - Submission contains only this existing task record. Concurrent website edits
   and all website companion changes remain outside the submission.
+- Acceptance record commit `6ffb21e1ae237b2d2df04a310ca12086212ef650` was
+  pushed; local HEAD, tracking ref and remote main matched after the push.
+- [Documentation CI 37099898402](https://github.com/Meshbus/sdk-meshbus/actions/runs/37099898402)
+  passed its three selected jobs: plan, source checks and Required checks.
 
 No hardware or public publication acceptance is claimed by this change.
